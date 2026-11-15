@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Leave empty to use the server that served this page; set e.g. http://127.0.0.1:8000
+       when hosting the frontend separately from the FastAPI backend. -->
+  <meta name="rag-cyber-api" content="">
+  <title>CyberIntelliX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=34">
+</head>
+<body class="entry">
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#/assistant" aria-label="CyberIntelliX home">
+        <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 3 6 10v12c0 11 7.6 19.8 18 23 10.4-3.2 18-12 18-23V10L24 3Z" fill="currentColor"/>
+          <path d="M24 12 14 16v7c0 6.2 4.2 11.2 10 13 5.8-1.8 10-6.8 10-13v-7l-10-4Z" fill="#030503"/>
+          <path d="m21 19 8 4.5-8 4.5v-9Z" fill="currentColor"/>
+        </svg>
+        <span class="brand-text">CyberIntelli<span class="brand-x">X</span></span>
+      </a>
+
+      <nav class="nav" aria-label="Main">
+        <span id="nav-indicator" class="nav-indicator" aria-hidden="true"></span>
+        <a class="nav-link" href="#/assistant" data-view="assistant">Home</a>
+        <a class="nav-link" href="#/features" data-view="features">Features</a>
+        <a class="nav-link" href="#/data" data-view="data">Resources</a>
+        <a class="nav-link" href="#/graph" data-view="graph">Knowledge Graph</a>
+        <a class="nav-link" href="#/history" data-view="history">History<span id="nav-history-count" class="nav-count" hidden></span></a>
+      </nav>
+
+      <span id="status" class="status status-unknown" title="Backend status">
+        <span class="dot"></span><span id="status-text">Connecting</span>
+      </span>
+    </header>
+
+    <!-- ============ main area ============ -->
+    <div class="main">
+      <header class="viewbar" hidden>
+        <div class="viewbar-text">
+          <h1 id="view-title">Home</h1>
+          <p id="view-sub"></p>
+        </div>
+        <div class="viewbar-actions">
+          <button id="clear" class="btn" type="button">New chat</button>
+        </div>
+      </header>
+
+      <div class="views">
+        <!-- ---------- Assistant ---------- -->
+        <section id="view-assistant" class="view view-assistant">
+          <div class="chat-col">
+            <main id="chat" class="chat" aria-live="polite">
+              <section id="welcome" class="welcome">
+                <p class="hero-badge">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c.6 5.4 4.6 9.4 10 10-5.4.6-9.4 4.6-10 10-.6-5.4-4.6-9.4-10-10 5.4-.6 9.4-4.6 10-10Z" fill="currentColor"/></svg>
+                  RAG-Powered Intelligence
+                </p>
+                <h1 class="hero-title">AI Intelligence<br>Enhanced by <em>RAG</em></h1>
+                <p class="hero-sub">Retrieve. Analyse. Defend. Leverage the power of Retrieval-Augmented Generation
+                   to stay ahead of cyber threats with intelligent insights.</p>
+              </section>
+            </main>
+
+            <button id="jump" class="jump" type="button" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v13m0 0-5-5m5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>Latest</span>
+            </button>
+
+            <div id="dock" class="dock">
+              <form id="composer" class="composer" autocomplete="off">
+                <label class="sr-only" for="input">Your question</label>
+                <textarea id="input" rows="1" maxlength="2000" placeholder="Ask anything about cybersecurity…"></textarea>
+                <span id="counter" class="counter" hidden></span>
+                <button id="send" class="btn btn-primary btn-round" type="submit" aria-label="Search" disabled>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m0 0-6-6m6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </form>
+              <button id="new-chat" class="btn btn-primary" type="button">New chat</button>
+            </div>
+
+            <div class="hero-art" aria-hidden="true">
+              <canvas id="hero3d"></canvas>
+              <svg viewBox="0 0 640 560" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#A3FF32"/><stop offset="0.5" stop-color="#7CFC00"/><stop offset="1" stop-color="#5ACC00"/>
+                  </linearGradient>
+                  <linearGradient id="glassfill" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.03"/>
+                  </linearGradient>
+                  <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+                    <stop offset="0" stop-color="#7CFC00" stop-opacity="0.55"/><stop offset="1" stop-color="#7CFC00" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <g class="circuit" fill="none" stroke="#7CFC00" stroke-width="1.3">
+                  <path d="M330 0v96l-46 46v70"/><path d="M372 0v60l40 40v90"/><path d="M250 30h70l40 40"/>
+                  <path d="M640 120h-90l-40 40v40"/><path d="M640 60h-60l-70 70"/><path d="M470 0v50l30 30"/>
+                  <path d="M320 370v70l-50 50v70"/><path d="M350 370v120l30 30v40"/><path d="M290 372v40l-80 80h-90"/>
+                  <path d="M392 370v60l60 60h90"/><path d="M130 250h60l40 30"/><path d="M0 330h110l50-40"/>
+                  <path d="M640 330h-70l-40-30"/><path d="M640 400h-100l-60-50"/><path d="M180 120l60 60v30"/>
+                </g>
+                <g class="circuit-dots" fill="#7CFC00">
+                  <circle cx="330" cy="96" r="3"/><circle cx="412" cy="100" r="3"/><circle cx="250" cy="30" r="3"/>
+                  <circle cx="550" cy="120" r="3"/><circle cx="500" cy="80" r="3"/><circle cx="270" cy="490" r="3"/>
+                  <circle cx="380" cy="520" r="3"/><circle cx="120" cy="492" r="3"/><circle cx="542" cy="490" r="3"/>
+                  <circle cx="130" cy="250" r="3"/><circle cx="110" cy="330" r="3"/><circle cx="570" cy="330" r="3"/>
+                  <circle cx="540" cy="400" r="3"/><circle cx="180" cy="120" r="3"/>
+                </g>
+                <circle class="hero-glow" cx="340" cy="280" r="210" fill="url(#glow)"/>
+                <path d="M170 280h340" stroke="#7CFC00" stroke-opacity="0.55" stroke-width="1.5"/>
+
+                <g class="tile tile-a" transform="translate(150 280)">
+                  <rect x="-62" y="-62" width="124" height="124" rx="18" transform="rotate(45)" fill="url(#glassfill)" stroke="#ffffff" stroke-opacity="0.75" stroke-width="2.5"/>
+                  <rect x="-44" y="-44" width="88" height="88" rx="12" transform="rotate(45)" fill="none" stroke="#ffffff" stroke-opacity="0.25"/>
+                  <g fill="none" stroke="#ffffff" stroke-width="2.2">
+                    <circle r="8"/><circle cx="-24" cy="-14" r="4.5"/><circle cx="24" cy="-14" r="4.5"/><circle cy="27" r="4.5"/>
+                    <circle cx="-20" cy="20" r="4"/><circle cx="20" cy="20" r="4"/><circle cy="-27" r="4"/>
+                    <path d="M-7-4-20-12M7-4l13-8M0 8v14.5M-6 6-17 17M6 6l11 11M0-8v-15"/>
+                  </g>
+                </g>
+
+                <g class="tile tile-b" transform="translate(340 280)">
+                  <rect x="-74" y="-74" width="148" height="148" rx="20" transform="rotate(45)" fill="#080D08" stroke="url(#gold)" stroke-width="5"/>
+                  <rect x="-56" y="-56" width="112" height="112" rx="14" transform="rotate(45)" fill="none" stroke="#7CFC00" stroke-opacity="0.45"/>
+                  <path d="M-15-6v-10a15 15 0 0 1 30 0v10" fill="none" stroke="url(#gold)" stroke-width="7" stroke-linecap="round"/>
+                  <rect x="-24" y="-6" width="48" height="38" rx="7" fill="url(#gold)"/>
+                  <circle cy="9" r="5" fill="#030503"/><path d="M-2.5 10h5l1.5 12h-8Z" fill="#030503"/>
+                </g>
+
+                <g class="tile tile-c" transform="translate(530 280)">
+                  <rect x="-62" y="-62" width="124" height="124" rx="18" transform="rotate(45)" fill="url(#glassfill)" stroke="#7CFC00" stroke-opacity="0.8" stroke-width="2.5"/>
+                  <rect x="-44" y="-44" width="88" height="88" rx="12" transform="rotate(45)" fill="none" stroke="#ffffff" stroke-opacity="0.25"/>
+                  <g fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M-26 14c-3-26 8-40 26-40s29 14 26 40"/><path d="M-18 22c-4-26 4-40 18-40s22 14 18 40"/>
+                    <path d="M-10 28c-3-24 1-37 10-37s13 13 10 37"/><path d="M-2 32c-2-18-1-32 2-32s4 14 2 32"/>
+                    <path d="M-22-22c6-7 14-11 22-11s16 4 22 11"/>
+                  </g>
+                </g>
+              </svg>
+            </div>
+
+            <p class="hero-watermark" aria-hidden="true">CyberIntelli<span>X</span></p>
+
+            <div class="hero-foot">
+              <span class="hero-foot-title">Build On</span>
+              <ul>
+                <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5.2 3.4 9.4 8 11 4.600-1.600 8-5.800 8-11V5l-8-3Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="m9 12 2.2 2.2L15.5 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>CVE</li>
+                <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>CWE</li>
+                <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 4.5-9 4.5-9-4.5L12 3Zm-9 9 9 4.5 9-4.5M3 16.5 12 21l9-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>CAPEC</li>
+                <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3Zm0 7.5 3.5 6.5h-7l3.5-6.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>ATT&amp;CK</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- Features ---------- -->
+        <section id="view-features" class="view view-features" hidden>
+          <div class="feature-grid">
+            <article class="block feature">
+              <h2>Answers grounded in the graph</h2>
+              <p>Every answer is assembled from records retrieved from the knowledge graph. If the evidence
+                 is not there, the reply is <code>RESULT NOT FOUND</code> rather than a guess.</p>
+            </article>
+            <article class="block feature">
+              <h2>CVE to weakness to attack</h2>
+              <p>Follow the chain from a vulnerability to its weaknesses, the attack patterns that exploit
+                 them and the ATT&amp;CK techniques they map to, drawn as a flow beside the answer.</p>
+            </article>
+            <article class="block feature">
+              <h2>Knowledge Graph explorer</h2>
+              <p>Search any CVE, CWE, CAPEC or ATT&amp;CK record, select a node to load its neighbours and
+                 read its full details in the side panel.</p>
+              <a class="feature-link" href="#/graph">Open the graph</a>
+            </article>
+            <article class="block feature">
+              <h2>Sources you can check</h2>
+              <p>Each answer lists the records and evidence it used, with links to the official NVD and
+                 MITRE pages.</p>
+            </article>
+            <article class="block feature">
+              <h2>Recommended actions</h2>
+              <p>For CVE, CWE, CAPEC and ATT&amp;CK questions the mitigations published in the source
+                 records are laid out as numbered steps.</p>
+            </article>
+            <article class="block feature">
+              <h2>Kept up to date</h2>
+              <p>The knowledge base synchronises with the NVD CVE feed and the MITRE CWE, CAPEC and
+                 ATT&amp;CK catalogues on a schedule.</p>
+              <a class="feature-link" href="#/data">See the sources</a>
+            </article>
+            <article class="block feature">
+              <h2>Measured, not assumed</h2>
+              <p>Precision, recall, F1 and accuracy come from an offline benchmark and are shown with the
+                 answer. When no benchmark has been run, nothing is shown.</p>
+            </article>
+            <article class="block feature">
+              <h2>History</h2>
+              <p>Questions you ask are kept in this browser so you can search them, read the answers again
+                 or ask them again.</p>
+              <a class="feature-link" href="#/history">Open history</a>
+            </article>
+          </div>
+        </section>
+
+        <!-- ---------- History ---------- -->
+        <section id="view-history" class="view view-history" hidden>
+          <div class="split">
+            <div class="list-pane">
+              <div class="toolbar">
+                <label class="sr-only" for="hist-search">Search history</label>
+                <input id="hist-search" class="field" type="search" placeholder="Search questions" autocomplete="off">
+                <label class="sr-only" for="hist-filter">Filter by category</label>
+                <select id="hist-filter" class="field">
+                  <option value="">All categories</option>
+                  <option value="CVE">CVE</option>
+                  <option value="CWE">CWE</option>
+                  <option value="CAPEC">CAPEC</option>
+                  <option value="ATTACK">ATT&amp;CK</option>
+                  <option value="FUNDAMENTALS">Fundamentals</option>
+                  <option value="NOTFOUND">Not found</option>
+                </select>
+              </div>
+              <div id="hist-list" class="hist-list"></div>
+              <div class="list-foot">
+                <span id="hist-total"></span>
+                <button id="hist-clear" class="btn btn-quiet" type="button">Delete all</button>
+              </div>
+            </div>
+            <div id="hist-detail" class="detail-pane">
+              <p class="placeholder">Select a question to review its answer.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- Knowledge Graph ---------- -->
+        <section id="view-graph" class="view view-graph" hidden>
+          <div class="kg">
+            <div class="kg-main">
+              <div class="toolbar kg-toolbar">
+                <div class="kg-search">
+                  <label class="sr-only" for="kg-search">Find an entity</label>
+                  <input id="kg-search" class="field" type="search" autocomplete="off" role="combobox"
+                         aria-expanded="false" aria-controls="kg-results"
+                         placeholder="Find an entity by identifier or name">
+                  <ul id="kg-results" class="kg-results" role="listbox" hidden></ul>
+                </div>
+                <div class="kg-legend" aria-label="Entity types">
+                  <span data-type="CVE"><i></i>CVE</span>
+                  <span data-type="CWE"><i></i>CWE</span>
+                  <span data-type="CAPEC"><i></i>CAPEC</span>
+                  <span data-type="ATTACK"><i></i>ATT&amp;CK</span>
+                </div>
+                <div class="kg-buttons">
+                  <button id="kg-out" class="btn btn-square" type="button" aria-label="Zoom out">&minus;</button>
+                  <button id="kg-in" class="btn btn-square" type="button" aria-label="Zoom in">+</button>
+                  <button id="kg-fit" class="btn" type="button">Fit</button>
+                  <button id="kg-reset" class="btn" type="button">Reset</button>
+                </div>
+              </div>
+              <div id="kg-stage" class="kg-stage">
+                <canvas id="kg-canvas" aria-label="Knowledge graph"></canvas>
+                <div id="kg-tip" class="kg-tip" hidden></div>
+                <div id="kg-empty" class="kg-empty">
+                  <h2>Explore the knowledge graph</h2>
+                  <p>Search for an entity above, or begin with one of the most connected records.</p>
+                  <div id="kg-start" class="kg-start"></div>
+                </div>
+              </div>
+              <p class="kg-foot">Select a node to see its details and load its neighbours. Drag to move, scroll to zoom.</p>
+            </div>
+            <aside id="kg-detail" class="kg-detail" aria-label="Entity details" aria-live="polite">
+              <p class="placeholder">Entity details appear here when you select a node.</p>
+            </aside>
+          </div>
+        </section>
+
+        <!-- ---------- Data & Sources ---------- -->
+        <section id="view-data" class="view view-data" hidden>
+          <div class="data-grid">
+            <section class="block block-wide">
+              <h2 class="block-title">Records in the knowledge graph</h2>
+              <div id="stats" class="stats">
+                <div class="stat" data-type="CVE"><span class="stat-value" data-stat="CVE">--</span><span class="stat-label">CVE vulnerabilities</span></div>
+                <div class="stat" data-type="CWE"><span class="stat-value" data-stat="CWE">--</span><span class="stat-label">CWE weaknesses</span></div>
+                <div class="stat" data-type="CAPEC"><span class="stat-value" data-stat="CAPEC">--</span><span class="stat-label">CAPEC attack patterns</span></div>
+                <div class="stat" data-type="ATTACK"><span class="stat-value" data-stat="ATTACK">--</span><span class="stat-label">ATT&amp;CK techniques</span></div>
+                <div class="stat" data-type="FUNDAMENTALS"><span class="stat-value" data-stat="CyberTerm">--</span><span class="stat-label">Glossary terms</span></div>
+                <div class="stat" data-type="REL"><span class="stat-value" data-stat="relationships">--</span><span class="stat-label">Relationships</span></div>
+              </div>
+            </section>
+
+            <section class="block">
+              <h2 class="block-title">Data sources</h2>
+              <ul id="sources" class="source-list">
+                <li class="source-empty">Waiting for the backend</li>
+              </ul>
+            </section>
+
+            <section class="block">
+              <h2 class="block-title">Relationships by type</h2>
+              <table class="plain-table">
+                <tbody id="rel-table"><tr><td class="source-empty">Waiting for the backend</td></tr></tbody>
+              </table>
+            </section>
+
+            <section class="block block-wide">
+              <h2 class="block-title">Official sources</h2>
+              <ul class="link-list">
+                <li><a href="https://nvd.nist.gov/" target="_blank" rel="noopener noreferrer">NVD</a><span>National Vulnerability Database: CVE records and CVSS scores</span></li>
+                <li><a href="https://cwe.mitre.org/" target="_blank" rel="noopener noreferrer">MITRE CWE</a><span>Common Weakness Enumeration</span></li>
+                <li><a href="https://capec.mitre.org/" target="_blank" rel="noopener noreferrer">MITRE CAPEC</a><span>Common Attack Pattern Enumeration and Classification</span></li>
+                <li><a href="https://attack.mitre.org/" target="_blank" rel="noopener noreferrer">MITRE ATT&amp;CK</a><span>Adversary tactics and techniques</span></li>
+              </ul>
+            </section>
+
+            <section class="block block-wide">
+              <h2 class="block-title">About this system</h2>
+              <p class="prose">Every answer is assembled from records retrieved from the graph: NVD for CVE entries,
+                 and MITRE for CWE, CAPEC and ATT&amp;CK. Relationships between records are taken from the
+                 cross-references published in those feeds and are never inferred. When the evidence does not
+                 support an answer the assistant says so instead of guessing. The benchmark figures shown with
+                 answers come from an offline evaluation set and are not a guarantee for an individual answer.</p>
+            </section>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <script src="script.js?v=23"></script>
+  <script type="module" src="hero3d.js?v=23"></script>
+</body>
+</html>

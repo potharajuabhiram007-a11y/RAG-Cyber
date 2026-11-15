@@ -1,0 +1,5698 @@
+{
+ "version": "1.1",
+ "seed": 424242,
+ "generated_at": "2026-11-15T05:29:34+00:00",
+ "graph": {
+  "CVE": 425770,
+  "CWE": 1352,
+  "CAPEC": 558,
+  "ATTACK": 706,
+  "CyberTerm": 286,
+  "CyberDocument": 38
+ },
+ "description": "Set generated from the knowledge graph with seed 424242 (split: dev). Labels come from the graph records, never from the assistant. The tuning set is used to choose settings; the held-out set is only used to report the final figures.",
+ "cases": [
+  {
+   "id": "h-cwe-a01",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-727?",
+   "expect": "answer",
+   "primary_id": "CWE-727",
+   "required_ids": [
+    "CWE-727"
+   ],
+   "required_facts": [
+    [
+     "OWASP Top Ten 2004 Category A6 - Injection Flaws"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a02",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called OWASP Top Ten 2013 Category A6 - Sensitive Data Exposure?",
+   "expect": "answer",
+   "primary_id": "CWE-934",
+   "required_ids": [
+    "CWE-934"
+   ],
+   "required_facts": [
+    [
+     "OWASP Top Ten 2013 Category A6 - Sensitive Data Exposure"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a03",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Improper Following of Specification by Caller?",
+   "expect": "answer",
+   "primary_id": "CWE-573",
+   "required_ids": [
+    "CWE-573"
+   ],
+   "required_facts": [
+    [
+     "Improper Following of Specification by Caller"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a04",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-432?",
+   "expect": "answer",
+   "primary_id": "CWE-432",
+   "required_ids": [
+    "CWE-432"
+   ],
+   "required_facts": [
+    [
+     "Dangerous Signal Handler not Disabled During Sensitive Operations"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a05",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Buffer Under-read?",
+   "expect": "answer",
+   "primary_id": "CWE-127",
+   "required_ids": [
+    "CWE-127"
+   ],
+   "required_facts": [
+    [
+     "Buffer Under-read"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a06",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Manage User Sessions?",
+   "expect": "answer",
+   "primary_id": "CWE-1018",
+   "required_ids": [
+    "CWE-1018"
+   ],
+   "required_facts": [
+    [
+     "Manage User Sessions"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a07",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-1131?",
+   "expect": "answer",
+   "primary_id": "CWE-1131",
+   "required_ids": [
+    "CWE-1131"
+   ],
+   "required_facts": [
+    [
+     "CISQ Quality Measures (2016) - Security"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a08",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called finalize() Method Declared Public?",
+   "expect": "answer",
+   "primary_id": "CWE-583",
+   "required_ids": [
+    "CWE-583"
+   ],
+   "required_facts": [
+    [
+     "finalize() Method Declared Public"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a09",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Cleartext Storage of Sensitive Information in an Environment Variable?",
+   "expect": "answer",
+   "primary_id": "CWE-526",
+   "required_ids": [
+    "CWE-526"
+   ],
+   "required_facts": [
+    [
+     "Cleartext Storage of Sensitive Information in an Environment Variable"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a10",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-229?",
+   "expect": "answer",
+   "primary_id": "CWE-229",
+   "required_ids": [
+    "CWE-229"
+   ],
+   "required_facts": [
+    [
+     "Improper Handling of Values"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a11",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called OWASP Top Ten 2025 Category A04:2025 - Cryptographic Failures?",
+   "expect": "answer",
+   "primary_id": "CWE-1439",
+   "required_ids": [
+    "CWE-1439"
+   ],
+   "required_facts": [
+    [
+     "OWASP Top Ten 2025 Category A04:2025 - Cryptographic Failures"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a12",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Insecure Automated Optimizations?",
+   "expect": "answer",
+   "primary_id": "CWE-1038",
+   "required_ids": [
+    "CWE-1038"
+   ],
+   "required_facts": [
+    [
+     "Insecure Automated Optimizations"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a13",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-1331?",
+   "expect": "answer",
+   "primary_id": "CWE-1331",
+   "required_ids": [
+    "CWE-1331"
+   ],
+   "required_facts": [
+    [
+     "Improper Isolation of Shared Resources in Network On Chip (NoC)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a14",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Authenticate Actors?",
+   "expect": "answer",
+   "primary_id": "CWE-1010",
+   "required_ids": [
+    "CWE-1010"
+   ],
+   "required_facts": [
+    [
+     "Authenticate Actors"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a15",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called SFP Secondary Cluster: Insecure Authentication Policy?",
+   "expect": "answer",
+   "primary_id": "CWE-951",
+   "required_ids": [
+    "CWE-951"
+   ],
+   "required_facts": [
+    [
+     "SFP Secondary Cluster: Insecure Authentication Policy"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a16",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-905?",
+   "expect": "answer",
+   "primary_id": "CWE-905",
+   "required_ids": [
+    "CWE-905"
+   ],
+   "required_facts": [
+    [
+     "SFP Primary Cluster: Predictability"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a17",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called ASP.NET Misconfiguration: Not Using Input Validation Framework?",
+   "expect": "answer",
+   "primary_id": "CWE-554",
+   "required_ids": [
+    "CWE-554"
+   ],
+   "required_facts": [
+    [
+     "ASP.NET Misconfiguration: Not Using Input Validation Framework"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a18",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Unchecked Return Value?",
+   "expect": "answer",
+   "primary_id": "CWE-252",
+   "required_ids": [
+    "CWE-252"
+   ],
+   "required_facts": [
+    [
+     "Unchecked Return Value"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a19",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-811?",
+   "expect": "answer",
+   "primary_id": "CWE-811",
+   "required_ids": [
+    "CWE-811"
+   ],
+   "required_facts": [
+    [
+     "OWASP Top Ten 2010 Category A2 - Cross-Site Scripting (XSS)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a20",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Excessive Platform Resource Consumption within a Loop?",
+   "expect": "answer",
+   "primary_id": "CWE-1050",
+   "required_ids": [
+    "CWE-1050"
+   ],
+   "required_facts": [
+    [
+     "Excessive Platform Resource Consumption within a Loop"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a21",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Power-On of Untrusted Execution Core Before Enabling Fabric Access Control?",
+   "expect": "answer",
+   "primary_id": "CWE-1193",
+   "required_ids": [
+    "CWE-1193"
+   ],
+   "required_facts": [
+    [
+     "Power-On of Untrusted Execution Core Before Enabling Fabric Access Control"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a22",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-1475?",
+   "expect": "answer",
+   "primary_id": "CWE-1475",
+   "required_ids": [
+    "CWE-1475"
+   ],
+   "required_facts": [
+    [
+     "Incomplete Data/State Propagation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a23",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called OWASP Top Ten 2004 Category A4 - Cross-Site Scripting (XSS) Flaws?",
+   "expect": "answer",
+   "primary_id": "CWE-725",
+   "required_ids": [
+    "CWE-725"
+   ],
+   "required_facts": [
+    [
+     "OWASP Top Ten 2004 Category A4 - Cross-Site Scripting (XSS) Flaws"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a24",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called CISQ Quality Measures (2016) - Reliability?",
+   "expect": "answer",
+   "primary_id": "CWE-1129",
+   "required_ids": [
+    "CWE-1129"
+   ],
+   "required_facts": [
+    [
+     "CISQ Quality Measures (2016) - Reliability"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a25",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-268?",
+   "expect": "answer",
+   "primary_id": "CWE-268",
+   "required_ids": [
+    "CWE-268"
+   ],
+   "required_facts": [
+    [
+     "Privilege Chaining"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a26",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Incomplete Identification of Uploaded File Variables (PHP)?",
+   "expect": "answer",
+   "primary_id": "CWE-616",
+   "required_ids": [
+    "CWE-616"
+   ],
+   "required_facts": [
+    [
+     "Incomplete Identification of Uploaded File Variables (PHP)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a27",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Missing Source Identifier in Entity Transactions on a System-On-Chip (SOC)?",
+   "expect": "answer",
+   "primary_id": "CWE-1302",
+   "required_ids": [
+    "CWE-1302"
+   ],
+   "required_facts": [
+    [
+     "Missing Source Identifier in Entity Transactions on a System-On-Chip (SOC)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a28",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-1382?",
+   "expect": "answer",
+   "primary_id": "CWE-1382",
+   "required_ids": [
+    "CWE-1382"
+   ],
+   "required_facts": [
+    [
+     "ICS Operations (& Maintenance): Emerging Energy Technologies"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a29",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called EJB Bad Practices: Use of Class Loader?",
+   "expect": "answer",
+   "primary_id": "CWE-578",
+   "required_ids": [
+    "CWE-578"
+   ],
+   "required_facts": [
+    [
+     "EJB Bad Practices: Use of Class Loader"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a30",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Unprotected Primary Channel?",
+   "expect": "answer",
+   "primary_id": "CWE-419",
+   "required_ids": [
+    "CWE-419"
+   ],
+   "required_facts": [
+    [
+     "Unprotected Primary Channel"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a31",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-328?",
+   "expect": "answer",
+   "primary_id": "CWE-328",
+   "required_ids": [
+    "CWE-328"
+   ],
+   "required_facts": [
+    [
+     "Use of Weak Hash"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a32",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Uncaught Exception?",
+   "expect": "answer",
+   "primary_id": "CWE-248",
+   "required_ids": [
+    "CWE-248"
+   ],
+   "required_facts": [
+    [
+     "Uncaught Exception"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a33",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Excessive Use of Hard-Coded Literals in Initialization?",
+   "expect": "answer",
+   "primary_id": "CWE-1052",
+   "required_ids": [
+    "CWE-1052"
+   ],
+   "required_facts": [
+    [
+     "Excessive Use of Hard-Coded Literals in Initialization"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a34",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-807?",
+   "expect": "answer",
+   "primary_id": "CWE-807",
+   "required_ids": [
+    "CWE-807"
+   ],
+   "required_facts": [
+    [
+     "Reliance on Untrusted Inputs in a Security Decision"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a35",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which CWE is also known as Double-free?",
+   "expect": "answer",
+   "primary_id": "CWE-415",
+   "required_ids": [
+    "CWE-415"
+   ],
+   "required_facts": [
+    [
+     "Double Free"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a36",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Unexpected Status Code or Return Value?",
+   "expect": "answer",
+   "primary_id": "CWE-394",
+   "required_ids": [
+    "CWE-394"
+   ],
+   "required_facts": [
+    [
+     "Unexpected Status Code or Return Value"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a37",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-1317?",
+   "expect": "answer",
+   "primary_id": "CWE-1317",
+   "required_ids": [
+    "CWE-1317"
+   ],
+   "required_facts": [
+    [
+     "Improper Access Control in Fabric Bridge"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a38",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Static Member Data Element outside of a Singleton Class Element?",
+   "expect": "answer",
+   "primary_id": "CWE-1042",
+   "required_ids": [
+    "CWE-1042"
+   ],
+   "required_facts": [
+    [
+     "Static Member Data Element outside of a Singleton Class Element"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a39",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Use of a One-Way Hash without a Salt?",
+   "expect": "answer",
+   "primary_id": "CWE-759",
+   "required_ids": [
+    "CWE-759"
+   ],
+   "required_facts": [
+    [
+     "Use of a One-Way Hash without a Salt"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a40",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-230?",
+   "expect": "answer",
+   "primary_id": "CWE-230",
+   "required_ids": [
+    "CWE-230"
+   ],
+   "required_facts": [
+    [
+     "Improper Handling of Missing Values"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a41",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called OWASP Top Ten 2013 Category A5 - Security Misconfiguration?",
+   "expect": "answer",
+   "primary_id": "CWE-933",
+   "required_ids": [
+    "CWE-933"
+   ],
+   "required_facts": [
+    [
+     "OWASP Top Ten 2013 Category A5 - Security Misconfiguration"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a42",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called SEI CERT Oracle Secure Coding Standard for Java - Guidelines 05. Object Orientation (OBJ)?",
+   "expect": "answer",
+   "primary_id": "CWE-1139",
+   "required_ids": [
+    "CWE-1139"
+   ],
+   "required_facts": [
+    [
+     "SEI CERT Oracle Secure Coding Standard for Java - Guidelines 05. Object Orientation (OBJ)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a43",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-487?",
+   "expect": "answer",
+   "primary_id": "CWE-487",
+   "required_ids": [
+    "CWE-487"
+   ],
+   "required_facts": [
+    [
+     "Reliance on Package-level Scope"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a44",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Path Equivalence: '/multiple/trailing/slash//'?",
+   "expect": "answer",
+   "primary_id": "CWE-52",
+   "required_ids": [
+    "CWE-52"
+   ],
+   "required_facts": [
+    [
+     "Path Equivalence: '/multiple/trailing/slash//'"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a45",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called CERT C++ Secure Coding Section 10 - Environment (ENV)?",
+   "expect": "answer",
+   "primary_id": "CWE-878",
+   "required_ids": [
+    "CWE-878"
+   ],
+   "required_facts": [
+    [
+     "CERT C++ Secure Coding Section 10 - Environment (ENV)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a46",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-1363?",
+   "expect": "answer",
+   "primary_id": "CWE-1363",
+   "required_ids": [
+    "CWE-1363"
+   ],
+   "required_facts": [
+    [
+     "ICS Operations (& Maintenance)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a47",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Missing Support for Security Features in On-chip Fabrics or Buses?",
+   "expect": "answer",
+   "primary_id": "CWE-1318",
+   "required_ids": [
+    "CWE-1318"
+   ],
+   "required_facts": [
+    [
+     "Missing Support for Security Features in On-chip Fabrics or Buses"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a48",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Missing Standardized Error Handling Mechanism?",
+   "expect": "answer",
+   "primary_id": "CWE-544",
+   "required_ids": [
+    "CWE-544"
+   ],
+   "required_facts": [
+    [
+     "Missing Standardized Error Handling Mechanism"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a49",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-1364?",
+   "expect": "answer",
+   "primary_id": "CWE-1364",
+   "required_ids": [
+    "CWE-1364"
+   ],
+   "required_facts": [
+    [
+     "ICS Communications: Zone Boundary Failures"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a50",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Debug and Test Problems?",
+   "expect": "answer",
+   "primary_id": "CWE-1207",
+   "required_ids": [
+    "CWE-1207"
+   ],
+   "required_facts": [
+    [
+     "Debug and Test Problems"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a51",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Improper Restriction of Software Interfaces to Hardware Features?",
+   "expect": "answer",
+   "primary_id": "CWE-1256",
+   "required_ids": [
+    "CWE-1256"
+   ],
+   "required_facts": [
+    [
+     "Improper Restriction of Software Interfaces to Hardware Features"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a52",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-958?",
+   "expect": "answer",
+   "primary_id": "CWE-958",
+   "required_ids": [
+    "CWE-958"
+   ],
+   "required_facts": [
+    [
+     "SFP Secondary Cluster: Broken Cryptography"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a53",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which CWE is also known as Symlink following?",
+   "expect": "answer",
+   "primary_id": "CWE-61",
+   "required_ids": [
+    "CWE-61"
+   ],
+   "required_facts": [
+    [
+     "UNIX Symbolic Link (Symlink) Following"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a54",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called CERT C++ Secure Coding Section 02 - Declarations and Initialization (DCL)?",
+   "expect": "answer",
+   "primary_id": "CWE-870",
+   "required_ids": [
+    "CWE-870"
+   ],
+   "required_facts": [
+    [
+     "CERT C++ Secure Coding Section 02 - Declarations and Initialization (DCL)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a55",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-1203?",
+   "expect": "answer",
+   "primary_id": "CWE-1203",
+   "required_ids": [
+    "CWE-1203"
+   ],
+   "required_facts": [
+    [
+     "Peripherals, On-chip Fabric, and Interface/IO Problems"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a56",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called CERT C Secure Coding Standard (2008) Chapter 6 - Floating Point (FLP)?",
+   "expect": "answer",
+   "primary_id": "CWE-739",
+   "required_ids": [
+    "CWE-739"
+   ],
+   "required_facts": [
+    [
+     "CERT C Secure Coding Standard (2008) Chapter 6 - Floating Point (FLP)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a57",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Improper Validation of Function Hook Arguments?",
+   "expect": "answer",
+   "primary_id": "CWE-622",
+   "required_ids": [
+    "CWE-622"
+   ],
+   "required_facts": [
+    [
+     "Improper Validation of Function Hook Arguments"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a58",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-270?",
+   "expect": "answer",
+   "primary_id": "CWE-270",
+   "required_ids": [
+    "CWE-270"
+   ],
+   "required_facts": [
+    [
+     "Privilege Context Switching Error"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a59",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Use of Function with Inconsistent Implementations?",
+   "expect": "answer",
+   "primary_id": "CWE-474",
+   "required_ids": [
+    "CWE-474"
+   ],
+   "required_facts": [
+    [
+     "Use of Function with Inconsistent Implementations"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a60",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Excessive Attack Surface?",
+   "expect": "answer",
+   "primary_id": "CWE-1125",
+   "required_ids": [
+    "CWE-1125"
+   ],
+   "required_facts": [
+    [
+     "Excessive Attack Surface"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a61",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-873?",
+   "expect": "answer",
+   "primary_id": "CWE-873",
+   "required_ids": [
+    "CWE-873"
+   ],
+   "required_facts": [
+    [
+     "CERT C++ Secure Coding Section 05 - Floating Point Arithmetic (FLP)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a62",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called Observable Behavioral Discrepancy With Equivalent Products?",
+   "expect": "answer",
+   "primary_id": "CWE-207",
+   "required_ids": [
+    "CWE-207"
+   ],
+   "required_facts": [
+    [
+     "Observable Behavioral Discrepancy With Equivalent Products"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a63",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called OWASP Top Ten 2010 Category A5 - Cross-Site Request Forgery(CSRF)?",
+   "expect": "answer",
+   "primary_id": "CWE-814",
+   "required_ids": [
+    "CWE-814"
+   ],
+   "required_facts": [
+    [
+     "OWASP Top Ten 2010 Category A5 - Cross-Site Request Forgery(CSRF)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a64",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "What is CWE-361?",
+   "expect": "answer",
+   "primary_id": "CWE-361",
+   "required_ids": [
+    "CWE-361"
+   ],
+   "required_facts": [
+    [
+     "7PK - Time and State"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a01",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-164?",
+   "expect": "answer",
+   "primary_id": "CAPEC-164",
+   "required_ids": [
+    "CAPEC-164"
+   ],
+   "required_facts": [
+    [
+     "Mobile Phishing"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a02",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Developer Signing Maliciously Altered Software?",
+   "expect": "answer",
+   "primary_id": "CAPEC-673",
+   "required_ids": [
+    "CAPEC-673"
+   ],
+   "required_facts": [
+    [
+     "Developer Signing Maliciously Altered Software"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a03",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Signal Strength Tracking?",
+   "expect": "answer",
+   "primary_id": "CAPEC-619",
+   "required_ids": [
+    "CAPEC-619"
+   ],
+   "required_facts": [
+    [
+     "Signal Strength Tracking"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a04",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-571?",
+   "expect": "answer",
+   "primary_id": "CAPEC-571",
+   "required_ids": [
+    "CAPEC-571"
+   ],
+   "required_facts": [
+    [
+     "Block Logging to Central Repository"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a05",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Content Spoofing?",
+   "expect": "answer",
+   "primary_id": "CAPEC-148",
+   "required_ids": [
+    "CAPEC-148"
+   ],
+   "required_facts": [
+    [
+     "Content Spoofing"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a06",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Manipulating Web Input to File System Calls?",
+   "expect": "answer",
+   "primary_id": "CAPEC-76",
+   "required_ids": [
+    "CAPEC-76"
+   ],
+   "required_facts": [
+    [
+     "Manipulating Web Input to File System Calls"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a07",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-590?",
+   "expect": "answer",
+   "primary_id": "CAPEC-590",
+   "required_ids": [
+    "CAPEC-590"
+   ],
+   "required_facts": [
+    [
+     "IP Address Blocking"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a08",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called MIME Conversion?",
+   "expect": "answer",
+   "primary_id": "CAPEC-42",
+   "required_ids": [
+    "CAPEC-42"
+   ],
+   "required_facts": [
+    [
+     "MIME Conversion"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a09",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called SOAP Manipulation?",
+   "expect": "answer",
+   "primary_id": "CAPEC-279",
+   "required_ids": [
+    "CAPEC-279"
+   ],
+   "required_facts": [
+    [
+     "SOAP Manipulation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a10",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-699?",
+   "expect": "answer",
+   "primary_id": "CAPEC-699",
+   "required_ids": [
+    "CAPEC-699"
+   ],
+   "required_facts": [
+    [
+     "Eavesdropping on a Monitor"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a11",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Exploit Script-Based APIs?",
+   "expect": "answer",
+   "primary_id": "CAPEC-160",
+   "required_ids": [
+    "CAPEC-160"
+   ],
+   "required_facts": [
+    [
+     "Exploit Script-Based APIs"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a12",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Cellular Rogue Base Station?",
+   "expect": "answer",
+   "primary_id": "CAPEC-617",
+   "required_ids": [
+    "CAPEC-617"
+   ],
+   "required_facts": [
+    [
+     "Cellular Rogue Base Station"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a13",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-509?",
+   "expect": "answer",
+   "primary_id": "CAPEC-509",
+   "required_ids": [
+    "CAPEC-509"
+   ],
+   "required_facts": [
+    [
+     "Kerberoasting"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a14",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called HTTP Parameter Pollution (HPP)?",
+   "expect": "answer",
+   "primary_id": "CAPEC-460",
+   "required_ids": [
+    "CAPEC-460"
+   ],
+   "required_facts": [
+    [
+     "HTTP Parameter Pollution (HPP)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a15",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Resource Location Spoofing?",
+   "expect": "answer",
+   "primary_id": "CAPEC-154",
+   "required_ids": [
+    "CAPEC-154"
+   ],
+   "required_facts": [
+    [
+     "Resource Location Spoofing"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a16",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-158?",
+   "expect": "answer",
+   "primary_id": "CAPEC-158",
+   "required_ids": [
+    "CAPEC-158"
+   ],
+   "required_facts": [
+    [
+     "Sniffing Network Traffic"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a17",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Exploit Non-Production Interfaces?",
+   "expect": "answer",
+   "primary_id": "CAPEC-121",
+   "required_ids": [
+    "CAPEC-121"
+   ],
+   "required_facts": [
+    [
+     "Exploit Non-Production Interfaces"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a18",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Traceroute Route Enumeration?",
+   "expect": "answer",
+   "primary_id": "CAPEC-293",
+   "required_ids": [
+    "CAPEC-293"
+   ],
+   "required_facts": [
+    [
+     "Traceroute Route Enumeration"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a19",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-157?",
+   "expect": "answer",
+   "primary_id": "CAPEC-157",
+   "required_ids": [
+    "CAPEC-157"
+   ],
+   "required_facts": [
+    [
+     "Sniffing Attacks"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a20",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Buffer Overflow via Symbolic Links?",
+   "expect": "answer",
+   "primary_id": "CAPEC-45",
+   "required_ids": [
+    "CAPEC-45"
+   ],
+   "required_facts": [
+    [
+     "Buffer Overflow via Symbolic Links"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a21",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called HTTP Response Splitting?",
+   "expect": "answer",
+   "primary_id": "CAPEC-34",
+   "required_ids": [
+    "CAPEC-34"
+   ],
+   "required_facts": [
+    [
+     "HTTP Response Splitting"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a22",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-231?",
+   "expect": "answer",
+   "primary_id": "CAPEC-231",
+   "required_ids": [
+    "CAPEC-231"
+   ],
+   "required_facts": [
+    [
+     "Oversized Serialized Data Payloads"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a23",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Argument Injection?",
+   "expect": "answer",
+   "primary_id": "CAPEC-6",
+   "required_ids": [
+    "CAPEC-6"
+   ],
+   "required_facts": [
+    [
+     "Argument Injection"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a24",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Resource Leak Exposure?",
+   "expect": "answer",
+   "primary_id": "CAPEC-131",
+   "required_ids": [
+    "CAPEC-131"
+   ],
+   "required_facts": [
+    [
+     "Resource Leak Exposure"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a25",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-267?",
+   "expect": "answer",
+   "primary_id": "CAPEC-267",
+   "required_ids": [
+    "CAPEC-267"
+   ],
+   "required_facts": [
+    [
+     "Leverage Alternate Encoding"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a26",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Signature Spoofing by Mixing Signed and Unsigned Content?",
+   "expect": "answer",
+   "primary_id": "CAPEC-477",
+   "required_ids": [
+    "CAPEC-477"
+   ],
+   "required_facts": [
+    [
+     "Signature Spoofing by Mixing Signed and Unsigned Content"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a27",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Scanning for Vulnerable Software?",
+   "expect": "answer",
+   "primary_id": "CAPEC-310",
+   "required_ids": [
+    "CAPEC-310"
+   ],
+   "required_facts": [
+    [
+     "Scanning for Vulnerable Software"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a28",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-608?",
+   "expect": "answer",
+   "primary_id": "CAPEC-608",
+   "required_ids": [
+    "CAPEC-608"
+   ],
+   "required_facts": [
+    [
+     "Cryptanalysis of Cellular Encryption"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a29",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Credential Prompt Impersonation?",
+   "expect": "answer",
+   "primary_id": "CAPEC-654",
+   "required_ids": [
+    "CAPEC-654"
+   ],
+   "required_facts": [
+    [
+     "Credential Prompt Impersonation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a30",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Manipulation During Distribution?",
+   "expect": "answer",
+   "primary_id": "CAPEC-439",
+   "required_ids": [
+    "CAPEC-439"
+   ],
+   "required_facts": [
+    [
+     "Manipulation During Distribution"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a31",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-127?",
+   "expect": "answer",
+   "primary_id": "CAPEC-127",
+   "required_ids": [
+    "CAPEC-127"
+   ],
+   "required_facts": [
+    [
+     "Directory Indexing"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a32",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Network Boundary Bridging?",
+   "expect": "answer",
+   "primary_id": "CAPEC-700",
+   "required_ids": [
+    "CAPEC-700"
+   ],
+   "required_facts": [
+    [
+     "Network Boundary Bridging"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a33",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Windows ::DATA Alternate Data Stream?",
+   "expect": "answer",
+   "primary_id": "CAPEC-168",
+   "required_ids": [
+    "CAPEC-168"
+   ],
+   "required_facts": [
+    [
+     "Windows ::DATA Alternate Data Stream"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a34",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-605?",
+   "expect": "answer",
+   "primary_id": "CAPEC-605",
+   "required_ids": [
+    "CAPEC-605"
+   ],
+   "required_facts": [
+    [
+     "Cellular Jamming"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a35",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called File Discovery?",
+   "expect": "answer",
+   "primary_id": "CAPEC-497",
+   "required_ids": [
+    "CAPEC-497"
+   ],
+   "required_facts": [
+    [
+     "File Discovery"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a36",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Development Alteration?",
+   "expect": "answer",
+   "primary_id": "CAPEC-444",
+   "required_ids": [
+    "CAPEC-444"
+   ],
+   "required_facts": [
+    [
+     "Development Alteration"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a37",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-198?",
+   "expect": "answer",
+   "primary_id": "CAPEC-198",
+   "required_ids": [
+    "CAPEC-198"
+   ],
+   "required_facts": [
+    [
+     "XSS Targeting Error Pages"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a38",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Using Escaped Slashes in Alternate Encoding?",
+   "expect": "answer",
+   "primary_id": "CAPEC-78",
+   "required_ids": [
+    "CAPEC-78"
+   ],
+   "required_facts": [
+    [
+     "Using Escaped Slashes in Alternate Encoding"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a39",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called TCP Fragmentation?",
+   "expect": "answer",
+   "primary_id": "CAPEC-494",
+   "required_ids": [
+    "CAPEC-494"
+   ],
+   "required_facts": [
+    [
+     "TCP Fragmentation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a40",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-582?",
+   "expect": "answer",
+   "primary_id": "CAPEC-582",
+   "required_ids": [
+    "CAPEC-582"
+   ],
+   "required_facts": [
+    [
+     "Route Disabling"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a41",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Try All Common Switches?",
+   "expect": "answer",
+   "primary_id": "CAPEC-133",
+   "required_ids": [
+    "CAPEC-133"
+   ],
+   "required_facts": [
+    [
+     "Try All Common Switches"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a42",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called PHP Remote File Inclusion?",
+   "expect": "answer",
+   "primary_id": "CAPEC-193",
+   "required_ids": [
+    "CAPEC-193"
+   ],
+   "required_facts": [
+    [
+     "PHP Remote File Inclusion"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a43",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-674?",
+   "expect": "answer",
+   "primary_id": "CAPEC-674",
+   "required_ids": [
+    "CAPEC-674"
+   ],
+   "required_facts": [
+    [
+     "Design for FPGA Maliciously Altered"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a44",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Subvert Code-signing Facilities?",
+   "expect": "answer",
+   "primary_id": "CAPEC-68",
+   "required_ids": [
+    "CAPEC-68"
+   ],
+   "required_facts": [
+    [
+     "Subvert Code-signing Facilities"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a45",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Target Influence via The Human Buffer Overflow?",
+   "expect": "answer",
+   "primary_id": "CAPEC-433",
+   "required_ids": [
+    "CAPEC-433"
+   ],
+   "required_facts": [
+    [
+     "Target Influence via The Human Buffer Overflow"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a46",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-170?",
+   "expect": "answer",
+   "primary_id": "CAPEC-170",
+   "required_ids": [
+    "CAPEC-170"
+   ],
+   "required_facts": [
+    [
+     "Web Application Fingerprinting"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a47",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Double Encoding?",
+   "expect": "answer",
+   "primary_id": "CAPEC-120",
+   "required_ids": [
+    "CAPEC-120"
+   ],
+   "required_facts": [
+    [
+     "Double Encoding"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a48",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Account Footprinting?",
+   "expect": "answer",
+   "primary_id": "CAPEC-575",
+   "required_ids": [
+    "CAPEC-575"
+   ],
+   "required_facts": [
+    [
+     "Account Footprinting"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a49",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-105?",
+   "expect": "answer",
+   "primary_id": "CAPEC-105",
+   "required_ids": [
+    "CAPEC-105"
+   ],
+   "required_facts": [
+    [
+     "HTTP Request Splitting"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a50",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Add Malicious File to Shared Webroot?",
+   "expect": "answer",
+   "primary_id": "CAPEC-563",
+   "required_ids": [
+    "CAPEC-563"
+   ],
+   "required_facts": [
+    [
+     "Add Malicious File to Shared Webroot"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a51",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Format String Injection?",
+   "expect": "answer",
+   "primary_id": "CAPEC-135",
+   "required_ids": [
+    "CAPEC-135"
+   ],
+   "required_facts": [
+    [
+     "Format String Injection"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a52",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-671?",
+   "expect": "answer",
+   "primary_id": "CAPEC-671",
+   "required_ids": [
+    "CAPEC-671"
+   ],
+   "required_facts": [
+    [
+     "Requirements for ASIC Functionality Maliciously Altered"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a53",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Exploitation of Improperly Controlled Hardware Security Identifiers?",
+   "expect": "answer",
+   "primary_id": "CAPEC-681",
+   "required_ids": [
+    "CAPEC-681"
+   ],
+   "required_facts": [
+    [
+     "Exploitation of Improperly Controlled Hardware Security Identifiers"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a54",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Pretexting via Delivery Person?",
+   "expect": "answer",
+   "primary_id": "CAPEC-414",
+   "required_ids": [
+    "CAPEC-414"
+   ],
+   "required_facts": [
+    [
+     "Pretexting via Delivery Person"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a55",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-240?",
+   "expect": "answer",
+   "primary_id": "CAPEC-240",
+   "required_ids": [
+    "CAPEC-240"
+   ],
+   "required_facts": [
+    [
+     "Resource Injection"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a56",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Modification During Manufacture?",
+   "expect": "answer",
+   "primary_id": "CAPEC-438",
+   "required_ids": [
+    "CAPEC-438"
+   ],
+   "required_facts": [
+    [
+     "Modification During Manufacture"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a57",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Signature Spoof?",
+   "expect": "answer",
+   "primary_id": "CAPEC-473",
+   "required_ids": [
+    "CAPEC-473"
+   ],
+   "required_facts": [
+    [
+     "Signature Spoof"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a58",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-616?",
+   "expect": "answer",
+   "primary_id": "CAPEC-616",
+   "required_ids": [
+    "CAPEC-616"
+   ],
+   "required_facts": [
+    [
+     "Establish Rogue Location"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a59",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Root/Jailbreak Detection Evasion via Hooking?",
+   "expect": "answer",
+   "primary_id": "CAPEC-660",
+   "required_ids": [
+    "CAPEC-660"
+   ],
+   "required_facts": [
+    [
+     "Root/Jailbreak Detection Evasion via Hooking"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a60",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Android Activity Hijack?",
+   "expect": "answer",
+   "primary_id": "CAPEC-501",
+   "required_ids": [
+    "CAPEC-501"
+   ],
+   "required_facts": [
+    [
+     "Android Activity Hijack"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a61",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-490?",
+   "expect": "answer",
+   "primary_id": "CAPEC-490",
+   "required_ids": [
+    "CAPEC-490"
+   ],
+   "required_facts": [
+    [
+     "Amplification"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a62",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called XSS Using Alternate Syntax?",
+   "expect": "answer",
+   "primary_id": "CAPEC-199",
+   "required_ids": [
+    "CAPEC-199"
+   ],
+   "required_facts": [
+    [
+     "XSS Using Alternate Syntax"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a63",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called Forced Deadlock?",
+   "expect": "answer",
+   "primary_id": "CAPEC-25",
+   "required_ids": [
+    "CAPEC-25"
+   ],
+   "required_facts": [
+    [
+     "Forced Deadlock"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a64",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "What is CAPEC-87?",
+   "expect": "answer",
+   "primary_id": "CAPEC-87",
+   "required_ids": [
+    "CAPEC-87"
+   ],
+   "required_facts": [
+    [
+     "Forceful Browsing"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a01",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1621?",
+   "expect": "answer",
+   "primary_id": "T1621",
+   "required_ids": [
+    "T1621"
+   ],
+   "required_facts": [
+    [
+     "Multi-Factor Authentication Request Generation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a02",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Modify Cloud Resource Hierarchy?",
+   "expect": "answer",
+   "primary_id": "T1666",
+   "required_ids": [
+    "T1666"
+   ],
+   "required_facts": [
+    [
+     "Modify Cloud Resource Hierarchy"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a03",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Environmental Keying?",
+   "expect": "answer",
+   "primary_id": "T1480.001",
+   "required_ids": [
+    "T1480.001"
+   ],
+   "required_facts": [
+    [
+     "Environmental Keying"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a04",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1480.002?",
+   "expect": "answer",
+   "primary_id": "T1480.002",
+   "required_ids": [
+    "T1480.002"
+   ],
+   "required_facts": [
+    [
+     "Mutual Exclusion"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a05",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Udev Rules?",
+   "expect": "answer",
+   "primary_id": "T1546.017",
+   "required_ids": [
+    "T1546.017"
+   ],
+   "required_facts": [
+    [
+     "Udev Rules"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a06",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Fast Flux DNS?",
+   "expect": "answer",
+   "primary_id": "T1568.001",
+   "required_ids": [
+    "T1568.001"
+   ],
+   "required_facts": [
+    [
+     "Fast Flux DNS"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a07",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1671?",
+   "expect": "answer",
+   "primary_id": "T1671",
+   "required_ids": [
+    "T1671"
+   ],
+   "required_facts": [
+    [
+     "Cloud Application Integration"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a08",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Software?",
+   "expect": "answer",
+   "primary_id": "T1592.002",
+   "required_ids": [
+    "T1592.002"
+   ],
+   "required_facts": [
+    [
+     "Software"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a09",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Scanning IP Blocks?",
+   "expect": "answer",
+   "primary_id": "T1595.001",
+   "required_ids": [
+    "T1595.001"
+   ],
+   "required_facts": [
+    [
+     "Scanning IP Blocks"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a10",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1070.007?",
+   "expect": "answer",
+   "primary_id": "T1070.007",
+   "required_ids": [
+    "T1070.007"
+   ],
+   "required_facts": [
+    [
+     "Clear Network Connection History and Configurations"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a11",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Component Firmware?",
+   "expect": "answer",
+   "primary_id": "T1542.002",
+   "required_ids": [
+    "T1542.002"
+   ],
+   "required_facts": [
+    [
+     "Component Firmware"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a12",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Container CLI/API?",
+   "expect": "answer",
+   "primary_id": "T1059.013",
+   "required_ids": [
+    "T1059.013"
+   ],
+   "required_facts": [
+    [
+     "Container CLI/API"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a13",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1648?",
+   "expect": "answer",
+   "primary_id": "T1648",
+   "required_ids": [
+    "T1648"
+   ],
+   "required_facts": [
+    [
+     "Serverless Execution"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a14",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called System Services?",
+   "expect": "answer",
+   "primary_id": "T1569",
+   "required_ids": [
+    "T1569"
+   ],
+   "required_facts": [
+    [
+     "System Services"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a15",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Dylib Hijacking?",
+   "expect": "answer",
+   "primary_id": "T1574.004",
+   "required_ids": [
+    "T1574.004"
+   ],
+   "required_facts": [
+    [
+     "Dylib Hijacking"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a16",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1571?",
+   "expect": "answer",
+   "primary_id": "T1571",
+   "required_ids": [
+    "T1571"
+   ],
+   "required_facts": [
+    [
+     "Non-Standard Port"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a17",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Video Capture?",
+   "expect": "answer",
+   "primary_id": "T1125",
+   "required_ids": [
+    "T1125"
+   ],
+   "required_facts": [
+    [
+     "Video Capture"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a18",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Pluggable Authentication Modules?",
+   "expect": "answer",
+   "primary_id": "T1556.003",
+   "required_ids": [
+    "T1556.003"
+   ],
+   "required_facts": [
+    [
+     "Pluggable Authentication Modules"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a19",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1546.007?",
+   "expect": "answer",
+   "primary_id": "T1546.007",
+   "required_ids": [
+    "T1546.007"
+   ],
+   "required_facts": [
+    [
+     "Netsh Helper DLL"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a20",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Malicious File?",
+   "expect": "answer",
+   "primary_id": "T1204.002",
+   "required_ids": [
+    "T1204.002"
+   ],
+   "required_facts": [
+    [
+     "Malicious File"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a21",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called PubPrn?",
+   "expect": "answer",
+   "primary_id": "T1216.001",
+   "required_ids": [
+    "T1216.001"
+   ],
+   "required_facts": [
+    [
+     "PubPrn"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a22",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1547.015?",
+   "expect": "answer",
+   "primary_id": "T1547.015",
+   "required_ids": [
+    "T1547.015"
+   ],
+   "required_facts": [
+    [
+     "Login Items"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a23",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Additional Cloud Roles?",
+   "expect": "answer",
+   "primary_id": "T1098.003",
+   "required_ids": [
+    "T1098.003"
+   ],
+   "required_facts": [
+    [
+     "Additional Cloud Roles"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a24",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Credentials from Web Browsers?",
+   "expect": "answer",
+   "primary_id": "T1555.003",
+   "required_ids": [
+    "T1555.003"
+   ],
+   "required_facts": [
+    [
+     "Credentials from Web Browsers"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a25",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1546.005?",
+   "expect": "answer",
+   "primary_id": "T1546.005",
+   "required_ids": [
+    "T1546.005"
+   ],
+   "required_facts": [
+    [
+     "Trap"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a26",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Windows Command Shell?",
+   "expect": "answer",
+   "primary_id": "T1059.003",
+   "required_ids": [
+    "T1059.003"
+   ],
+   "required_facts": [
+    [
+     "Windows Command Shell"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a27",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Proc Filesystem?",
+   "expect": "answer",
+   "primary_id": "T1003.007",
+   "required_ids": [
+    "T1003.007"
+   ],
+   "required_facts": [
+    [
+     "Proc Filesystem"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a28",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1216?",
+   "expect": "answer",
+   "primary_id": "T1216",
+   "required_ids": [
+    "T1216"
+   ],
+   "required_facts": [
+    [
+     "System Script Proxy Execution"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a29",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Access Token Manipulation?",
+   "expect": "answer",
+   "primary_id": "T1134",
+   "required_ids": [
+    "T1134"
+   ],
+   "required_facts": [
+    [
+     "Access Token Manipulation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a30",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Securityd Memory?",
+   "expect": "answer",
+   "primary_id": "T1555.002",
+   "required_ids": [
+    "T1555.002"
+   ],
+   "required_facts": [
+    [
+     "Securityd Memory"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a31",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1505.001?",
+   "expect": "answer",
+   "primary_id": "T1505.001",
+   "required_ids": [
+    "T1505.001"
+   ],
+   "required_facts": [
+    [
+     "SQL Stored Procedures"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a32",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Internal Spearphishing?",
+   "expect": "answer",
+   "primary_id": "T1534",
+   "required_ids": [
+    "T1534"
+   ],
+   "required_facts": [
+    [
+     "Internal Spearphishing"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a33",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Web Protocols?",
+   "expect": "answer",
+   "primary_id": "T1071.001",
+   "required_ids": [
+    "T1071.001"
+   ],
+   "required_facts": [
+    [
+     "Web Protocols"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a34",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1484.001?",
+   "expect": "answer",
+   "primary_id": "T1484.001",
+   "required_ids": [
+    "T1484.001"
+   ],
+   "required_facts": [
+    [
+     "Group Policy Modification"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a35",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Search Open Technical Databases?",
+   "expect": "answer",
+   "primary_id": "T1596",
+   "required_ids": [
+    "T1596"
+   ],
+   "required_facts": [
+    [
+     "Search Open Technical Databases"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a36",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Application Exhaustion Flood?",
+   "expect": "answer",
+   "primary_id": "T1499.003",
+   "required_ids": [
+    "T1499.003"
+   ],
+   "required_facts": [
+    [
+     "Application Exhaustion Flood"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a37",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1010?",
+   "expect": "answer",
+   "primary_id": "T1010",
+   "required_ids": [
+    "T1010"
+   ],
+   "required_facts": [
+    [
+     "Application Window Discovery"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a38",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Exploitation for Credential Access?",
+   "expect": "answer",
+   "primary_id": "T1212",
+   "required_ids": [
+    "T1212"
+   ],
+   "required_facts": [
+    [
+     "Exploitation for Credential Access"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a39",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Lua?",
+   "expect": "answer",
+   "primary_id": "T1059.011",
+   "required_ids": [
+    "T1059.011"
+   ],
+   "required_facts": [
+    [
+     "Lua"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a40",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1497.002?",
+   "expect": "answer",
+   "primary_id": "T1497.002",
+   "required_ids": [
+    "T1497.002"
+   ],
+   "required_facts": [
+    [
+     "User Activity Based Checks"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a41",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Acquire Infrastructure?",
+   "expect": "answer",
+   "primary_id": "T1583",
+   "required_ids": [
+    "T1583"
+   ],
+   "required_facts": [
+    [
+     "Acquire Infrastructure"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a42",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Multi-Factor Authentication Interception?",
+   "expect": "answer",
+   "primary_id": "T1111",
+   "required_ids": [
+    "T1111"
+   ],
+   "required_facts": [
+    [
+     "Multi-Factor Authentication Interception"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a43",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1098.002?",
+   "expect": "answer",
+   "primary_id": "T1098.002",
+   "required_ids": [
+    "T1098.002"
+   ],
+   "required_facts": [
+    [
+     "Additional Email Delegate Permissions"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a44",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Remote Access Hardware?",
+   "expect": "answer",
+   "primary_id": "T1219.003",
+   "required_ids": [
+    "T1219.003"
+   ],
+   "required_facts": [
+    [
+     "Remote Access Hardware"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a45",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Add-ins?",
+   "expect": "answer",
+   "primary_id": "T1137.006",
+   "required_ids": [
+    "T1137.006"
+   ],
+   "required_facts": [
+    [
+     "Add-ins"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a46",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1559.001?",
+   "expect": "answer",
+   "primary_id": "T1559.001",
+   "required_ids": [
+    "T1559.001"
+   ],
+   "required_facts": [
+    [
+     "Component Object Model"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a47",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Remote Data Staging?",
+   "expect": "answer",
+   "primary_id": "T1074.002",
+   "required_ids": [
+    "T1074.002"
+   ],
+   "required_facts": [
+    [
+     "Remote Data Staging"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a48",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Software Discovery?",
+   "expect": "answer",
+   "primary_id": "T1518",
+   "required_ids": [
+    "T1518"
+   ],
+   "required_facts": [
+    [
+     "Software Discovery"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a49",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1055.008?",
+   "expect": "answer",
+   "primary_id": "T1055.008",
+   "required_ids": [
+    "T1055.008"
+   ],
+   "required_facts": [
+    [
+     "Ptrace System Calls"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a50",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Hardware Additions?",
+   "expect": "answer",
+   "primary_id": "T1200",
+   "required_ids": [
+    "T1200"
+   ],
+   "required_facts": [
+    [
+     "Hardware Additions"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a51",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Virtual Machine Discovery?",
+   "expect": "answer",
+   "primary_id": "T1673",
+   "required_ids": [
+    "T1673"
+   ],
+   "required_facts": [
+    [
+     "Virtual Machine Discovery"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a52",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1686.003?",
+   "expect": "answer",
+   "primary_id": "T1686.003",
+   "required_ids": [
+    "T1686.003"
+   ],
+   "required_facts": [
+    [
+     "Windows Host Firewall"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a53",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Supply Chain Compromise?",
+   "expect": "answer",
+   "primary_id": "T1195",
+   "required_ids": [
+    "T1195"
+   ],
+   "required_facts": [
+    [
+     "Supply Chain Compromise"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a54",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Disk Wipe?",
+   "expect": "answer",
+   "primary_id": "T1561",
+   "required_ids": [
+    "T1561"
+   ],
+   "required_facts": [
+    [
+     "Disk Wipe"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a55",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1003.008?",
+   "expect": "answer",
+   "primary_id": "T1003.008",
+   "required_ids": [
+    "T1003.008"
+   ],
+   "required_facts": [
+    [
+     "/etc/passwd and /etc/shadow"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a56",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called SAML Tokens?",
+   "expect": "answer",
+   "primary_id": "T1606.002",
+   "required_ids": [
+    "T1606.002"
+   ],
+   "required_facts": [
+    [
+     "SAML Tokens"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a57",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called AI Result Poisoning?",
+   "expect": "answer",
+   "primary_id": "T1608.007",
+   "required_ids": [
+    "T1608.007"
+   ],
+   "required_facts": [
+    [
+     "AI Result Poisoning"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a58",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1564.012?",
+   "expect": "answer",
+   "primary_id": "T1564.012",
+   "required_ids": [
+    "T1564.012"
+   ],
+   "required_facts": [
+    [
+     "File/Path Exclusions"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a59",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called IDE Extensions?",
+   "expect": "answer",
+   "primary_id": "T1176.002",
+   "required_ids": [
+    "T1176.002"
+   ],
+   "required_facts": [
+    [
+     "IDE Extensions"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a60",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Network Device CLI?",
+   "expect": "answer",
+   "primary_id": "T1059.008",
+   "required_ids": [
+    "T1059.008"
+   ],
+   "required_facts": [
+    [
+     "Network Device CLI"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a61",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1036.003?",
+   "expect": "answer",
+   "primary_id": "T1036.003",
+   "required_ids": [
+    "T1036.003"
+   ],
+   "required_facts": [
+    [
+     "Rename Legitimate Utilities"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a62",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Abuse Elevation Control Mechanism?",
+   "expect": "answer",
+   "primary_id": "T1548",
+   "required_ids": [
+    "T1548"
+   ],
+   "required_facts": [
+    [
+     "Abuse Elevation Control Mechanism"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a63",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called Embedded Payloads?",
+   "expect": "answer",
+   "primary_id": "T1027.009",
+   "required_ids": [
+    "T1027.009"
+   ],
+   "required_facts": [
+    [
+     "Embedded Payloads"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a64",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T1495?",
+   "expect": "answer",
+   "primary_id": "T1495",
+   "required_ids": [
+    "T1495"
+   ],
+   "required_facts": [
+    [
+     "Firmware Corruption"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a01",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2026-62724?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-62724",
+   "required_ids": [
+    "CVE-2026-62724"
+   ],
+   "required_facts": [
+    [
+     "7.0"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a02",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"devices stores MQTT client passwords without sufficient\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2024-31486",
+   "required_ids": [
+    "CVE-2024-31486"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a03",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2019-17660?",
+   "expect": "answer",
+   "primary_id": "CVE-2019-17660",
+   "required_ids": [
+    "CVE-2019-17660"
+   ],
+   "required_facts": [
+    [
+     "6.1"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a04",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"stream handles that the stream handler had\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-91095",
+   "required_ids": [
+    "CVE-2026-91095"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a05",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2023-4077?",
+   "expect": "answer",
+   "primary_id": "CVE-2023-4077",
+   "required_ids": [
+    "CVE-2023-4077"
+   ],
+   "required_facts": [
+    [
+     "8.8"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a06",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"WordPress has XSS via the quiz parameter\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2015-9386",
+   "required_ids": [
+    "CVE-2015-9386"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a07",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2007-1982?",
+   "expect": "answer",
+   "primary_id": "CVE-2007-1982",
+   "required_ids": [
+    "CVE-2007-1982"
+   ],
+   "required_facts": [
+    [
+     "7.5"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a08",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"relates to production printers and office multifunction\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-3078",
+   "required_ids": [
+    "CVE-2025-3078"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a09",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2024-32010?",
+   "expect": "answer",
+   "primary_id": "CVE-2024-32010",
+   "required_ids": [
+    "CVE-2024-32010"
+   ],
+   "required_facts": [
+    [
+     "7.8"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a10",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"exists in Sourcecodeste Vehicle Parking Management System\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2021-37805",
+   "required_ids": [
+    "CVE-2021-37805"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a11",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2026-48338?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-48338",
+   "required_ids": [
+    "CVE-2026-48338"
+   ],
+   "required_facts": [
+    [
+     "6.8"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a12",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"them to be downloaded without any warning\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2023-4581",
+   "required_ids": [
+    "CVE-2023-4581"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a13",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2017-10919?",
+   "expect": "answer",
+   "primary_id": "CVE-2017-10919",
+   "required_ids": [
+    "CVE-2017-10919"
+   ],
+   "required_facts": [
+    [
+     "6.5"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a14",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"to EMIT packets which allows remote attackers\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2007-1530",
+   "required_ids": [
+    "CVE-2007-1530"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a15",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2021-43696?",
+   "expect": "answer",
+   "primary_id": "CVE-2021-43696",
+   "required_ids": [
+    "CVE-2021-43696"
+   ],
+   "required_facts": [
+    [
+     "6.1"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a16",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"mechanism Thus an attacker is able to\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2018-15539",
+   "required_ids": [
+    "CVE-2018-15539"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a17",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2021-40660?",
+   "expect": "answer",
+   "primary_id": "CVE-2021-40660",
+   "required_ids": [
+    "CVE-2021-40660"
+   ],
+   "required_facts": [
+    [
+     "7.5"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a18",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"import has a wrong WAMR signature Attackers\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-113679",
+   "required_ids": [
+    "CVE-2026-113679"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a19",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2020-8679?",
+   "expect": "answer",
+   "primary_id": "CVE-2020-8679",
+   "required_ids": [
+    "CVE-2020-8679"
+   ],
+   "required_facts": [
+    [
+     "5.5"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a20",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"The affected application executes a subset of\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2024-36398",
+   "required_ids": [
+    "CVE-2024-36398"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a21",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2017-5071?",
+   "expect": "answer",
+   "primary_id": "CVE-2017-5071",
+   "required_ids": [
+    "CVE-2017-5071"
+   ],
+   "required_facts": [
+    [
+     "6.3"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a22",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"device identifier strings that exceed the expected\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-59605",
+   "required_ids": [
+    "CVE-2025-59605"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a23",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2016-6158?",
+   "expect": "answer",
+   "primary_id": "CVE-2016-6158",
+   "required_ids": [
+    "CVE-2016-6158"
+   ],
+   "required_facts": [
+    [
+     "6.1"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a24",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"workspace This may allow for the alteration\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-13432",
+   "required_ids": [
+    "CVE-2025-13432"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a25",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2013-6935?",
+   "expect": "answer",
+   "primary_id": "CVE-2013-6935",
+   "required_ids": [
+    "CVE-2013-6935"
+   ],
+   "required_facts": [
+    [
+     "9.3"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a26",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"FP6 could allow a privileged user to\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-36102",
+   "required_ids": [
+    "CVE-2025-36102"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a27",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2023-36528?",
+   "expect": "answer",
+   "primary_id": "CVE-2023-36528",
+   "required_ids": [
+    "CVE-2023-36528"
+   ],
+   "required_facts": [
+    [
+     "5.3"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a28",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"Package and SourcePackage fields These fields are\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2016-9950",
+   "required_ids": [
+    "CVE-2016-9950"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a29",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2022-22107?",
+   "expect": "answer",
+   "primary_id": "CVE-2022-22107",
+   "required_ids": [
+    "CVE-2022-22107"
+   ],
+   "required_facts": [
+    [
+     "4.3"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a30",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"which can leave it vulnerable to brute\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-92082",
+   "required_ids": [
+    "CVE-2026-92082"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a31",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2025-41057?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-41057",
+   "required_ids": [
+    "CVE-2025-41057"
+   ],
+   "required_facts": [
+    [
+     "5.4"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a32",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"in Anonform Ab ANON::form embedded secure form\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-52733",
+   "required_ids": [
+    "CVE-2025-52733"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a33",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2023-6019?",
+   "expect": "answer",
+   "primary_id": "CVE-2023-6019",
+   "required_ids": [
+    "CVE-2023-6019"
+   ],
+   "required_facts": [
+    [
+     "9.8"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a34",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"is configured to accept session parameters through\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2014-2047",
+   "required_ids": [
+    "CVE-2014-2047"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a35",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2018-14012?",
+   "expect": "answer",
+   "primary_id": "CVE-2018-14012",
+   "required_ids": [
+    "CVE-2018-14012"
+   ],
+   "required_facts": [
+    [
+     "9.8"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a36",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"allowing read-only users to perform administrative actions\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-85390",
+   "required_ids": [
+    "CVE-2026-85390"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a37",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2016-0757?",
+   "expect": "answer",
+   "primary_id": "CVE-2016-0757",
+   "required_ids": [
+    "CVE-2016-0757"
+   ],
+   "required_facts": [
+    [
+     "4.3"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a38",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"vulnerability in Fortinet FortiPAM Chrome Extension 8.0\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-84388",
+   "required_ids": [
+    "CVE-2026-84388"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a39",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2025-27313?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-27313",
+   "required_ids": [
+    "CVE-2025-27313"
+   ],
+   "required_facts": [
+    [
+     "7.1"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a40",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"properly handle OLE objects in memory which\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2011-3400",
+   "required_ids": [
+    "CVE-2011-3400"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a41",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2024-56467?",
+   "expect": "answer",
+   "primary_id": "CVE-2024-56467",
+   "required_ids": [
+    "CVE-2024-56467"
+   ],
+   "required_facts": [
+    [
+     "3.3"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a42",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"cards used to open control cabinets secured\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2022-40633",
+   "required_ids": [
+    "CVE-2022-40633"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a43",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2025-10063?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-10063",
+   "required_ids": [
+    "CVE-2025-10063"
+   ],
+   "required_facts": [
+    [
+     "6.1"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a44",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"zone The object pointed to by tz->tzp\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2024-50027",
+   "required_ids": [
+    "CVE-2024-50027"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a45",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2025-1896?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-1896",
+   "required_ids": [
+    "CVE-2025-1896"
+   ],
+   "required_facts": [
+    [
+     "7.5"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a46",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"traceroute utility integrated in the WebUI to\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2022-29897",
+   "required_ids": [
+    "CVE-2022-29897"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a47",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2022-34968?",
+   "expect": "answer",
+   "primary_id": "CVE-2022-34968",
+   "required_ids": [
+    "CVE-2022-34968"
+   ],
+   "required_facts": [
+    [
+     "7.5"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a48",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"not restrict access to a file-download handler\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-92995",
+   "required_ids": [
+    "CVE-2026-92995"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a49",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2025-8940?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-8940",
+   "required_ids": [
+    "CVE-2025-8940"
+   ],
+   "required_facts": [
+    [
+     "8.8"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a50",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"values when generating its account verification tokens\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-10530",
+   "required_ids": [
+    "CVE-2026-10530"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a51",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2023-23955?",
+   "expect": "answer",
+   "primary_id": "CVE-2023-23955",
+   "required_ids": [
+    "CVE-2023-23955"
+   ],
+   "required_facts": [
+    [
+     "8.1"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a52",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"highly sensitive information in the form of\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2018-1877",
+   "required_ids": [
+    "CVE-2018-1877"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a53",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2015-6333?",
+   "expect": "answer",
+   "primary_id": "CVE-2015-6333",
+   "required_ids": [
+    "CVE-2015-6333"
+   ],
+   "required_facts": [
+    [
+     "4.6"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a54",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"allowed allowing for a Smurf attack that\"?",
+   "expect": "answer",
+   "primary_id": "CVE-1999-0513",
+   "required_ids": [
+    "CVE-1999-0513"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a55",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2022-42306?",
+   "expect": "answer",
+   "primary_id": "CVE-2022-42306",
+   "required_ids": [
+    "CVE-2022-42306"
+   ],
+   "required_facts": [
+    [
+     "5.5"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a56",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"and Enterprise Administrator allows information disclosure including\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-3912",
+   "required_ids": [
+    "CVE-2026-3912"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a57",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2026-4905?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-4905",
+   "required_ids": [
+    "CVE-2026-4905"
+   ],
+   "required_facts": [
+    [
+     "8.8"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a58",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"the text argument of its shortcode which\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2021-24699",
+   "required_ids": [
+    "CVE-2021-24699"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a59",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2026-65354?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-65354",
+   "required_ids": [
+    "CVE-2026-65354"
+   ],
+   "required_facts": [
+    [
+     "8.2"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a60",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"Gen11 Server The vulnerability could result in\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2023-28092",
+   "required_ids": [
+    "CVE-2023-28092"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a61",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2026-92021?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-92021",
+   "required_ids": [
+    "CVE-2026-92021"
+   ],
+   "required_facts": [
+    [
+     "8.8"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a62",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"of memory because the number of buffered\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-115482",
+   "required_ids": [
+    "CVE-2026-115482"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a63",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2013-7096?",
+   "expect": "answer",
+   "primary_id": "CVE-2013-7096",
+   "required_ids": [
+    "CVE-2013-7096"
+   ],
+   "required_facts": [
+    [
+     "7.5"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a64",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability is described as \"use-after-free on disconnect Submitted write URBs are\"?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-64342",
+   "required_ids": [
+    "CVE-2026-64342"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a01",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Baiting?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Baiting"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a02",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Antivirus / EDR?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Antivirus / EDR"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a03",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Vishing / Smishing?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Vishing / Smishing"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a04",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is MTU?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "MTU"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a05",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Mitigations?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Mitigations"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a06",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Supply Chain Attack?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Supply Chain Attack"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a07",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Dictionary Attack?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Dictionary Attack"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a08",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Loopback?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Loopback"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a09",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Backdoor?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Backdoor"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a10",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Threat Actor?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Threat Actor"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a11",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Steganography?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Steganography"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a12",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is EDR?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "EDR"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a13",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Cryptojacking?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Cryptojacking"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a14",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is CAPEC_CHILD?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "CAPEC_CHILD"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a15",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is NIST CSF?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "NIST CSF"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-fundamentals-a16",
+   "category": "FUNDAMENTALS",
+   "difficulty": "direct",
+   "question": "What is Man-in-the-Middle (MitM)?",
+   "expect": "answer",
+   "required_facts": [
+    [
+     "Man-in-the-Middle (MitM)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a65",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The product allows a file to be uploaded, but it relies on the file name or extension of the file to determine the appropriate behaviors\"?",
+   "expect": "answer",
+   "primary_id": "CWE-646",
+   "required_ids": [
+    "CWE-646"
+   ],
+   "required_facts": [
+    [
+     "Reliance on File Name or Extension of Externally-Supplied File"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a66",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The product provides or relies on use of HTTP communications when HTTPS is available\"?",
+   "expect": "answer",
+   "primary_id": "CWE-1428",
+   "required_ids": [
+    "CWE-1428"
+   ],
+   "required_facts": [
+    [
+     "Reliance on HTTP instead of HTTPS"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a67",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The product does not use or incorrectly uses a protection mechanism that provides sufficient defense against directed attacks against the product\"?",
+   "expect": "answer",
+   "primary_id": "CWE-693",
+   "required_ids": [
+    "CWE-693"
+   ],
+   "required_facts": [
+    [
+     "Protection Mechanism Failure"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a68",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"A product does not check to see if a lock is present before performing sensitive operations on a resource\"?",
+   "expect": "answer",
+   "primary_id": "CWE-414",
+   "required_ids": [
+    "CWE-414"
+   ],
+   "required_facts": [
+    [
+     "Missing Lock Check"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a69",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The product does not sufficiently hide the internal representation and implementation details of data or methods\"?",
+   "expect": "answer",
+   "primary_id": "CWE-1061",
+   "required_ids": [
+    "CWE-1061"
+   ],
+   "required_facts": [
+    [
+     "Insufficient Encapsulation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a70",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The product manages resources or behaves in a way that indirectly creates a new, distinct resource that can be used by attackers in violation of the intended policy\"?",
+   "expect": "answer",
+   "primary_id": "CWE-1229",
+   "required_ids": [
+    "CWE-1229"
+   ],
+   "required_facts": [
+    [
+     "Creation of Emergent Resource"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a71",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The product's source code includes comments that contain sensitive information, such as filenames related to the application, old links or links that were not meant to be browsed by users, old code fragments, etc\"?",
+   "expect": "answer",
+   "primary_id": "CWE-615",
+   "required_ids": [
+    "CWE-615"
+   ],
+   "required_facts": [
+    [
+     "Inclusion of Sensitive Information in Source Code Comments"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a72",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The product establishes a communication channel with an endpoint and receives a message from that endpoint, but it does not sufficiently ensure that the message was not modified during transmission\"?",
+   "expect": "answer",
+   "primary_id": "CWE-924",
+   "required_ids": [
+    "CWE-924"
+   ],
+   "required_facts": [
+    [
+     "Improper Enforcement of Message Integrity During Transmission in a Communication Channel"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a73",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"A constant symbolic reference to an object is used, even though the reference can resolve to a different object over time\"?",
+   "expect": "answer",
+   "primary_id": "CWE-386",
+   "required_ids": [
+    "CWE-386"
+   ],
+   "required_facts": [
+    [
+     "Symbolic Name not Mapping to Correct Object"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a74",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The product generates a hash for a password, but it uses a scheme that does not provide a sufficient level of computational effort that would make password cracking attacks infeasible or expensive\"?",
+   "expect": "answer",
+   "primary_id": "CWE-916",
+   "required_ids": [
+    "CWE-916"
+   ],
+   "required_facts": [
+    [
+     "Use of Password Hash With Insufficient Computational Effort"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a75",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The source code contains elements such as source files that do not consistently provide a prologue or header that has been standardized for the project\"?",
+   "expect": "answer",
+   "primary_id": "CWE-1115",
+   "required_ids": [
+    "CWE-1115"
+   ],
+   "required_facts": [
+    [
+     "Source Code Element without Standard Prologue"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a76",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is described as: \"The product uses a cookie to store sensitive information, but the cookie is not marked with the HttpOnly flag\"?",
+   "expect": "answer",
+   "primary_id": "CWE-1004",
+   "required_ids": [
+    "CWE-1004"
+   ],
+   "required_facts": [
+    [
+     "Sensitive Cookie Without 'HttpOnly' Flag"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a65",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An adversary causes the target to allocate excessive resources to servicing the attackers' request, thereby reducing the resources available for legitimate services and degrading or denying services\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-130",
+   "required_ids": [
+    "CAPEC-130"
+   ],
+   "required_facts": [
+    [
+     "Excessive Allocation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a66",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"This attack leverages the use of symbolic links (Symlinks) in order to write to sensitive files\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-27",
+   "required_ids": [
+    "CAPEC-27"
+   ],
+   "required_facts": [
+    [
+     "Leveraging Race Conditions via Symbolic Links"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a67",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An adversary creates a client application to interface with a target service where the client violates assumptions the service makes about clients\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-202",
+   "required_ids": [
+    "CAPEC-202"
+   ],
+   "required_facts": [
+    [
+     "Create Malicious Client"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a68",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An attacker substitutes out a tested and approved hardware component for a maliciously-altered hardware component\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-531",
+   "required_ids": [
+    "CAPEC-531"
+   ],
+   "required_facts": [
+    [
+     "Hardware Component Substitution"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a69",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An adversary uses a traceroute utility to map out the route which data flows through the network in route to a target destination\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-293",
+   "required_ids": [
+    "CAPEC-293"
+   ],
+   "required_facts": [
+    [
+     "Traceroute Route Enumeration"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a70",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An adversary exploits a weakness in the server's trust of client-side processing by modifying data on the client-side, such as price information, and then submitting this data to the server, which processes the modified data\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-162",
+   "required_ids": [
+    "CAPEC-162"
+   ],
+   "required_facts": [
+    [
+     "Manipulating Hidden Fields"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a71",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An adversary leverages a legitimate capability of an application in such a way as to achieve a negative technical impact\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-212",
+   "required_ids": [
+    "CAPEC-212"
+   ],
+   "required_facts": [
+    [
+     "Functionality Misuse"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a72",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An adversary adds duplicate HTTP GET/POST parameters by injecting query string delimiters\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-460",
+   "required_ids": [
+    "CAPEC-460"
+   ],
+   "required_facts": [
+    [
+     "HTTP Parameter Pollution (HPP)"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a73",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An attacker leverages the security functionality of the system aimed at thwarting potential attacks to launch a denial of service attack against a legitimate system user\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-2",
+   "required_ids": [
+    "CAPEC-2"
+   ],
+   "required_facts": [
+    [
+     "Inducing Account Lockout"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a74",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An adversary which has gained elevated access to network boundary devices may use these devices to create a channel to bridge trusted and untrusted networks\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-700",
+   "required_ids": [
+    "CAPEC-700"
+   ],
+   "required_facts": [
+    [
+     "Network Boundary Bridging"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a75",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An adversary uses deceptive methods to cause a user or an automated process to download and install dangerous code believed to be a valid update that originates from an adversary controlled source\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-186",
+   "required_ids": [
+    "CAPEC-186"
+   ],
+   "required_facts": [
+    [
+     "Malicious Software Update"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a76",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is described as: \"An attacker gains access to application, service, or device with the privileges of an authorized or privileged user by evading or circumventing an authentication mechanism\"?",
+   "expect": "answer",
+   "primary_id": "CAPEC-115",
+   "required_ids": [
+    "CAPEC-115"
+   ],
+   "required_facts": [
+    [
+     "Authentication Bypass"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a65",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may embed payloads within other files to conceal malicious content from defenses\"?",
+   "expect": "answer",
+   "primary_id": "T1027.009",
+   "required_ids": [
+    "T1027.009"
+   ],
+   "required_facts": [
+    [
+     "Embedded Payloads"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a66",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may hijack a legitimate user's SSH session to move laterally within an environment\"?",
+   "expect": "answer",
+   "primary_id": "T1563.001",
+   "required_ids": [
+    "T1563.001"
+   ],
+   "required_facts": [
+    [
+     "SSH Hijacking"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a67",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may modify the lifecycle policies of a cloud storage bucket to destroy all objects stored within\"?",
+   "expect": "answer",
+   "primary_id": "T1485.001",
+   "required_ids": [
+    "T1485.001"
+   ],
+   "required_facts": [
+    [
+     "Lifecycle-Triggered Deletion"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a68",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may encode data with a standard data encoding system to make the content of command and control traffic more difficult to detect\"?",
+   "expect": "answer",
+   "primary_id": "T1132.001",
+   "required_ids": [
+    "T1132.001"
+   ],
+   "required_facts": [
+    [
+     "Standard Encoding"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a69",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may alter data en route to storage or other systems in order to manipulate external outcomes or hide activity, thus threatening the integrity of the data\"?",
+   "expect": "answer",
+   "primary_id": "T1565.002",
+   "required_ids": [
+    "T1565.002"
+   ],
+   "required_facts": [
+    [
+     "Transmitted Data Manipulation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a70",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may use trusted scripts, often signed with certificates, to proxy the execution of malicious files\"?",
+   "expect": "answer",
+   "primary_id": "T1216",
+   "required_ids": [
+    "T1216"
+   ],
+   "required_facts": [
+    [
+     "System Script Proxy Execution"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a71",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may leverage Valid Accounts to log directly into accessible cloud hosted compute infrastructure through cloud native methods\"?",
+   "expect": "answer",
+   "primary_id": "T1021.008",
+   "required_ids": [
+    "T1021.008"
+   ],
+   "required_facts": [
+    [
+     "Direct Cloud VM Connections"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a72",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries can perform command and control between compromised hosts on potentially disconnected networks using removable media to transfer commands from system to system\"?",
+   "expect": "answer",
+   "primary_id": "T1092",
+   "required_ids": [
+    "T1092"
+   ],
+   "required_facts": [
+    [
+     "Communication Through Removable Media"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a73",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may take control of preexisting sessions with remote services to move laterally in an environment\"?",
+   "expect": "answer",
+   "primary_id": "T1563",
+   "required_ids": [
+    "T1563"
+   ],
+   "required_facts": [
+    [
+     "Remote Service Session Hijacking"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a74",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may attempt to discover containers and other resources that are available within a containers environment\"?",
+   "expect": "answer",
+   "primary_id": "T1613",
+   "required_ids": [
+    "T1613"
+   ],
+   "required_facts": [
+    [
+     "Container and Resource Discovery"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a75",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may manipulate accounts to maintain and/or elevate access to victim systems\"?",
+   "expect": "answer",
+   "primary_id": "T1098",
+   "required_ids": [
+    "T1098"
+   ],
+   "required_facts": [
+    [
+     "Account Manipulation"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-a76",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is described as: \"Adversaries may manipulate publicly accessible web content to influence generative AI systems or AI-powered search engines into retrieving, citing, or recommending attacker-controlled information\"?",
+   "expect": "answer",
+   "primary_id": "T1608.007",
+   "required_ids": [
+    "T1608.007"
+   ],
+   "required_facts": [
+    [
+     "AI Result Poisoning"
+    ]
+   ],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a77",
+   "category": "CWE",
+   "difficulty": "relationship",
+   "question": "Which attack patterns are related to CWE-1239?",
+   "expect": "answer",
+   "primary_id": "CWE-1239",
+   "required_ids": [
+    "CWE-1239",
+    "CAPEC-150",
+    "CAPEC-204",
+    "CAPEC-37",
+    "CAPEC-545"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a78",
+   "category": "CWE",
+   "difficulty": "relationship",
+   "question": "Which attack patterns are related to CWE-642?",
+   "expect": "answer",
+   "primary_id": "CWE-642",
+   "required_ids": [
+    "CWE-642",
+    "CAPEC-21",
+    "CAPEC-31"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a79",
+   "category": "CWE",
+   "difficulty": "relationship",
+   "question": "Which attack patterns are related to CWE-1313?",
+   "expect": "answer",
+   "primary_id": "CWE-1313",
+   "required_ids": [
+    "CWE-1313",
+    "CAPEC-121"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a80",
+   "category": "CWE",
+   "difficulty": "relationship",
+   "question": "Which attack patterns are related to CWE-83?",
+   "expect": "answer",
+   "primary_id": "CWE-83",
+   "required_ids": [
+    "CWE-83",
+    "CAPEC-243",
+    "CAPEC-244",
+    "CAPEC-588"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a81",
+   "category": "CWE",
+   "difficulty": "relationship",
+   "question": "Which attack patterns are related to CWE-314?",
+   "expect": "answer",
+   "primary_id": "CWE-314",
+   "required_ids": [
+    "CWE-314",
+    "CAPEC-37"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a82",
+   "category": "CWE",
+   "difficulty": "relationship",
+   "question": "Which attack patterns are related to CWE-1314?",
+   "expect": "answer",
+   "primary_id": "CWE-1314",
+   "required_ids": [
+    "CWE-1314",
+    "CAPEC-1"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a83",
+   "category": "CWE",
+   "difficulty": "relationship",
+   "question": "Which attack patterns are related to CWE-205?",
+   "expect": "answer",
+   "primary_id": "CWE-205",
+   "required_ids": [
+    "CWE-205",
+    "CAPEC-541",
+    "CAPEC-580"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-a84",
+   "category": "CWE",
+   "difficulty": "relationship",
+   "question": "Which attack patterns are related to CWE-805?",
+   "expect": "answer",
+   "primary_id": "CWE-805",
+   "required_ids": [
+    "CWE-805",
+    "CAPEC-100",
+    "CAPEC-256"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a77",
+   "category": "CAPEC",
+   "difficulty": "relationship",
+   "question": "Which ATT&CK techniques are mapped to CAPEC-383?",
+   "expect": "answer",
+   "primary_id": "CAPEC-383",
+   "required_ids": [
+    "CAPEC-383",
+    "T1056.004"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a78",
+   "category": "CAPEC",
+   "difficulty": "relationship",
+   "question": "Which ATT&CK techniques are mapped to CAPEC-204?",
+   "expect": "answer",
+   "primary_id": "CAPEC-204",
+   "required_ids": [
+    "CAPEC-204",
+    "T1005"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a79",
+   "category": "CAPEC",
+   "difficulty": "relationship",
+   "question": "Which ATT&CK techniques are mapped to CAPEC-309?",
+   "expect": "answer",
+   "primary_id": "CAPEC-309",
+   "required_ids": [
+    "CAPEC-309",
+    "T1016",
+    "T1049",
+    "T1590"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a80",
+   "category": "CAPEC",
+   "difficulty": "relationship",
+   "question": "Which ATT&CK techniques are mapped to CAPEC-516?",
+   "expect": "answer",
+   "primary_id": "CAPEC-516",
+   "required_ids": [
+    "CAPEC-516",
+    "T1195.003"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a81",
+   "category": "CAPEC",
+   "difficulty": "relationship",
+   "question": "Which ATT&CK techniques are mapped to CAPEC-438?",
+   "expect": "answer",
+   "primary_id": "CAPEC-438",
+   "required_ids": [
+    "CAPEC-438",
+    "T1195"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a82",
+   "category": "CAPEC",
+   "difficulty": "relationship",
+   "question": "Which ATT&CK techniques are mapped to CAPEC-21?",
+   "expect": "answer",
+   "primary_id": "CAPEC-21",
+   "required_ids": [
+    "CAPEC-21",
+    "T1134",
+    "T1528",
+    "T1539"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a83",
+   "category": "CAPEC",
+   "difficulty": "relationship",
+   "question": "Which ATT&CK techniques are mapped to CAPEC-115?",
+   "expect": "answer",
+   "primary_id": "CAPEC-115",
+   "required_ids": [
+    "CAPEC-115",
+    "T1548"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-a84",
+   "category": "CAPEC",
+   "difficulty": "relationship",
+   "question": "Which ATT&CK techniques are mapped to CAPEC-579?",
+   "expect": "answer",
+   "primary_id": "CAPEC-579",
+   "required_ids": [
+    "CAPEC-579",
+    "T1547.004"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a65",
+   "category": "CVE",
+   "difficulty": "relationship",
+   "question": "Which weakness is associated with CVE-2026-5082?",
+   "expect": "answer",
+   "primary_id": "CVE-2026-5082",
+   "required_ids": [
+    "CVE-2026-5082",
+    "CWE-338",
+    "CWE-340"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a66",
+   "category": "CVE",
+   "difficulty": "relationship",
+   "question": "Which weakness is associated with CVE-2014-9634?",
+   "expect": "answer",
+   "primary_id": "CVE-2014-9634",
+   "required_ids": [
+    "CVE-2014-9634",
+    "CWE-254"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a67",
+   "category": "CVE",
+   "difficulty": "relationship",
+   "question": "Which weakness is associated with CVE-2025-68660?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-68660",
+   "required_ids": [
+    "CVE-2025-68660",
+    "CWE-863"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a68",
+   "category": "CVE",
+   "difficulty": "relationship",
+   "question": "Which weakness is associated with CVE-2017-8313?",
+   "expect": "answer",
+   "primary_id": "CVE-2017-8313",
+   "required_ids": [
+    "CVE-2017-8313",
+    "CWE-125"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a69",
+   "category": "CVE",
+   "difficulty": "relationship",
+   "question": "Which weakness is associated with CVE-2014-4149?",
+   "expect": "answer",
+   "primary_id": "CVE-2014-4149",
+   "required_ids": [
+    "CVE-2014-4149",
+    "CWE-20"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a70",
+   "category": "CVE",
+   "difficulty": "relationship",
+   "question": "Which weakness is associated with CVE-2017-0124?",
+   "expect": "answer",
+   "primary_id": "CVE-2017-0124",
+   "required_ids": [
+    "CVE-2017-0124",
+    "CWE-200"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a71",
+   "category": "CVE",
+   "difficulty": "relationship",
+   "question": "Which weakness is associated with CVE-2021-28600?",
+   "expect": "answer",
+   "primary_id": "CVE-2021-28600",
+   "required_ids": [
+    "CVE-2021-28600",
+    "CWE-125"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-a72",
+   "category": "CVE",
+   "difficulty": "relationship",
+   "question": "Which weakness is associated with CVE-2025-12608?",
+   "expect": "answer",
+   "primary_id": "CVE-2025-12608",
+   "required_ids": [
+    "CVE-2025-12608",
+    "CWE-74",
+    "CWE-89"
+   ],
+   "required_facts": [],
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-n01",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2074-32655?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-n02",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2090-58574?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-n03",
+   "category": "CVE",
+   "difficulty": "direct",
+   "question": "What is CVE-2096-26476?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-n01",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "Explain CWE-5464",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-n02",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "Explain CWE-7529",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-n03",
+   "category": "CWE",
+   "difficulty": "direct",
+   "question": "Explain CWE-8748",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-n01",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "Describe CAPEC-9579",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-n02",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "Describe CAPEC-8278",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-n03",
+   "category": "CAPEC",
+   "difficulty": "direct",
+   "question": "Describe CAPEC-9815",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-n01",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T9952?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-n02",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T8233?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-n03",
+   "category": "ATTACK",
+   "difficulty": "direct",
+   "question": "What is T7547?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-n04",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called zortal yarflo?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-n04",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called wobdax wobtal?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-n04",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called daxsun talhex?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-n04",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability affects the zorny hexyar firmware?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-n05",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called yarflo wobmor?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-n05",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called vexvex flony?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-n05",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called daxpel flosun?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-n05",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability affects the flomor kriblat firmware?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cwe-n06",
+   "category": "CWE",
+   "difficulty": "described",
+   "question": "Which weakness is called quuxmor blatblat?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-capec-n06",
+   "category": "CAPEC",
+   "difficulty": "described",
+   "question": "Which attack pattern is called mormor daxkri?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-attack-n06",
+   "category": "ATTACK",
+   "difficulty": "described",
+   "question": "Which ATT&CK technique is called sundax nyquux?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-cve-n06",
+   "category": "CVE",
+   "difficulty": "described",
+   "question": "Which vulnerability affects the wobblat grimsun firmware?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n01",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "What is the plot of Romeo and Juliet?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n02",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "How long should I boil an egg?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n03",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "How do I bake sourdough bread?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n04",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "How do airplanes stay in the air?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n05",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "Give me a workout routine for beginners",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n06",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "How does a refrigerator keep food cold?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n07",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "How do I train a puppy to sit?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n08",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "What is the tallest mountain in the world?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n09",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "Explain how photosynthesis works",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n10",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "Translate 'good morning' into French",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n11",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "Who painted the Mona Lisa?",
+   "expect": "not_found",
+   "split": "dev"
+  },
+  {
+   "id": "h-unsupported-n12",
+   "category": "UNSUPPORTED",
+   "difficulty": "described",
+   "question": "What is the exchange rate between euro and dollar?",
+   "expect": "not_found",
+   "split": "dev"
+  }
+ ]
+}

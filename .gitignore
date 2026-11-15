@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+backend/logs/
+backend/data/evaluation_results.json
+backend/data/*.tmp
+
+dist/
+backup_*/
+backend/data/reference_docs/*.pdf
+.claude/
+*.log

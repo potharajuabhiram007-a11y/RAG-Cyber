@@ -1,0 +1,82 @@
+{
+ "selected": "default",
+ "selected_on": "dev split",
+ "selection_rule": "max(F1 + accuracy), ties: lower latency",
+ "min_gain_over_default": 0.005,
+ "llm": true,
+ "parameters": {
+  "name_search_k": 8,
+  "vector_k": 5,
+  "vector_min_score": null,
+  "cve_pool_k": 40,
+  "cve_result_k": 6,
+  "extra_entries": 3,
+  "entity_full_cov": 0.75,
+  "fundamentals_coverage": 0.6,
+  "rank_mode": "lexicographic",
+  "w_name": 1.0,
+  "w_vector": 0.5,
+  "w_desc": 0.0,
+  "w_length": 0.02,
+  "max_hops": 3,
+  "traverse_limit": 200,
+  "temperature": 0.1,
+  "answer_tokens": 420,
+  "evidence_chars": 6000,
+  "brief_answers": true,
+  "verified_facts": true,
+  "flag_unverified": true
+ },
+ "dev_metrics": {
+  "overall": {
+   "tp": 54,
+   "fp": 1,
+   "fn": 0,
+   "tn": 6,
+   "sample_size": 61,
+   "precision": 0.9818,
+   "recall": 1.0,
+   "f1_score": 0.9908,
+   "accuracy": 0.9836,
+   "entity_recall": 1.0
+  },
+  "retrieval": {
+   "cases": 52,
+   "mrr": 0.9904,
+   "p@1": 0.9808,
+   "p@3": 0.359,
+   "p@5": 0.2154,
+   "r@1": 0.9119,
+   "r@3": 0.9631,
+   "r@5": 0.9631
+  },
+  "groundedness": {
+   "answers_scored": 55,
+   "sentence_support": 0.7236
+  },
+  "latency_seconds": {
+   "mean": 10.56,
+   "p95": 17.235
+  }
+ },
+ "default_dev_metrics": {
+  "overall": {
+   "tp": 54,
+   "fp": 1,
+   "fn": 0,
+   "tn": 6,
+   "sample_size": 61,
+   "precision": 0.9818,
+   "recall": 1.0,
+   "f1_score": 0.9908,
+   "accuracy": 0.9836,
+   "entity_recall": 1.0
+  }
+ },
+ "candidates": {
+  "default": {
+   "score": 1.9744,
+   "changed": {}
+  }
+ }
+}
