@@ -1,5 +1,8 @@
 # RAG-Cyber: AI-Powered Cybersecurity Assistant
 
+**Live app:** https://cyberintellix.vercel.app
+(the page is hosted on Vercel; answers come from a backend running on the author's own machine, so the live app may be offline when that machine is off)
+
 A Graph-RAG cybersecurity assistant that follows the GraphCyRAG methodology of
 *Retrieval Augmented Generation for Robust Cyber Defense* (PNNL-36792): a Neo4j
 knowledge graph of **CVE, CWE, CAPEC and MITRE ATT&CK** with their official
