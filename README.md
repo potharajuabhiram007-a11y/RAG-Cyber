@@ -174,10 +174,10 @@ the page falls back to `http://127.0.0.1:8000` for the API automatically; for an
 other address set `<meta name="rag-cyber-api" content="https://your-api-host">` in
 `frontend/index.html` and add the frontend origin to `CORS_ORIGINS`.
 
-The home hero draws three floating 3D panels (network, lock, fingerprint) with Three.js (`frontend/hero3d.js`, library vendored in `frontend/vendor/`, MIT licence). Browsers without WebGL fall back to the flat SVG artwork in `index.html`.
+The home hero artwork (a shield guarding a small knowledge graph) is plain SVG animated with CSS, inside `frontend/index.html`; the frontend has no JavaScript libraries.
 
 The interface is branded **CyberIntelliX** (black-and-lime glass design) and has five views, reached from the navigation at the top.
-Home takes one question per chat; "New chat" returns to the start screen.
+Home keeps the search bar after each answer, so one chat can hold several questions; "New chat" returns to the start screen.
 
 - **Home** - ask a question; each answer shows its relationship graph, sources and benchmark figures.
 - **History** - every question asked in this browser (stored in `localStorage`, newest first), searchable

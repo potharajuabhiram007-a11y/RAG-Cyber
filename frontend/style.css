@@ -612,12 +612,6 @@ textarea:focus-visible { outline: none; }
 .brand-x { color: var(--accent); }
 .hero-watermark span { color: rgba(155, 224, 79, 0.1); }
 
-/* 3D hero (hero3d.js): the canvas replaces the flat SVG once it has rendered */
-.hero-art canvas { display: none; width: 100%; height: 100%;
-  -webkit-mask-image: radial-gradient(ellipse 62% 58% at 50% 50%, #000 62%, transparent 100%);
-          mask-image: radial-gradient(ellipse 62% 58% at 50% 50%, #000 62%, transparent 100%); }
-.hero-art.hero3d-ready canvas { display: block; }
-.hero-art.hero3d-ready svg { display: none; }
 
 /* ---------------- reference-matched CyberIntelliX landing refinement ----------------
    Visual-only overrides: all original markup, IDs, routes and event handlers stay intact. */
@@ -1188,3 +1182,32 @@ body:not(.answered) #new-chat { display: none; }
   .kg-mode { padding: 0 11px; }
 }
 .views:has(.kg-full) { position: relative; z-index: 500; }
+
+/* ======================================================================
+   Home artwork (2D): a shield guarding a knowledge graph, drawn in SVG
+   ====================================================================== */
+.hero-art svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.hero-links path { stroke: var(--accent); stroke-opacity: 0.3; stroke-width: 1.2; }
+.hero-node { stroke: var(--bg); stroke-width: 2; transform-box: fill-box; transform-origin: center; }
+.hero-node.n-cve { fill: var(--c-cve); } .hero-node.n-cwe { fill: var(--c-cwe); }
+.hero-node.n-capec { fill: var(--c-capec); } .hero-node.n-attack { fill: var(--c-attack); }
+.hero-net { transform-origin: 320px 280px; }
+.hero-orbit { stroke: var(--accent); stroke-opacity: 0.55; stroke-width: 1.4; }
+.hero-orbit.orbit-b { stroke-opacity: 0.3; stroke-width: 1.1; }
+.hero-bead { fill: #E9FFC9; filter: drop-shadow(0 0 6px rgba(155, 224, 79, 0.9)); offset-rotate: 0deg; }
+.hero-bead.bead-a { offset-path: path("M-210 0a210 74 0 1 0 420 0a210 74 0 1 0-420 0"); }
+.hero-bead.bead-b { fill: var(--c-attack); offset-path: path("M-262 0a262 96 0 1 0 524 0a262 96 0 1 0-524 0"); offset-distance: 40%; }
+.hero-shield { filter: drop-shadow(0 0 22px rgba(155, 224, 79, 0.35)); }
+@media (prefers-reduced-motion: no-preference) {
+  .hero-net { animation: hero-turn 120s linear infinite; }
+  .hero-shield { animation: float 6s ease-in-out infinite; }
+  .hero-node { animation: hero-node 3.6s ease-in-out infinite; }
+  .hero-node:nth-child(4n+1) { animation-delay: -0.9s; } .hero-node:nth-child(4n+2) { animation-delay: -1.8s; }
+  .hero-node:nth-child(4n+3) { animation-delay: -2.7s; }
+  .hero-bead.bead-a { animation: hero-orbit 11s linear infinite; }
+  .hero-bead.bead-b { animation: hero-orbit-b 17s linear infinite; }
+  @keyframes hero-turn { to { rotate: 360deg; } }
+  @keyframes hero-node { 50% { scale: 1.25; opacity: 0.75; } }
+  @keyframes hero-orbit { to { offset-distance: 100%; } }
+  @keyframes hero-orbit-b { from { offset-distance: 140%; } to { offset-distance: 40%; } }
+}
