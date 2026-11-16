@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=43">
+  <link rel="stylesheet" href="style.css?v=44">
 </head>
 <body class="entry">
   <div class="shell">
@@ -87,61 +87,49 @@
             </div>
 
             <div class="hero-art" aria-hidden="true">
-              <canvas id="hero3d"></canvas>
               <svg viewBox="0 0 640 560" preserveAspectRatio="xMidYMid meet">
                 <defs>
-                  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#A3FF32"/><stop offset="0.5" stop-color="#7CFC00"/><stop offset="1" stop-color="#5ACC00"/>
+                  <linearGradient id="lime" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#D9FF9C"/><stop offset="0.45" stop-color="#9BE04F"/><stop offset="1" stop-color="#5A911A"/>
                   </linearGradient>
-                  <linearGradient id="glassfill" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.03"/>
+                  <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#1A2415"/><stop offset="0.55" stop-color="#0A0F09"/><stop offset="1" stop-color="#050805"/>
+                  </linearGradient>
+                  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
                   </linearGradient>
                   <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-                    <stop offset="0" stop-color="#7CFC00" stop-opacity="0.55"/><stop offset="1" stop-color="#7CFC00" stop-opacity="0"/>
+                    <stop offset="0" stop-color="#9BE04F" stop-opacity="0.5"/><stop offset="1" stop-color="#9BE04F" stop-opacity="0"/>
                   </radialGradient>
                 </defs>
-                <g class="circuit" fill="none" stroke="#7CFC00" stroke-width="1.3">
-                  <path d="M330 0v96l-46 46v70"/><path d="M372 0v60l40 40v90"/><path d="M250 30h70l40 40"/>
-                  <path d="M640 120h-90l-40 40v40"/><path d="M640 60h-60l-70 70"/><path d="M470 0v50l30 30"/>
-                  <path d="M320 370v70l-50 50v70"/><path d="M350 370v120l30 30v40"/><path d="M290 372v40l-80 80h-90"/>
-                  <path d="M392 370v60l60 60h90"/><path d="M130 250h60l40 30"/><path d="M0 330h110l50-40"/>
-                  <path d="M640 330h-70l-40-30"/><path d="M640 400h-100l-60-50"/><path d="M180 120l60 60v30"/>
-                </g>
-                <g class="circuit-dots" fill="#7CFC00">
-                  <circle cx="330" cy="96" r="3"/><circle cx="412" cy="100" r="3"/><circle cx="250" cy="30" r="3"/>
-                  <circle cx="550" cy="120" r="3"/><circle cx="500" cy="80" r="3"/><circle cx="270" cy="490" r="3"/>
-                  <circle cx="380" cy="520" r="3"/><circle cx="120" cy="492" r="3"/><circle cx="542" cy="490" r="3"/>
-                  <circle cx="130" cy="250" r="3"/><circle cx="110" cy="330" r="3"/><circle cx="570" cy="330" r="3"/>
-                  <circle cx="540" cy="400" r="3"/><circle cx="180" cy="120" r="3"/>
-                </g>
-                <circle class="hero-glow" cx="340" cy="280" r="210" fill="url(#glow)"/>
-                <path d="M170 280h340" stroke="#7CFC00" stroke-opacity="0.55" stroke-width="1.5"/>
+                <circle class="hero-glow" cx="320" cy="280" r="230" fill="url(#glow)"/>
 
-                <g class="tile tile-a" transform="translate(150 280)">
-                  <rect x="-62" y="-62" width="124" height="124" rx="18" transform="rotate(45)" fill="url(#glassfill)" stroke="#ffffff" stroke-opacity="0.75" stroke-width="2.5"/>
-                  <rect x="-44" y="-44" width="88" height="88" rx="12" transform="rotate(45)" fill="none" stroke="#ffffff" stroke-opacity="0.25"/>
-                  <g fill="none" stroke="#ffffff" stroke-width="2.2">
-                    <circle r="8"/><circle cx="-24" cy="-14" r="4.5"/><circle cx="24" cy="-14" r="4.5"/><circle cy="27" r="4.5"/>
-                    <circle cx="-20" cy="20" r="4"/><circle cx="20" cy="20" r="4"/><circle cy="-27" r="4"/>
-                    <path d="M-7-4-20-12M7-4l13-8M0 8v14.5M-6 6-17 17M6 6l11 11M0-8v-15"/>
-                  </g>
+                <!-- the knowledge graph: nodes in the four entity colours, turning slowly -->
+                <g class="hero-net">
+                  <g class="hero-links" fill="none"><path d="M320.0 57.3L395.0 106.2"/><path d="M395.0 106.2L484.0 122.5"/><path d="M484.0 122.5L501.1 208.0"/><path d="M501.1 208.0L552.0 280.0"/><path d="M552.0 280.0L501.1 352.0"/><path d="M501.1 352.0L484.0 437.5"/><path d="M484.0 437.5L395.0 453.8"/><path d="M395.0 453.8L320.0 502.7"/><path d="M320.0 502.7L245.0 453.8"/><path d="M245.0 453.8L156.0 437.5"/><path d="M156.0 437.5L138.9 352.0"/><path d="M138.9 352.0L88.0 280.0"/><path d="M88.0 280.0L138.9 208.0"/><path d="M138.9 208.0L156.0 122.5"/><path d="M156.0 122.5L245.0 106.2"/><path d="M245.0 106.2L320.0 57.3"/><path d="M320.0 57.3L484.0 122.5"/><path d="M484.0 122.5L552.0 280.0"/><path d="M552.0 280.0L484.0 437.5"/><path d="M484.0 437.5L320.0 502.7"/><path d="M320.0 502.7L156.0 437.5"/><path d="M156.0 437.5L88.0 280.0"/><path d="M88.0 280.0L156.0 122.5"/><path d="M156.0 122.5L320.0 57.3"/><path d="M395.0 106.2L395.0 453.8"/><path d="M501.1 352.0L138.9 352.0"/><path d="M245.0 453.8L245.0 106.2"/><path d="M138.9 208.0L501.1 208.0"/></g>
+                  <circle class="hero-node n-cve" cx="320.0" cy="57.3" r="7"/><circle class="hero-node n-cwe" cx="395.0" cy="106.2" r="5.5"/><circle class="hero-node n-capec" cx="484.0" cy="122.5" r="7"/><circle class="hero-node n-attack" cx="501.1" cy="208.0" r="5.5"/><circle class="hero-node n-cve" cx="552.0" cy="280.0" r="7"/><circle class="hero-node n-cwe" cx="501.1" cy="352.0" r="5.5"/><circle class="hero-node n-capec" cx="484.0" cy="437.5" r="7"/><circle class="hero-node n-attack" cx="395.0" cy="453.8" r="5.5"/><circle class="hero-node n-cve" cx="320.0" cy="502.7" r="7"/><circle class="hero-node n-cwe" cx="245.0" cy="453.8" r="5.5"/><circle class="hero-node n-capec" cx="156.0" cy="437.5" r="7"/><circle class="hero-node n-attack" cx="138.9" cy="352.0" r="5.5"/><circle class="hero-node n-cve" cx="88.0" cy="280.0" r="7"/><circle class="hero-node n-cwe" cx="138.9" cy="208.0" r="5.5"/><circle class="hero-node n-capec" cx="156.0" cy="122.5" r="7"/><circle class="hero-node n-attack" cx="245.0" cy="106.2" r="5.5"/>
                 </g>
 
-                <g class="tile tile-b" transform="translate(340 280)">
-                  <rect x="-74" y="-74" width="148" height="148" rx="20" transform="rotate(45)" fill="#080D08" stroke="url(#gold)" stroke-width="5"/>
-                  <rect x="-56" y="-56" width="112" height="112" rx="14" transform="rotate(45)" fill="none" stroke="#7CFC00" stroke-opacity="0.45"/>
-                  <path d="M-15-6v-10a15 15 0 0 1 30 0v10" fill="none" stroke="url(#gold)" stroke-width="7" stroke-linecap="round"/>
-                  <rect x="-24" y="-6" width="48" height="38" rx="7" fill="url(#gold)"/>
-                  <circle cy="9" r="5" fill="#030503"/><path d="M-2.5 10h5l1.5 12h-8Z" fill="#030503"/>
+                <!-- two orbits with a bead travelling round each -->
+                <g transform="translate(320 280) rotate(-24)">
+                  <path class="hero-orbit" d="M-210 0a210 74 0 1 0 420 0a210 74 0 1 0-420 0" fill="none"/>
+                  <circle class="hero-bead bead-a" r="6"/>
+                </g>
+                <g transform="translate(320 280) rotate(28)">
+                  <path class="hero-orbit orbit-b" d="M-262 0a262 96 0 1 0 524 0a262 96 0 1 0-524 0" fill="none"/>
+                  <circle class="hero-bead bead-b" r="5"/>
                 </g>
 
-                <g class="tile tile-c" transform="translate(530 280)">
-                  <rect x="-62" y="-62" width="124" height="124" rx="18" transform="rotate(45)" fill="url(#glassfill)" stroke="#7CFC00" stroke-opacity="0.8" stroke-width="2.5"/>
-                  <rect x="-44" y="-44" width="88" height="88" rx="12" transform="rotate(45)" fill="none" stroke="#ffffff" stroke-opacity="0.25"/>
-                  <g fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round">
-                    <path d="M-26 14c-3-26 8-40 26-40s29 14 26 40"/><path d="M-18 22c-4-26 4-40 18-40s22 14 18 40"/>
-                    <path d="M-10 28c-3-24 1-37 10-37s13 13 10 37"/><path d="M-2 32c-2-18-1-32 2-32s4 14 2 32"/>
-                    <path d="M-22-22c6-7 14-11 22-11s16 4 22 11"/>
+                <!-- the shield and its lock -->
+                <g transform="translate(320 274)">
+                  <g class="hero-shield">
+                    <path d="M0-121C27-105 62-97 94-97V-8C94 58 47 105 0 136C-47 105-94 58-94-8V-97C-62-97-27-105 0-121Z" fill="url(#glass)" stroke="url(#lime)" stroke-width="9" stroke-linejoin="round"/>
+                    <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="none" stroke="#9BE04F" stroke-opacity="0.3" stroke-width="1.5"/>
+                    <path d="M0-103C24-90 54-83 78-82V-20C40-34-40-34-78-20V-82C-54-83-24-90 0-103Z" fill="url(#shine)"/>
+                    <path d="M-19-4v-16a19 19 0 0 1 38 0v16" fill="none" stroke="url(#lime)" stroke-width="9" stroke-linecap="round"/>
+                    <rect x="-32" y="-6" width="64" height="50" rx="9" fill="url(#lime)"/>
+                    <rect x="-32" y="-6" width="64" height="16" rx="8" fill="#ffffff" fill-opacity="0.28"/>
+                    <circle cy="14" r="6.5" fill="#050805"/><path d="M-3.200 15h6.400l2 15h-10.400Z" fill="#050805"/>
                   </g>
                 </g>
               </svg>
@@ -341,6 +329,5 @@
     </div>
   </div>
   <script src="script.js?v=32"></script>
-  <script type="module" src="hero3d.js?v=23"></script>
 </body>
 </html>
