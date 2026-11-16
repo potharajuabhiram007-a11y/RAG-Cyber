@@ -2167,21 +2167,24 @@
     let selected = null, hover = null, drag = null, energy = 0, running = false, width = 0, height = 0;
     let overviewLoaded = false, searchTimer = null, results = [], activeResult = -1, requestId = 0;
 
-    /* views: a force-directed network, a tidy tree, rings around the selected entity, or 3D */
-    const KG_MODES = ["network", "tree", "radial", "3d"];
+    /* views: lanes by entity type (Flow), a tidy tree, or rings around the selected entity */
+    const KG_MODES = ["flow", "tree", "radial"];
+    const FLOW_LANES = ["CVE", "CWE", "CAPEC", "ATTACK"];
+    const FLOW_TITLES = { CVE: "CVE \u00b7 Vulnerabilities", CWE: "CWE \u00b7 Weaknesses", CAPEC: "CAPEC \u00b7 Attack patterns", ATTACK: "ATT&CK \u00b7 Techniques" };
+    const FLOW_W = 140, FLOW_H = 28;                        // size of one entity box
+    let flowLanes = [];
     const KG_MODE_KEY = "ragcyber.kgmode.v1";
     const KG_HINTS = {
-      network: "Select a node to see its details and load its neighbours. Drag to move, scroll to zoom.",
+      flow: "Flow view: one lane per entity type, CVE to CWE to CAPEC to ATT&CK. Select a box to load its neighbours.",
       tree: "Tree view: entities are laid out left to right from the first one you searched. Drag to move, scroll to zoom.",
       radial: "Radial view: the selected entity sits in the centre with its neighbours on rings around it.",
-      "3d": "3D view: drag to rotate, scroll to zoom, select a node to load its neighbours.",
     };
-    let mode = "network";
+    let mode = "flow";
     try { const saved = localStorage.getItem(KG_MODE_KEY); if (KG_MODES.includes(saved)) mode = saved; } catch (error) { /* no storage */ }
     const hiddenTypes = new Set();                          // entity types switched off in the legend
     const rot = { x: -0.3, y: 0.5 };                        // 3D rotation
     const visible = (node) => Boolean(node) && !hiddenTypes.has(node.label);
-    const laidOut = () => mode === "tree" || mode === "radial";
+    const laidOut = () => mode === "flow" || mode === "tree" || mode === "radial";
 
     function resize() {
       const box = stage.getBoundingClientRect();
@@ -2248,6 +2251,45 @@
       edges.forEach((e) => {
         if (adjacent.has(e.from) && adjacent.has(e.to)) { adjacent.get(e.from).push(e.to); adjacent.get(e.to).push(e.from); }
       });
+      if (mode === "flow") {                                // one lane per type, left to right
+        const ROWS = 14, ROW_H = 40, SUB_W = FLOW_W + 26, GAP = 120;
+        const lanes = FLOW_LANES.map((label) => ({ label, items: [] }));
+        list.forEach((n) => { const at = FLOW_LANES.indexOf(n.label); lanes[at < 0 ? lanes.length - 1 : at].items.push(n); });
+        const used = lanes.filter((lane) => lane.items.length);
+        const rank = (n) => (n.more ? "2" : n.expanded ? "0" : "1") + n.id;
+        used.forEach((lane) => lane.items.sort((a, b) => rank(a) < rank(b) ? -1 : 1));
+        const place = () => {
+          let x = 0;
+          used.forEach((lane) => {
+            const subs = Math.ceil(lane.items.length / ROWS);
+            lane.items.forEach((n, index) => {
+              const column = Math.floor(index / ROWS), inColumn = Math.min(ROWS, lane.items.length - column * ROWS);
+              n.tx = x + column * SUB_W;
+              n.ty = ((index % ROWS) - (inColumn - 1) / 2) * ROW_H;
+            });
+            lane.x = x + (subs - 1) * SUB_W / 2;
+            lane.top = -(Math.min(ROWS, lane.items.length) - 1) / 2 * ROW_H;
+            x += subs * SUB_W + GAP;
+          });
+          const shift = (x - GAP - SUB_W) / 2;
+          used.forEach((lane) => { lane.x -= shift; lane.items.forEach((n) => { n.tx -= shift; }); });
+        };
+        place();
+        for (let pass = 0; pass < 2; pass += 1) {           // keep linked boxes near each other: fewer crossings
+          used.forEach((lane) => {
+            const score = new Map(lane.items.map((n) => {
+              const others = adjacent.get(n.id).map((id) => nodes.get(id)).filter((o) => o.label !== n.label);
+              return [n.id, n.more ? Infinity : others.length ? others.reduce((sum, o) => sum + o.ty, 0) / others.length : n.ty];
+            }));
+            lane.items.sort((a, b) => score.get(a.id) - score.get(b.id) || (a.id < b.id ? -1 : 1));
+          });
+          place();
+        }
+        const top = Math.min(...used.map((lane) => lane.top));
+        flowLanes = used.map((lane) => ({ label: lane.label, x: lane.x, y: top - 46 }));
+        wake(0.05);
+        return;
+      }
       const order = [];
       if (mode === "radial" && selected && adjacent.has(selected)) order.push(selected);
       list.forEach((n) => { if (n.expanded) order.push(n.id); });
@@ -2427,11 +2469,41 @@
       const shown = [...nodes.values()].filter(visible);
       project(shown);
       if (mode === "3d") shown.sort((p, q) => q.depth - p.depth);    // far nodes first
+      if (mode === "flow" && shown.length) {                         // lane titles above each column
+        context.textAlign = "center"; context.textBaseline = "middle";
+        context.font = "600 12px " + cssVar("--sans", "sans-serif");
+        flowLanes.forEach((lane) => {
+          context.globalAlpha = 0.9;
+          context.fillStyle = TYPE_COLORS[lane.label] || PAL.muted;
+          context.fillText(FLOW_TITLES[lane.label] || lane.label, lane.x, lane.y);
+        });
+        context.globalAlpha = 1;
+      }
       edges.forEach((edge) => {
         const a = nodes.get(edge.from), b = nodes.get(edge.to);
         if (!visible(a) || !visible(b)) return;
         const drawn = still ? 1 : 1 - Math.pow(1 - Math.min(1, (now - Math.max(a.born || 0, b.born || 0)) / 300), 3);
         const lit = focus && (edge.from === focus || edge.to === focus);
+        if (mode === "flow") {                                         // a curve from box side to box side
+          const half = FLOW_W / 2, side = Math.abs(b.sx - a.sx) < 1 ? 0 : Math.sign(b.sx - a.sx);
+          const x0 = a.sx + (side || 1) * half, x3 = b.sx + (side ? -side : 1) * (half + 3);
+          const bend = side ? Math.max(30, Math.abs(x3 - x0) * 0.45) : 34 + Math.min(60, Math.abs(b.sy - a.sy) * 0.15);
+          context.strokeStyle = lit ? PAL.accent : PAL.borderStrong;
+          context.fillStyle = context.strokeStyle;
+          context.globalAlpha = (lit ? 1 : (hover ? 0.14 : 0.6)) * drawn;
+          context.lineWidth = (lit ? 1.8 : 1) / Math.max(0.6, view.k);
+          context.setLineDash(edge.rel === "more" ? [4, 4] : []);
+          context.beginPath(); context.moveTo(x0, a.sy);
+          context.bezierCurveTo(x0 + (side || 1) * bend, a.sy, x3 + (side ? -side : 1) * bend, b.sy, x3, b.sy);
+          context.stroke(); context.setLineDash([]);
+          if (edge.rel !== "more") {
+            const point = side ? side : -1, size = 6;                  // arrowhead points into the box
+            context.beginPath(); context.moveTo(x3 + point * 3, b.sy);
+            context.lineTo(x3 - point * size, b.sy - size * 0.55); context.lineTo(x3 - point * size, b.sy + size * 0.55);
+            context.closePath(); context.fill();
+          }
+          return;
+        }
         const dx = b.sx - a.sx, dy = b.sy - a.sy, distance = Math.hypot(dx, dy) || 1;
         const ux = dx / distance, uy = dy / distance;
         const startX = a.sx + ux * radius(a) * a.ss, startY = a.sy + uy * radius(a) * a.ss;
@@ -2464,6 +2536,29 @@
         const fade = mode === "3d" ? Math.min(1, 0.3 + 0.7 * node.ss) : 1;     // far nodes are fainter
         context.textAlign = "center";
         context.globalAlpha = grow * fade * (near && !near.has(node.id) ? 0.4 : 1);
+        if (mode === "flow") {                                         // a labelled box
+          const pop = 0.85 + 0.15 * easeOutBack(grow), w = FLOW_W * pop, h = FLOW_H * pop;
+          const chosen = node.id === selected;
+          context.beginPath(); context.roundRect(x - w / 2, y - h / 2, w, h, 8);
+          context.fillStyle = PAL.surface; context.fill();
+          if (!node.more) { const alpha = context.globalAlpha; context.globalAlpha = alpha * (chosen ? 0.24 : 0.1); context.fillStyle = colour; context.fill(); context.globalAlpha = alpha; }
+          context.setLineDash(node.more ? [4, 3] : []);
+          context.strokeStyle = chosen ? PAL.accent : colour; context.lineWidth = chosen ? 2 : 1.3; context.stroke();
+          context.setLineDash([]);
+          if (chosen && !still) {                                      // slow soft ring, 2.5 s loop
+            const p = (now % 2500) / 2500, alpha = context.globalAlpha;
+            context.beginPath(); context.roundRect(x - w / 2 - 3 - 8 * p, y - h / 2 - 3 - 8 * p, w + 6 + 16 * p, h + 6 + 16 * p, 11 + 8 * p);
+            context.globalAlpha = alpha * 0.4 * (1 - p); context.lineWidth = 1.5; context.stroke();
+            context.globalAlpha = alpha;
+          }
+          if (view.k > 0.32 || chosen || node.id === hover) {
+            context.fillStyle = node.more ? colour : PAL.text; context.textBaseline = "middle";
+            context.font = (chosen ? "600 " : "500 ") + "11.5px " + (node.more ? sans : mono);
+            const text = node.more ? "+" + Number(node.count || 0).toLocaleString() + " more" : node.id;
+            context.fillText(text.length > 18 ? text.slice(0, 17) + "\u2026" : text, x, y + 0.5);
+          }
+          return;
+        }
         context.beginPath(); context.arc(x, y, r, 0, Math.PI * 2);
         if (node.more) {
           context.fillStyle = PAL.surface; context.fill();
@@ -2512,6 +2607,12 @@
       let best = null, bestDistance = Infinity;
       nodes.forEach((node) => {
         if (!visible(node)) return;
+        if (mode === "flow") {
+          const px = node.sx === undefined ? node.x : node.sx, py = node.sy === undefined ? node.y : node.sy;
+          const dx = Math.abs(px - point.x), dy = Math.abs(py - point.y);
+          if (dx <= FLOW_W / 2 + 3 && dy <= FLOW_H / 2 + 3 && dx + dy < bestDistance) { best = node; bestDistance = dx + dy; }
+          return;
+        }
         const scale = node.ss || 1;
         const distance = Math.hypot((node.sx === undefined ? node.x : node.sx) - point.x, (node.sy === undefined ? node.y : node.sy) - point.y);
         if (distance < radius(node) * scale + 7 / view.k && distance < bestDistance) { best = node; bestDistance = distance; }
