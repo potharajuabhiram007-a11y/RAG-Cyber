@@ -1584,7 +1584,6 @@
       history = JSON.parse(sessionStorage.getItem(HISTORY_KEY) || "[]");
     } catch (error) { history = []; }
     if (!Array.isArray(history) || !history.length) { history = []; return; }
-    history = history.slice(-1);
     const welcome = document.getElementById("welcome");
     if (welcome) welcome.remove();
     history.forEach((entry) => {
@@ -1770,7 +1769,6 @@
   async function send(text) {
     const message = text.trim();
     if (!message || busy) return;
-    if (chat.querySelector(".msg")) resetChat();
     const welcome = document.getElementById("welcome");
     if (welcome) welcome.remove();
     busy = true;
@@ -1785,7 +1783,7 @@
       cancelAnimationFrame(preview.frame);
       // text that was already read while streaming is not animated in a second time
       renderResponse(placeholder, data, !preview.node);
-      history = [{ q: message, t: asked.toISOString(), data }];
+      history.push({ q: message, t: asked.toISOString(), data });
       saveHistory();
       archiveAdd(message, asked, data);
     } catch (error) {
@@ -1851,7 +1849,7 @@
   chat.addEventListener("scroll", updateJump, { passive: true });
   jumpButton.addEventListener("click", () => scrollToBottom(true));
 
-  /* One question per chat: asking again, or "New chat", starts from the empty entry screen. */
+  /* A chat holds as many questions as you like; "New chat" goes back to the empty entry screen. */
   function syncEntry() {
     const answered = Boolean(chat.querySelector(".msg"));
     document.body.classList.toggle("entry", currentView === "assistant" && !answered);
@@ -2169,6 +2167,22 @@
     let selected = null, hover = null, drag = null, energy = 0, running = false, width = 0, height = 0;
     let overviewLoaded = false, searchTimer = null, results = [], activeResult = -1, requestId = 0;
 
+    /* views: a force-directed network, a tidy tree, rings around the selected entity, or 3D */
+    const KG_MODES = ["network", "tree", "radial", "3d"];
+    const KG_MODE_KEY = "ragcyber.kgmode.v1";
+    const KG_HINTS = {
+      network: "Select a node to see its details and load its neighbours. Drag to move, scroll to zoom.",
+      tree: "Tree view: entities are laid out left to right from the first one you searched. Drag to move, scroll to zoom.",
+      radial: "Radial view: the selected entity sits in the centre with its neighbours on rings around it.",
+      "3d": "3D view: drag to rotate, scroll to zoom, select a node to load its neighbours.",
+    };
+    let mode = "network";
+    try { const saved = localStorage.getItem(KG_MODE_KEY); if (KG_MODES.includes(saved)) mode = saved; } catch (error) { /* no storage */ }
+    const hiddenTypes = new Set();                          // entity types switched off in the legend
+    const rot = { x: -0.3, y: 0.5 };                        // 3D rotation
+    const visible = (node) => Boolean(node) && !hiddenTypes.has(node.label);
+    const laidOut = () => mode === "tree" || mode === "radial";
+
     function resize() {
       const box = stage.getBoundingClientRect();
       if (!box.width || !box.height) return;
@@ -2190,7 +2204,7 @@
       if (node) { if (info.name && !info.more) node.name = info.name; return node; }
       const angle = Math.random() * Math.PI * 2, reach = 50 + Math.random() * 50;
       node = { ...info, x: (near ? near.x : 0) + Math.cos(angle) * reach, y: (near ? near.y : 0) + Math.sin(angle) * reach,
-               vx: 0, vy: 0, born: performance.now() };
+               z: (near ? near.z : 0) + (Math.random() - 0.5) * 160, vx: 0, vy: 0, vz: 0, born: performance.now() };
       nodes.set(info.id, node);
       return node;
     }
@@ -2221,7 +2235,110 @@
         }
       });
       emptyBox.hidden = true;
+      layout();
       wake(1);
+    }
+
+    /* Tree and Radial views: every node gets a target position (tx, ty) and glides to it. */
+    function layout() {
+      if (!laidOut()) return;
+      const list = [...nodes.values()].filter(visible);
+      if (!list.length) return;
+      const adjacent = new Map(list.map((n) => [n.id, []]));
+      edges.forEach((e) => {
+        if (adjacent.has(e.from) && adjacent.has(e.to)) { adjacent.get(e.from).push(e.to); adjacent.get(e.to).push(e.from); }
+      });
+      const order = [];
+      if (mode === "radial" && selected && adjacent.has(selected)) order.push(selected);
+      list.forEach((n) => { if (n.expanded) order.push(n.id); });
+      list.forEach((n) => order.push(n.id));
+      const kids = new Map(), depth = new Map(), roots = [];
+      order.forEach((id) => {                               // breadth-first: a spanning forest
+        if (depth.has(id)) return;
+        roots.push(id); depth.set(id, 0); kids.set(id, []);
+        const queue = [id];
+        for (let i = 0; i < queue.length; i += 1) {
+          const current = queue[i];
+          adjacent.get(current).forEach((next) => {
+            if (depth.has(next)) return;
+            depth.set(next, depth.get(current) + 1); kids.set(next, []);
+            kids.get(current).push(next); queue.push(next);
+          });
+        }
+      });
+      const typeRank = (id) => { const n = nodes.get(id); return (n.more ? "~" : "") + (n.label || "") + ":" + id; };
+      kids.forEach((children) => children.sort((a, b) => typeRank(a) < typeRank(b) ? -1 : 1));
+      const leaves = new Map();
+      const count = (id) => {
+        const children = kids.get(id);
+        const total = children.length ? children.reduce((sum, child) => sum + count(child), 0) : 1;
+        leaves.set(id, total);
+        return total;
+      };
+      roots.forEach(count);
+      if (mode === "tree") {
+        let cursor = 0;
+        const ROWS = 12, ROW_H = 30, COL_W = 136;            // many leaves wrap into columns so the tree is not one tall strip
+        const place = (id) => {
+          const node = nodes.get(id), children = kids.get(id);
+          node.tx = depth.get(id) * 240;
+          if (!children.length) { node.ty = cursor; cursor += ROW_H; return; }
+          const top = cursor;
+          const branches = children.filter((child) => kids.get(child).length);
+          const ends = children.filter((child) => !kids.get(child).length);
+          branches.forEach(place);
+          ends.forEach((child, index) => {
+            const leaf = nodes.get(child);
+            leaf.tx = (depth.get(id) + 1) * 240 + Math.floor(index / ROWS) * COL_W;
+            leaf.ty = cursor + (index % ROWS) * ROW_H;
+          });
+          cursor += Math.min(ends.length, ROWS) * ROW_H;
+          node.ty = (top + cursor - ROW_H) / 2;
+        };
+        roots.forEach((id) => { place(id); cursor += 26; });
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        list.forEach((n) => { minX = Math.min(minX, n.tx); maxX = Math.max(maxX, n.tx); minY = Math.min(minY, n.ty); maxY = Math.max(maxY, n.ty); });
+        list.forEach((n) => { n.tx -= (minX + maxX) / 2; n.ty -= (minY + maxY) / 2; });
+      } else {
+        const total = roots.reduce((sum, id) => sum + leaves.get(id), 0);
+        const single = roots.length === 1;
+        const ring = Math.max(140, total * 24 / (2 * Math.PI));
+        const unit = (2 * Math.PI) / total;
+        const place = (id, start) => {
+          const node = nodes.get(id), level = depth.get(id) + (single ? 0 : 1);
+          const middle = start + leaves.get(id) * unit / 2;
+          const reach = level <= 1 ? level * ring : ring * (1 + (level - 1) * 0.62);
+          node.tx = Math.cos(middle) * reach; node.ty = Math.sin(middle) * reach;
+          let angle = start;
+          kids.get(id).forEach((child) => { place(child, angle); angle += leaves.get(child) * unit; });
+        };
+        let angle = -Math.PI / 2;
+        roots.forEach((id) => { place(id, angle); angle += leaves.get(id) * unit; });
+      }
+      wake(0.05);
+    }
+
+    /* Where each node is drawn.  In 3D the positions are rotated and given perspective. */
+    function project(list) {
+      if (mode !== "3d") { list.forEach((n) => { n.sx = n.x; n.sy = n.y; n.ss = 1; n.depth = 0; }); return; }
+      const cy = Math.cos(rot.y), sy = Math.sin(rot.y), cx = Math.cos(rot.x), sx = Math.sin(rot.x);
+      list.forEach((n) => {
+        const x1 = n.x * cy + n.z * sy, z1 = -n.x * sy + n.z * cy;
+        const y1 = n.y * cx - z1 * sx, z2 = n.y * sx + z1 * cx;
+        n.ss = Math.max(0.45, Math.min(1.7, 900 / (900 + z2)));
+        n.sx = x1 * n.ss; n.sy = y1 * n.ss; n.depth = z2;
+      });
+    }
+
+    function setMode(next) {
+      if (!KG_MODES.includes(next)) return;
+      mode = next;
+      try { localStorage.setItem(KG_MODE_KEY, mode); } catch (error) { /* no storage */ }
+      modeButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.mode === mode)));
+      if (footHint) footHint.textContent = KG_HINTS[mode];
+      canvas.dataset.mode = mode;
+      if (laidOut()) { layout(); fit(); }
+      else { wake(1); setTimeout(fit, mode === "3d" ? 700 : 900); }
     }
 
     async function fetchEntity(id, perGroup) {
@@ -2234,46 +2351,63 @@
 
     /* ---- layout (a small force simulation) and drawing ---- */
     function tick() {
-      const list = [...nodes.values()];
-      if (energy > 0.02) {
+      const list = [...nodes.values()].filter(visible);
+      const spatial = mode === "3d";
+      if (laidOut()) {                                      // glide to the positions the layout chose
+        let moving = 0;
+        list.forEach((node) => {
+          if (node.tx === undefined || (drag && drag.node === node && drag.moved)) return;
+          const dx = node.tx - node.x, dy = node.ty - node.y;
+          if (reducedMotion.matches) { node.x = node.tx; node.y = node.ty; return; }
+          node.x += dx * 0.16; node.y += dy * 0.16;
+          moving = Math.max(moving, Math.abs(dx) + Math.abs(dy));
+        });
+        energy = moving > 0.6 ? Math.max(energy, 0.05) : 0;
+      } else if (energy > 0.02) {
         for (let i = 0; i < list.length; i += 1) {
           const a = list[i];
           for (let j = i + 1; j < list.length; j += 1) {
             const b = list[j];
-            let dx = a.x - b.x, dy = a.y - b.y;
-            let d2 = dx * dx + dy * dy;
-            if (d2 < 1) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; d2 = 1; }
+            let dx = a.x - b.x, dy = a.y - b.y, dz = spatial ? a.z - b.z : 0;
+            let d2 = dx * dx + dy * dy + dz * dz;
+            if (d2 < 1) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; dz = spatial ? Math.random() - 0.5 : 0; d2 = 1; }
             if (d2 > 160000) continue;
             const force = 1500 / d2;
             a.vx += dx * force; a.vy += dy * force; b.vx -= dx * force; b.vy -= dy * force;
+            if (spatial) { a.vz += dz * force; b.vz -= dz * force; }
           }
           a.vx -= a.x * 0.0035; a.vy -= a.y * 0.0035;
+          if (spatial) a.vz -= a.z * 0.0035;
         }
         edges.forEach((edge) => {
           const a = nodes.get(edge.from), b = nodes.get(edge.to);
-          if (!a || !b) return;
-          const dx = b.x - a.x, dy = b.y - a.y, distance = Math.hypot(dx, dy) || 1;
+          if (!visible(a) || !visible(b)) return;
+          const dx = b.x - a.x, dy = b.y - a.y, dz = spatial ? b.z - a.z : 0, distance = Math.hypot(dx, dy, dz) || 1;
           const pull = (distance - 105) * 0.04;
           a.vx += (dx / distance) * pull; a.vy += (dy / distance) * pull;
           b.vx -= (dx / distance) * pull; b.vy -= (dy / distance) * pull;
+          if (spatial) { a.vz += (dz / distance) * pull; b.vz -= (dz / distance) * pull; }
         });
         const step = Math.min(1, energy * 2);
         list.forEach((node) => {
-          if (drag && drag.node === node) { node.vx = 0; node.vy = 0; return; }
-          node.vx *= 0.8; node.vy *= 0.8;
-          const speed = Math.hypot(node.vx, node.vy);
+          if (drag && drag.node === node && !spatial) { node.vx = 0; node.vy = 0; return; }
+          node.vx *= 0.8; node.vy *= 0.8; node.vz *= 0.8;
+          const speed = Math.hypot(node.vx, node.vy, spatial ? node.vz : 0);
           const cap = speed > 14 ? 14 / speed : 1;
           node.x += node.vx * cap * step; node.y += node.vy * cap * step;
+          if (spatial) node.z += node.vz * cap * step;
         });
         energy *= 0.98;
       }
+      const turning = spatial && !reducedMotion.matches && nodes.size > 0;
+      if (turning && !drag && !hover) rot.y += 0.0022;       // the 3D graph turns slowly while idle
       if (target) {
         view.x += (target.x - view.x) * 0.14; view.y += (target.y - view.y) * 0.14; view.k += (target.k - view.k) * 0.14;
         if (Math.abs(target.x - view.x) + Math.abs(target.y - view.y) < 0.5 && Math.abs(target.k - view.k) < 0.002) target = null;
       }
       draw();
       const settling = energy > 0.02 || target || drag || list.some((n) => performance.now() - n.born < 700)
-        || (selected && !reducedMotion.matches);                       // keeps the pulse ring going
+        || (selected && !reducedMotion.matches) || turning;            // keeps the pulse ring and the 3D turn going
       if (settling && !document.hidden && currentView === "graph") requestAnimationFrame(tick);
       else running = false;
     }
@@ -2290,18 +2424,21 @@
       const still = reducedMotion.matches;
       const near = hover ? new Set([hover]) : null;                  // the hovered node and its direct neighbours
       if (near) edges.forEach((e) => { if (e.from === hover) near.add(e.to); else if (e.to === hover) near.add(e.from); });
+      const shown = [...nodes.values()].filter(visible);
+      project(shown);
+      if (mode === "3d") shown.sort((p, q) => q.depth - p.depth);    // far nodes first
       edges.forEach((edge) => {
         const a = nodes.get(edge.from), b = nodes.get(edge.to);
-        if (!a || !b) return;
+        if (!visible(a) || !visible(b)) return;
         const drawn = still ? 1 : 1 - Math.pow(1 - Math.min(1, (now - Math.max(a.born || 0, b.born || 0)) / 300), 3);
         const lit = focus && (edge.from === focus || edge.to === focus);
-        const dx = b.x - a.x, dy = b.y - a.y, distance = Math.hypot(dx, dy) || 1;
+        const dx = b.sx - a.sx, dy = b.sy - a.sy, distance = Math.hypot(dx, dy) || 1;
         const ux = dx / distance, uy = dy / distance;
-        const startX = a.x + ux * radius(a), startY = a.y + uy * radius(a);
-        const endX = b.x - ux * (radius(b) + 2), endY = b.y - uy * (radius(b) + 2);
+        const startX = a.sx + ux * radius(a) * a.ss, startY = a.sy + uy * radius(a) * a.ss;
+        const endX = b.sx - ux * (radius(b) * b.ss + 2), endY = b.sy - uy * (radius(b) * b.ss + 2);
         context.strokeStyle = lit ? PAL.accent : PAL.borderStrong;
         context.fillStyle = context.strokeStyle;
-        context.globalAlpha = lit ? 1 : (hover ? 0.18 : 0.75);
+        context.globalAlpha = (lit ? 1 : (hover ? 0.18 : 0.75)) * (mode === "3d" ? Math.min(1, 0.25 + 0.6 * Math.min(a.ss, b.ss)) : 1);
         context.lineWidth = (lit ? 1.6 : 1) / view.k;
         context.setLineDash(edge.rel === "more" ? [4, 4] : []);
         context.beginPath(); context.moveTo(startX, startY);
@@ -2319,34 +2456,44 @@
       context.globalAlpha = 1;
       context.textAlign = "center";
       const sans = cssVar("--sans", "sans-serif"), mono = cssVar("--mono", "monospace");
-      nodes.forEach((node) => {
+      shown.forEach((node) => {
         const grow = still ? 1 : Math.max(0, Math.min(1, (now - node.born - 200) / 400));   // edges first, then the node pops in
-        const r = radius(node) * (0.8 + 0.2 * easeOutBack(grow));
+        const r = radius(node) * (0.8 + 0.2 * easeOutBack(grow)) * node.ss;
         const colour = TYPE_COLORS[node.label] || PAL.muted;
-        context.globalAlpha = grow * (near && !near.has(node.id) ? 0.4 : 1);
-        context.beginPath(); context.arc(node.x, node.y, r, 0, Math.PI * 2);
+        const x = node.sx, y = node.sy;
+        const fade = mode === "3d" ? Math.min(1, 0.3 + 0.7 * node.ss) : 1;     // far nodes are fainter
+        context.textAlign = "center";
+        context.globalAlpha = grow * fade * (near && !near.has(node.id) ? 0.4 : 1);
+        context.beginPath(); context.arc(x, y, r, 0, Math.PI * 2);
         if (node.more) {
           context.fillStyle = PAL.surface; context.fill();
           context.setLineDash([3, 3]); context.strokeStyle = colour; context.lineWidth = 1.4; context.stroke(); context.setLineDash([]);
           context.fillStyle = colour; context.font = "600 9px " + sans; context.textBaseline = "middle";
-          context.fillText("+" + (node.count > 999 ? Math.round(node.count / 1000) + "k" : node.count), node.x, node.y + 0.5);
+          context.fillText("+" + (node.count > 999 ? Math.round(node.count / 1000) + "k" : node.count), x, y + 0.5);
         } else {
           context.fillStyle = colour; context.fill();
           context.strokeStyle = PAL.surface; context.lineWidth = 2; context.stroke();
           if (node.id === selected) {
-            context.beginPath(); context.arc(node.x, node.y, r + 4, 0, Math.PI * 2);
+            context.beginPath(); context.arc(x, y, r + 4, 0, Math.PI * 2);
             context.strokeStyle = PAL.accent; context.lineWidth = 1.5; context.stroke();
             if (!still) {                                              // slow soft pulse ring, 2.5 s loop
               const p = (now % 2500) / 2500;
-              context.beginPath(); context.arc(node.x, node.y, r + 4 + 10 * p, 0, Math.PI * 2);
+              context.beginPath(); context.arc(x, y, r + 4 + 10 * p, 0, Math.PI * 2);
               context.globalAlpha = grow * 0.35 * (1 - p); context.stroke();
-              context.globalAlpha = grow;
+              context.globalAlpha = grow * fade;
             }
           }
-          if (view.k > 0.5 || node.id === selected || node.id === hover) {
-            context.fillStyle = PAL.text; context.textBaseline = "top";
+          const labelled = mode === "3d" ? node.ss > 0.95 && view.k > 0.5 : view.k > 0.5;
+          if (labelled || node.id === selected || node.id === hover) {
+            context.fillStyle = PAL.text;
             context.font = (node.id === selected ? "600 " : "") + Math.min(20, 11 / Math.min(1, view.k)).toFixed(1) + "px " + mono;
-            context.fillText(node.id, node.x, node.y + r + 5);
+            if (mode === "tree") {                                     // beside the node, so rows stay readable
+              context.textAlign = "left"; context.textBaseline = "middle";
+              context.fillText(node.id, x + r + 7, y + 0.5);
+            } else {
+              context.textBaseline = "top";
+              context.fillText(node.id, x, y + r + 5);
+            }
           }
         }
       });
@@ -2364,8 +2511,10 @@
     function pick(point) {
       let best = null, bestDistance = Infinity;
       nodes.forEach((node) => {
-        const distance = Math.hypot(node.x - point.x, node.y - point.y);
-        if (distance < radius(node) + 7 / view.k && distance < bestDistance) { best = node; bestDistance = distance; }
+        if (!visible(node)) return;
+        const scale = node.ss || 1;
+        const distance = Math.hypot((node.sx === undefined ? node.x : node.sx) - point.x, (node.sy === undefined ? node.y : node.sy) - point.y);
+        if (distance < radius(node) * scale + 7 / view.k && distance < bestDistance) { best = node; bestDistance = distance; }
       });
       return best;
     }
@@ -2383,7 +2532,7 @@
 
     canvas.addEventListener("pointerdown", (event) => {
       const node = pick(toWorld(event));
-      drag = { node, startX: event.clientX, startY: event.clientY, viewX: view.x, viewY: view.y, moved: false };
+      drag = { node, startX: event.clientX, startY: event.clientY, viewX: view.x, viewY: view.y, rotX: rot.x, rotY: rot.y, moved: false };
       target = null;
       try { canvas.setPointerCapture(event.pointerId); } catch (error) { /* synthetic events */ }
       canvas.classList.add("dragging");
@@ -2393,7 +2542,18 @@
       const point = toWorld(event);
       if (drag) {
         if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 4) drag.moved = true;
-        if (drag.node && drag.moved) { drag.node.x = point.x; drag.node.y = point.y; wake(0.3); }
+        if (mode === "3d") {                                           // dragging turns the graph
+          if (drag.moved) {
+            rot.y = drag.rotY + (event.clientX - drag.startX) * 0.006;
+            rot.x = Math.max(-1.35, Math.min(1.35, drag.rotX + (event.clientY - drag.startY) * 0.006));
+            wake(0.05);
+          }
+        }
+        else if (drag.node && drag.moved) {
+          drag.node.x = point.x; drag.node.y = point.y;
+          if (laidOut()) { drag.node.tx = point.x; drag.node.ty = point.y; }
+          wake(0.3);
+        }
         else if (!drag.node) { view.x = drag.viewX + event.clientX - drag.startX; view.y = drag.viewY + event.clientY - drag.startY; wake(0.05); }
         tip.hidden = true;
         return;
@@ -2429,9 +2589,19 @@
     }
 
     function fit() {
-      if (!nodes.size) return;
+      const list = [...nodes.values()].filter(visible);
+      if (!list.length) return;
+      if (mode === "3d") {                                             // it turns, so fit the whole ball around the centre
+        const reach = Math.max(60, ...list.map((n) => Math.hypot(n.x, n.y, n.z)));
+        target = { k: Math.min(1.4, Math.max(0.2, (Math.min(width, height) / 2 - 40) / (reach * 1.3))), x: 0, y: 0 };
+        wake(0.05);
+        return;
+      }
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      nodes.forEach((n) => { minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x); minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y); });
+      list.forEach((node) => {
+        const n = laidOut() && node.tx !== undefined ? { x: node.tx, y: node.ty } : node;
+        minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x); minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+      });
       const k = Math.min(1.4, Math.max(0.2, Math.min((width - 120) / (maxX - minX || 1), (height - 120) / (maxY - minY || 1))));
       target = { k, x: -((minX + maxX) / 2) * k, y: -((minY + maxY) / 2) * k };
       wake(0.05);
@@ -2466,7 +2636,9 @@
       merge(data);
       renderDetail(data);
       const node = nodes.get(wanted);
-      target = { k: view.k, x: -node.x * view.k, y: -node.y * view.k };
+      if (laidOut()) { layout(); fit(); }                              // radial re-centres on the selection
+      else if (mode === "3d") target = { k: view.k, x: 0, y: 0 };
+      else target = { k: view.k, x: -node.x * view.k, y: -node.y * view.k };
       try { window.history.replaceState(null, "", "#/graph?e=" + encodeURIComponent(wanted)); } catch (error) { /* file:// */ }
       wake(0.4);
     }
@@ -2608,21 +2780,47 @@
         row.dataset.type = info.label;
         row.appendChild(el("b", null, info.id));
         if (info.name && info.name !== info.id) row.appendChild(el("span", null, info.name));
-        row.addEventListener("mousedown", (event) => { event.preventDefault(); searchInput.value = info.id; select(info.id); });
+        row.addEventListener("mousedown", (event) => { event.preventDefault(); choose(info.id); });
         resultsList.appendChild(row);
       });
       resultsList.hidden = false;
       searchInput.setAttribute("aria-expanded", "true");
     }
 
+    /* Several entities can be searched at once: separate them with commas (or spaces
+     * between identifiers).  Every one is added to the same graph. */
+    function searchTerms() {
+      const raw = searchInput.value;
+      let parts = raw.split(/[,;]+/).map((t) => t.trim()).filter(Boolean);
+      if (parts.length === 1) {
+        const words = parts[0].split(/\s+/);
+        if (words.length > 1 && words.every((w) => ID_RE.test(w.toUpperCase()))) parts = words;
+      }
+      return parts;
+    }
+    const lastTerm = () => { const parts = searchInput.value.split(/[,;]+/); return parts[parts.length - 1].trim(); };
+
+    function choose(id) {                                   // a suggestion replaces only the term being typed
+      const parts = searchInput.value.split(/[,;]+/).map((t) => t.trim());
+      parts[parts.length - 1] = id;
+      searchInput.value = parts.filter(Boolean).join(", ");
+      select(id);
+    }
+
+    async function loadMany(ids) {                          // one after another, all into the same graph
+      const unique = [...new Set(ids)];
+      for (const id of unique) await select(id);
+      if (unique.length > 1) setTimeout(fit, 900);          // once the layout has spread out, show everything
+    }
+
     searchInput.addEventListener("input", () => {
       clearTimeout(searchTimer);
-      const text = searchInput.value.trim();
+      const text = lastTerm();
       if (text.length < 2) { closeResults(); return; }
       searchTimer = setTimeout(async () => {
         try {
           const body = await api("/api/graph/search?q=" + encodeURIComponent(text));
-          if (searchInput.value.trim() !== text) return;
+          if (lastTerm() !== text) return;
           results = body.results || [];
         } catch (error) { results = []; }
         activeResult = -1;
@@ -2640,11 +2838,72 @@
       }
       if (event.key !== "Enter") return;
       event.preventDefault();
-      const text = searchInput.value.trim().toUpperCase();
-      const choice = results[activeResult] || (ID_RE.test(text) ? { id: text } : results[0]);
-      if (choice) { searchInput.value = choice.id; select(choice.id); }
+      const terms = searchTerms();
+      if (!terms.length) return;
+      if (terms.length === 1) {
+        const text = terms[0].toUpperCase();
+        const choice = results[activeResult] || (ID_RE.test(text) ? { id: text } : results[0]);
+        if (choice) choose(choice.id);
+        return;
+      }
+      closeResults();
+      (async () => {
+        const ids = [];
+        for (let i = 0; i < terms.length; i += 1) {
+          const text = terms[i].toUpperCase();
+          if (ID_RE.test(text)) { ids.push(text); continue; }
+          if (i === terms.length - 1 && (results[activeResult] || results[0])) { ids.push((results[activeResult] || results[0]).id); continue; }
+          try {                                             // a name: use its best match
+            const body = await api("/api/graph/search?q=" + encodeURIComponent(terms[i]));
+            if (body.results && body.results[0]) ids.push(body.results[0].id);
+          } catch (error) { /* skipped */ }
+        }
+        if (!ids.length) return;
+        searchInput.value = ids.join(", ");
+        loadMany(ids);
+      })();
     });
     searchInput.addEventListener("blur", () => setTimeout(closeResults, 120));
+
+    const modeButtons = [...document.querySelectorAll(".kg-mode")];
+    const footHint = document.querySelector(".kg-foot");
+    modeButtons.forEach((button) => button.addEventListener("click", () => setMode(button.dataset.mode)));
+    modeButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.mode === mode)));
+    if (footHint) footHint.textContent = KG_HINTS[mode];
+    canvas.dataset.mode = mode;
+
+    document.querySelectorAll(".kg-legend [data-type]").forEach((button) => {      // show or hide one entity type
+      button.addEventListener("click", () => {
+        const type = button.dataset.type;
+        if (hiddenTypes.has(type)) hiddenTypes.delete(type); else hiddenTypes.add(type);
+        button.setAttribute("aria-pressed", String(!hiddenTypes.has(type)));
+        if (hover && !visible(nodes.get(hover))) hover = null;
+        tip.hidden = true;
+        layout();
+        wake(0.6);
+      });
+    });
+
+    const kgBox = document.querySelector(".kg");
+    const fullButton = document.getElementById("kg-full");
+    const isFull = () => kgBox.classList.contains("kg-full");
+    function showFull(on) {                                 // keeps the button and the canvas in step
+      kgBox.classList.toggle("kg-full", on);
+      fullButton.setAttribute("aria-pressed", String(on));
+      fullButton.textContent = on ? "Exit fullscreen" : "Fullscreen";
+      resize();
+      setTimeout(() => { resize(); fit(); }, 120);
+    }
+    function setFull(on) {                                  // fills the browser window; Esc leaves
+      if (on !== isFull()) showFull(on);
+    }
+    fullButton.addEventListener("click", () => setFull(!isFull()));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && isFull() && resultsList.hidden) setFull(false);
+    });
+    window.addEventListener("hashchange", () => {            // leaving the page ends fullscreen
+      if (!location.hash.startsWith("#/graph") && isFull()) setFull(false);
+    });
 
     document.getElementById("kg-in").addEventListener("click", () => zoom(1.25));
     document.getElementById("kg-out").addEventListener("click", () => zoom(0.8));

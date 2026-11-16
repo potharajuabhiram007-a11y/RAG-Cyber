@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=36">
+  <link rel="stylesheet" href="style.css?v=43">
 </head>
 <body class="entry">
   <div class="shell">
@@ -80,7 +80,10 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m0 0-6-6m6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
               </form>
-              <button id="new-chat" class="btn btn-primary" type="button">New chat</button>
+              <button id="new-chat" class="btn btn-primary" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+                <span>New chat</span>
+              </button>
             </div>
 
             <div class="hero-art" aria-hidden="true">
@@ -246,20 +249,27 @@
                   <label class="sr-only" for="kg-search">Find an entity</label>
                   <input id="kg-search" class="field" type="search" autocomplete="off" role="combobox"
                          aria-expanded="false" aria-controls="kg-results"
-                         placeholder="Find an entity by identifier or name">
+                         placeholder="Find entities, e.g. CVE-2021-44228, CWE-79">
                   <ul id="kg-results" class="kg-results" role="listbox" hidden></ul>
                 </div>
-                <div class="kg-legend" aria-label="Entity types">
-                  <span data-type="CVE"><i></i>CVE</span>
-                  <span data-type="CWE"><i></i>CWE</span>
-                  <span data-type="CAPEC"><i></i>CAPEC</span>
-                  <span data-type="ATTACK"><i></i>ATT&amp;CK</span>
+                <div class="kg-modes" role="group" aria-label="Graph view">
+                  <button class="kg-mode" type="button" data-mode="network" aria-pressed="true">Network</button>
+                  <button class="kg-mode" type="button" data-mode="tree" aria-pressed="false">Tree</button>
+                  <button class="kg-mode" type="button" data-mode="radial" aria-pressed="false">Radial</button>
+                  <button class="kg-mode" type="button" data-mode="3d" aria-pressed="false">3D</button>
+                </div>
+                <div class="kg-legend" role="group" aria-label="Show or hide entity types">
+                  <button type="button" data-type="CVE" aria-pressed="true" title="Show or hide CVE"><i></i>CVE</button>
+                  <button type="button" data-type="CWE" aria-pressed="true" title="Show or hide CWE"><i></i>CWE</button>
+                  <button type="button" data-type="CAPEC" aria-pressed="true" title="Show or hide CAPEC"><i></i>CAPEC</button>
+                  <button type="button" data-type="ATTACK" aria-pressed="true" title="Show or hide ATT&amp;CK"><i></i>ATT&amp;CK</button>
                 </div>
                 <div class="kg-buttons">
                   <button id="kg-out" class="btn btn-square" type="button" aria-label="Zoom out">&minus;</button>
                   <button id="kg-in" class="btn btn-square" type="button" aria-label="Zoom in">+</button>
                   <button id="kg-fit" class="btn" type="button">Fit</button>
                   <button id="kg-reset" class="btn" type="button">Reset</button>
+                  <button id="kg-full" class="btn" type="button" aria-pressed="false">Fullscreen</button>
                 </div>
               </div>
               <div id="kg-stage" class="kg-stage">
@@ -331,7 +341,7 @@
       </div>
     </div>
   </div>
-  <script src="script.js?v=23"></script>
+  <script src="script.js?v=31"></script>
   <script type="module" src="hero3d.js?v=23"></script>
 </body>
 </html>
