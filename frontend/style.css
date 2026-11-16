@@ -542,7 +542,6 @@ body.entry .hero-foot { display: block; grid-column: 1 / -1; grid-row: 5; positi
 .hero-foot svg { width: 24px; height: 24px; }
 
 /* one question per chat */
-body.answered #composer { display: none; }
 body:not(.answered) #new-chat { display: none; }
 #new-chat { padding: 11px 32px; border-radius: 26px; font-size: 15px; animation: rise 0.4s var(--ease) both; }
 textarea:focus-visible { outline: none; }
@@ -1112,3 +1111,80 @@ body.entry .btn-round:disabled { opacity: 0.85; }
 
 /* chat box sits slightly higher (moved visually, so the hero text does not shift) */
 body.entry .dock { translate: 0 -16px; }
+
+/* ======================================================================
+   "New chat": a glossy lime pill with a plus icon
+   ====================================================================== */
+#new-chat {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: inline-flex; align-items: center; gap: 8px; flex: none; white-space: nowrap;
+  min-height: 48px; padding: 0 24px 0 18px; border-radius: 999px;
+  font-size: 15px; font-weight: 650; letter-spacing: 0.01em; color: var(--accent-ink, #0B1400);
+  border: 1px solid rgba(214, 255, 160, 0.75);
+  background: linear-gradient(180deg, #d9ff9c 0%, var(--accent-hover) 22%, var(--accent) 56%, #5f9a1c 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), inset 0 -4px 8px rgba(0, 0, 0, 0.26),
+              0 0 0 4px rgba(155, 224, 79, 0.08), 0 8px 24px rgba(155, 224, 79, 0.32);
+  transition: translate var(--dur) var(--ease-out), box-shadow var(--dur), filter var(--dur);
+}
+body:not(.answered) #new-chat { display: none; }
+#new-chat svg { width: 18px; height: 18px; flex: none; transition: rotate var(--dur) var(--ease-out); }
+#new-chat span, #new-chat svg { position: relative; z-index: 1; }
+/* glass highlight on the upper half */
+#new-chat::before {
+  content: ""; position: absolute; left: 4px; right: 4px; top: 2px; height: 48%; z-index: 0; pointer-events: none;
+  border-radius: 999px 999px 40% 40% / 999px 999px 12px 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.05));
+}
+/* light band that sweeps across on hover */
+#new-chat::after {
+  content: ""; position: absolute; top: -20%; bottom: -20%; left: 0; width: 45%; z-index: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0.7) 50%, transparent 100%);
+  transform: translateX(-140%) skewX(-18deg);
+}
+#new-chat:hover { translate: 0 -2px; filter: brightness(1.05);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -4px 8px rgba(0, 0, 0, 0.26),
+              0 0 0 4px rgba(155, 224, 79, 0.16), 0 12px 32px rgba(155, 224, 79, 0.48); }
+#new-chat:active { translate: 0 0; filter: brightness(0.96); }
+#new-chat:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  #new-chat:hover svg { rotate: 90deg; }
+  #new-chat:hover::after { animation: newchat-sweep 0.9s var(--ease-out) both; }
+  @keyframes newchat-sweep {
+    0%   { opacity: 0; transform: translateX(-140%) skewX(-18deg); }
+    15%  { opacity: 1; }
+    100% { opacity: 0; transform: translateX(330%) skewX(-18deg); }
+  }
+}
+@media (max-width: 520px) { #new-chat { padding: 0 16px 0 13px; font-size: 14px; } }
+#new-chat { align-self: center; height: 48px; margin-left: 10px; }
+
+/* ======================================================================
+   Knowledge Graph: view switch, type filters in the legend, fullscreen
+   ====================================================================== */
+.kg-modes { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); }
+.kg-mode { min-height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--muted);
+  font: 500 13px var(--sans); cursor: pointer; transition: background var(--dur-fast), color var(--dur-fast); }
+.kg-mode:hover { color: var(--text); }
+.kg-mode[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.kg-mode:focus-visible, .kg-legend button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.kg-legend { gap: 6px; }
+.kg-legend button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid var(--border); background: transparent; color: var(--text); font: 500 12px var(--sans); cursor: pointer;
+  transition: opacity var(--dur-fast), border-color var(--dur-fast), background var(--dur-fast); }
+.kg-legend button:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.kg-legend button[aria-pressed="false"] { opacity: 0.45; text-decoration: line-through; }
+.kg-legend button[aria-pressed="false"] i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--tone); }
+
+#kg-full[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.kg.kg-full { position: fixed; inset: 0; z-index: 200; margin: 0; border: 0; border-radius: 0; background: var(--bg); }
+/* the view keeps a transform from its entry animation, which would trap a fixed child */
+.view-graph:has(.kg-full) { animation: none; transform: none; }
+#kg-canvas[data-mode="3d"] { cursor: grab; }
+#kg-canvas[data-mode="3d"].dragging { cursor: grabbing; }
+@media (max-width: 860px) {
+  .kg-legend { display: flex; }
+  .kg-modes { order: 5; }
+  .kg-mode { padding: 0 11px; }
+}
+.views:has(.kg-full) { position: relative; z-index: 500; }
