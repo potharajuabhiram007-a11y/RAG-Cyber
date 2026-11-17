@@ -90,7 +90,12 @@ def load_records(split="dev", use_llm=False, limit=None):
     tag = "llm" if use_llm else "nollm"
     out = {}
     stem = "tuning" if split == "dev" else "heldout"
-    for path in sorted(harness.EXPERIMENT_DIR.glob(f"*__{stem}-{split}{f'-n{limit}' if limit else ''}__{tag}.json")):
+    paths = sorted(harness.EXPERIMENT_DIR.glob(
+        f"*__{stem}-{split}{f'-n{limit}' if limit else ''}__{tag}.json"))
+    if not paths and limit is None:
+        # logs written before the split was part of the file name
+        paths = sorted(harness.EXPERIMENT_DIR.glob(f"*__{stem}-all__{tag}.json"))
+    for path in paths:
         record = json.loads(path.read_text(encoding="utf-8"))
         out[record["name"]] = record
     return out
