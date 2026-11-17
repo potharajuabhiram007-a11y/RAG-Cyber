@@ -99,6 +99,32 @@ address and redeploy:
 After this the laptop, Ollama, the local Neo4j and the Cloudflare tunnel are no longer
 needed for the website.
 
+## Using Docker instead (optional)
+
+The `Dockerfile` builds one image with the backend, the website and the embedding model
+(downloaded during the build, so it starts without downloading anything). It does not
+contain the database or any secret: settings come from environment variables, exactly as
+in `.env`. Docker is not needed on the laptop for the cloud options; they build the image
+on their own servers from GitHub.
+
+* **Render with Docker:** choose **New > Web Service**, pick the repository and set
+  **Language** to **Docker**. Add the environment variables listed in `render.yaml`
+  (Render sets `PORT` itself). Use this instead of step 4, not as well.
+* **Hugging Face Spaces:** create a Space with the **Docker** SDK, push this repository to
+  it, add the same variables under **Settings > Variables and secrets** (the secrets as
+  *secrets*) and add `PORT=7860`. A free Space has 16 GB of memory instead of Render's
+  512 MB, so the ATT&CK update fits, and it sleeps after 48 hours without visitors
+  instead of 15 minutes. A Space's code is public, its secrets are not.
+* **A server of your own** (for example Oracle Cloud Always Free): install Docker, copy
+  `.env.example` to `.env`, fill it in and run `docker compose up -d --build`. This
+  starts Neo4j as well, so no Aura is needed and no size limit applies; leave `MAX_CVES`
+  empty to keep every CVE. The website is then on port 8000.
+
+The Docker build has not been run on the laptop (Docker is not installed there). Its
+steps were checked in a clean Python environment instead: the requirements install
+without PyTorch, the model downloads during the build step, and the backend then starts
+with downloads switched off, serves the website and answers questions, using 241 MB.
+
 ## Keeping it awake (optional)
 
 A free uptime monitor such as UptimeRobot can request `<address>/api/status` every

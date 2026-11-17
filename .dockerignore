@@ -1,0 +1,23 @@
+# Secrets: never copy them into an image
+.env
+**/.env
+Neo4j-*.txt
+aura*.txt
+*credentials*.txt
+
+# Local environments, caches and outputs
+.venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.hf-cache/
+backend/logs/
+*.log
+dist/
+backup_*/
+.git/
+.claude/
+
+# Not needed at run time
+backend/tests/
+backend/data/experiments/
