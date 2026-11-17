@@ -399,6 +399,8 @@ TRAVERSALS: dict[str, tuple[tuple[str, tuple[Hop, ...], bool], ...]] = {
         ("Child attack patterns (CAPEC_CHILD)", ((REL_CAPEC_CHILD, "in", LABEL_CAPEC),), False),
         ("Can precede (CAN_PRECEDE)", ((REL_CAN_PRECEDE, "out", LABEL_CAPEC),), False),
         ("Can follow (CAN_PRECEDE)", ((REL_CAN_PRECEDE, "in", LABEL_CAPEC),), False),
+        ("Example vulnerabilities (CWE_CAPEC <- CVE_CWE)",
+         ((REL_CWE_CAPEC, "in", LABEL_CWE), (REL_CVE_CWE, "in", LABEL_CVE)), False),
     ),
     LABEL_ATTACK: (
         ("Parent technique (SUBTECHNIQUE_OF)", ((REL_SUBTECHNIQUE_OF, "out", LABEL_ATTACK),), False),
@@ -406,8 +408,12 @@ TRAVERSALS: dict[str, tuple[tuple[str, tuple[Hop, ...], bool], ...]] = {
         ("Attack patterns (CAPEC_ATTACK)", ((REL_CAPEC_ATTACK, "in", LABEL_CAPEC),), True),
         ("Weaknesses (CAPEC_ATTACK <- CWE_CAPEC)",
          ((REL_CAPEC_ATTACK, "in", LABEL_CAPEC), (REL_CWE_CAPEC, "in", LABEL_CWE)), True),
+        ("Example vulnerabilities (CAPEC_ATTACK <- CWE_CAPEC <- CVE_CWE)",
+         ((REL_CAPEC_ATTACK, "in", LABEL_CAPEC), (REL_CWE_CAPEC, "in", LABEL_CWE),
+          (REL_CVE_CWE, "in", LABEL_CVE)), False),
     ),
 }
+TOP_VULNERABILITIES = 5       # reverse CVE lookups from CAPEC / ATT&CK: highest base score first
 MAX_IDS_WITH_CONTEXT = 3
 TRAVERSE_LIMIT = 200          # ids kept for relationship checks
 DISPLAY_LIMIT = 12            # related nodes shown / passed to generation per group
@@ -510,7 +516,12 @@ class Retriever:
         for relation, hops, chain in TRAVERSALS[label]:
             if len(hops) > self.tuning.max_hops:
                 continue
-            result = self.db.traverse(label, identifier, hops, limit=self.tuning.traverse_limit)
+            reverse_cves = hops[-1][2] == LABEL_CVE and len(hops) >= 2
+            if reverse_cves:
+                result = self.db.traverse(label, identifier, hops, limit=TOP_VULNERABILITIES,
+                                          order_by_score=True)
+            else:
+                result = self.db.traverse(label, identifier, hops, limit=self.tuning.traverse_limit)
             rel_type, direction, target = hops[-1]
             context.groups.append(RelatedGroup(
                 relation=relation, label=target, rel_type=rel_type, direction=direction,

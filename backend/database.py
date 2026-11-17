@@ -464,7 +464,7 @@ class Neo4jDatabase:
         return strip_embedding(rows[0]["node"]) if rows else None
 
     def traverse(self, start_label: str, start_id: str, hops: Sequence[Hop],
-                 limit: int = 15) -> dict:
+                 limit: int = 15, order_by_score: bool = False) -> dict:
         """Follow a fixed chain of whitelisted relationships from one node.
 
         Returns ``{"nodes": [...], "total": n}`` where every node carries ``via``:
@@ -486,10 +486,11 @@ class Neo4jDatabase:
             else:
                 raise ValueError(f"Invalid direction {direction!r}")
         last, prev = f"n{len(hops)}", f"n{len(hops) - 1}"
+        order = "coalesce(node.base_score, 0) DESC, node.id" if order_by_score else "node.id"
         rows = self._read(
             f"MATCH {pattern} WHERE {last} <> n0 "
             f"WITH {last} AS node, collect(DISTINCT {prev}.id) AS via "
-            "ORDER BY node.id "
+            f"ORDER BY {order} "
             "WITH collect({node: node {.*, embedding: null}, via: via}) AS items "
             "RETURN size(items) AS total, items[0..$limit] AS items",
             id=start_id, limit=int(limit))
@@ -500,7 +501,8 @@ class Neo4jDatabase:
             node = strip_embedding(item["node"]) or {}
             node["via"] = sorted(item["via"])
             nodes.append(node)
-        nodes.sort(key=lambda n: _natural_key(n.get("id", "")))
+        if not order_by_score:
+            nodes.sort(key=lambda n: _natural_key(n.get("id", "")))
         return {"nodes": nodes, "total": rows[0]["total"]}
 
     def count_related(self, start_label: str, start_id: str, hop: Hop) -> int:
@@ -680,6 +682,53 @@ class Neo4jDatabase:
                 self._overview_cache = (datetime.now(timezone.utc), out)
         return out
 
+    def multi_hop_kill_chain(self, entity_id: str, limit: int = 25) -> dict[str, Any]:
+        """Entities within four hops of one entity along the CVE -> CWE -> CAPEC -> ATT&CK
+        chain (both directions), the multi-hop traversals of PNNL-36792 (Figs. 14-17).
+
+        Returns ``{"center", "nodes", "edges"}``; every node carries ``hops``.  The
+        graph is expanded one hop at a time with bounded, parameterised queries, so a
+        heavily connected weakness cannot make a single query explode.
+        """
+        def fetch(label: str, ids: list[str], cap: int) -> list[dict]:
+            _check_label(label)
+            return self._read(
+                f"MATCH (a:{label}) WHERE a.id IN $ids "
+                "MATCH (a)-[r]-(b) WHERE type(r) IN $rels AND b <> a "
+                "AND any(l IN labels(b) WHERE l IN $labels) "
+                "RETURN a.id AS a, type(r) AS rel, startNode(r) = a AS outgoing, "
+                "b {.id, .name, .severity, .base_score} AS node, "
+                "[l IN labels(b) WHERE l IN $labels][0] AS label "
+                "ORDER BY coalesce(b.base_score, 0) DESC, b.id LIMIT $cap",
+                ids=ids, rels=list(KILL_CHAIN_RELS), labels=list(GRAPH_LABELS), cap=int(cap))
+
+        return expand_kill_chain(entity_id, limit, self.get_node, fetch)
+
+    def filter_cves(self, severity: str | None = None, year: int | None = None,
+                    min_score: float | None = None, vendor: str | None = None,
+                    limit: int = 20) -> list[dict[str, Any]]:
+        """CVEs matching structured filters, best score first (all values parameterised)."""
+        conditions, params = [], {"limit": max(1, min(int(limit), 100))}
+        if severity:
+            conditions.append("toUpper(c.severity) = toUpper($severity)")
+            params["severity"] = str(severity)
+        if year is not None:
+            conditions.append("c.published STARTS WITH $year_prefix")
+            params["year_prefix"] = str(int(year))
+        if min_score is not None:
+            conditions.append("c.base_score >= $min_score")
+            params["min_score"] = float(min_score)
+        if vendor:
+            conditions.append("any(p IN coalesce(c.affected_products, []) "
+                              "WHERE toLower(p) CONTAINS toLower($vendor))")
+            params["vendor"] = str(vendor)
+        where = ("WHERE " + " AND ".join(conditions) + " ") if conditions else ""
+        return self._read(
+            f"MATCH (c:{LABEL_CVE}) {where}"
+            "RETURN c.id AS id, c.severity AS severity, c.base_score AS base_score, "
+            "c.published AS published, left(coalesce(c.description, ''), 200) AS summary "
+            "ORDER BY coalesce(c.base_score, 0) DESC, c.published DESC LIMIT $limit", **params)
+
     # ------------------------------------------------------------------ #
     # Statistics
     # ------------------------------------------------------------------ #
@@ -701,6 +750,48 @@ class Neo4jDatabase:
         rows = self._read("CALL dbms.components() YIELD name, versions, edition "
                           "RETURN name, versions[0] AS version, edition")
         return rows[0] if rows else {}
+
+
+KILL_CHAIN_RELS = (REL_CVE_CWE, REL_CWE_CHILD, REL_CWE_CAPEC, REL_CAPEC_CHILD,
+                   REL_CAN_PRECEDE, REL_CAPEC_ATTACK)
+KILL_CHAIN_MAX_HOPS = 4
+
+
+def expand_kill_chain(entity_id: str, limit: int, get_node, fetch) -> dict[str, Any]:
+    """Breadth-first expansion shared by ``Neo4jDatabase`` and the in-memory test graph.
+
+    ``fetch(label, ids, cap)`` returns rows ``{a, rel, outgoing, node, label}`` for the
+    neighbours of nodes ``ids`` (all of one label) along the kill-chain relationships.
+    """
+    center = (entity_id or "").strip().upper()
+    label = label_for_id(center)
+    result: dict[str, Any] = {"center": center, "nodes": [], "edges": []}
+    if label is None or get_node(label, center) is None:
+        return result
+    limit = max(1, min(int(limit), 100))
+    known = {center: label}
+    edges: set[tuple[str, str, str]] = set()
+    frontier = {center: label}
+    for hop in range(1, KILL_CHAIN_MAX_HOPS + 1):
+        if not frontier or len(result["nodes"]) >= limit:
+            break
+        reached: dict[str, str] = {}
+        for current in sorted(set(frontier.values())):
+            ids = sorted(i for i, l in frontier.items() if l == current)
+            for row in fetch(current, ids, limit * 4):
+                other = row["node"]["id"]
+                if other not in known:
+                    if len(result["nodes"]) >= limit:
+                        continue
+                    known[other] = row["label"]
+                    reached[other] = row["label"]
+                    result["nodes"].append({**row["node"], "label": row["label"], "hops": hop})
+                source, target = (row["a"], other) if row["outgoing"] else (other, row["a"])
+                edges.add((source, target, row["rel"]))
+        frontier = reached
+    result["edges"] = [{"source": s, "target": t, "rel": r}
+                       for s, t, r in sorted(edges) if s in known and t in known]
+    return result
 
 
 def _natural_key(identifier: str):
