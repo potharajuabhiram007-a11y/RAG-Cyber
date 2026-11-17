@@ -105,6 +105,7 @@ class Settings:
     nvd_overlap_minutes: int = 15
     nvd_window_days: int = 120          # NVD rejects ranges longer than 120 days
     nvd_sync_start_date: str = ""       # optional ISO date: limit the initial load
+    max_cves: int = 0                   # keep only the newest N CVEs (0 = keep all)
 
     # --- MITRE -----------------------------------------------------------
     cwe_xml_url: str = "https://cwe.mitre.org/data/xml/cwec_latest.xml.zip"
@@ -179,6 +180,7 @@ class Settings:
             "embedding_runtime": (self.embedding_runtime
                                   if self.embedding_provider == "sentence-transformers" else None),
             "embed_cves": self.embed_cves,
+            "max_cves": self.max_cves or None,
             "scheduler_enabled": self.scheduler_enabled,
             "mitre_update_interval_hours": self.update_interval_hours,
             "nvd_update_interval_hours": self.nvd_update_interval_hours,
@@ -245,6 +247,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         nvd_results_per_page=min(_env_int("NVD_RESULTS_PER_PAGE", 2000, minimum=1), 2000),
         nvd_overlap_minutes=_env_int("NVD_OVERLAP_MINUTES", 15, minimum=0),
         nvd_sync_start_date=_env("NVD_SYNC_START_DATE"),
+        max_cves=_env_int("MAX_CVES", 0, minimum=0),
         cwe_xml_url=_env("CWE_XML_URL", Settings.cwe_xml_url),
         capec_xml_url=_env("CAPEC_XML_URL", Settings.capec_xml_url),
         attack_stix_urls=attack_urls,

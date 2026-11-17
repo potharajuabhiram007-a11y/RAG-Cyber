@@ -11,15 +11,19 @@ The frontend stays on Vercel.
 | Embeddings | `all-MiniLM-L6-v2` (ONNX Runtime) | the same model on Render, downloaded during the build |
 | Public address | Temporary Cloudflare tunnel | Permanent `onrender.com` address |
 
-No application code changes are needed. Everything is done with settings, plus the
-`render.yaml` file in this folder.
+Everything is done with settings, the `render.yaml` file in this folder and the
+`copy-to` command.
 
 ## What the free tiers cannot do
 
-* **Not every CVE.** AuraDB Free holds 200,000 nodes. The full NVD catalogue is larger, so
-  only CVEs published since `NVD_SYNC_START_DATE` are loaded. `2024-01-01` gives roughly
-  135,000 CVEs today and leaves about a year of room for new ones. Use `2025-01-01` for
-  more room and fewer CVEs.
+* **Not every CVE.** AuraDB Free holds 200,000 nodes, 400,000 relationships and 1 GB
+  (Neo4j's docs; its product page says 50,000 nodes, so check the limit shown in your
+  Aura console). NVD holds over 420,000 CVEs and publishes about 100,000 a year, so
+  `MAX_CVES=100000` keeps only the newest 100,000 (back to early January 2026 as of
+  November 2026). Each update deletes the oldest CVEs beyond the cap and skips old CVEs
+  that NVD modifies, so the database stays the same size. CWE, CAPEC, ATT&CK and the
+  reference documents (about 2,900 nodes) are always kept in full. If the console shows
+  50,000 nodes, use `MAX_CVES=45000`.
 * **The backend sleeps.** Render stops a free service after 15 minutes without visitors.
   The next visit wakes it, which takes about a minute, and the page may show
   "backend offline" until then. Updates run only while it is awake; each wake-up catches up.
@@ -29,7 +33,7 @@ No application code changes are needed. Everything is done with settings, plus t
   embedding model (run with ONNX Runtime) uses about 280 MB (measured on the laptop).
   Reading a new ATT&CK release needs about 340 MB more, so that update will likely fail
   on Render. This happens only when MITRE publishes a release, a few times a year. When
-  it does, run that update once from the laptop (step 3).
+  it does, update the laptop database and copy again (step 3).
 
 ## Step 1. Create the database (Neo4j Aura)
 
@@ -45,25 +49,27 @@ No application code changes are needed. Everything is done with settings, plus t
    from that list. Groq shut down its Llama chat models (`llama-3.3-70b-versatile`,
    `llama-3.1-8b-instant`) for free accounts on 16 August 2026.
 
-## Step 3. Load the data from the laptop (once)
+## Step 3. Copy the data from the laptop (once)
 
-The first load is long, so do it from the laptop where nothing goes to sleep.
+The laptop database already holds everything, embeddings included, so it is copied
+instead of downloaded and embedded again.
 
-1. In `.env`, set the three `NEO4J_...` values from step 1 and set
-   `NVD_SYNC_START_DATE=2024-01-01`. Keep a copy of the old values if you still want the
-   local database.
-2. Start the backend as usual:
+1. Save the Aura credentials file from step 1 in the project folder. `.gitignore`
+   keeps files named `Neo4j-*.txt` or `aura*.txt` out of GitHub; do not rename it to
+   anything else.
+2. With the local Neo4j running, run:
 
    ```bash
-   .venv\Scripts\python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+   .venv\Scripts\python -m backend.manage copy-to Neo4j-xxxxxxxx-Created-....txt --max-cves 100000
    ```
 
-3. Open <http://127.0.0.1:8000/api/sync/status> and wait until all five sources show
-   `success`. Without an NVD API key expect this to take a good while.
-4. Stop the backend. The data, including the reference PDFs, is now in Aura.
+   It copies CWE, CAPEC, ATT&CK, the reference documents and the newest 100,000 CVEs,
+   rebuilds the relationships on Aura and copies the sync checkpoints, so the cloud
+   backend continues with small incremental updates. It prints the counts in Aura at
+   the end. It can be re-run safely.
 
 The reference PDFs are not in the GitHub repository, so the cloud backend never re-reads
-them. To change them, repeat this step from the laptop.
+them. To change them, update the laptop database and copy again.
 
 ## Step 4. Start the backend (Render)
 

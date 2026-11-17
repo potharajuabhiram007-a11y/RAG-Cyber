@@ -96,6 +96,48 @@ class InMemoryGraph:
             counts[rel] = len(rebuilt)
         return counts
 
+    def _newest_first(self) -> list[str]:
+        return sorted(self.nodes["CVE"], reverse=True,
+                      key=lambda i: (self.nodes["CVE"][i].get("published") or "", i))
+
+    def cve_count(self) -> int:
+        return len(self.nodes["CVE"])
+
+    def cve_retention_floor(self, keep: int) -> str | None:
+        ordered = self._newest_first()
+        if keep <= 0 or len(ordered) < keep:
+            return None
+        return self.nodes["CVE"][ordered[keep - 1]].get("published") or ""
+
+    def prune_cves(self, keep: int, batch_size: int = 5000) -> int:
+        if keep <= 0:
+            return 0
+        self._count_write()
+        doomed = self._newest_first()[keep:]
+        for cve_id in doomed:
+            del self.nodes["CVE"][cve_id]
+        self.edges[REL_CVE_CWE] = {k: v for k, v in self.edges[REL_CVE_CWE].items()
+                                   if k[0] in self.nodes["CVE"]}
+        return len(doomed)
+
+    def drop_vector_indexes(self) -> None:
+        self.schema_dimensions = None
+
+    def clear_embeddings(self, label: str) -> None:
+        for node in self.nodes[label].values():
+            node.pop("embedding", None)
+            node.pop("embedding_hash", None)
+
+    def page_nodes(self, label: str, after_id: str, limit: int) -> list[dict]:
+        ids = sorted(i for i in self.nodes[label] if i > after_id)[:limit]
+        return [strip_embedding(self.nodes[label][i]) for i in ids]
+
+    def export_nodes(self, label: str, after_id: str, limit: int,
+                     published_from: str | None = None) -> list[dict]:
+        ids = sorted(i for i, n in self.nodes[label].items() if i > after_id and (
+            published_from is None or (n.get("published") or "") >= published_from))
+        return [dict(self.nodes[label][i]) for i in ids[:limit]]
+
     def delete_stale_foundation(self, source_file: str, keep_ids: Sequence[str]) -> int:
         keep, removed = set(keep_ids), 0
         for label in ("CyberTerm", "CyberDocument"):

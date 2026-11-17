@@ -12,3 +12,8 @@ backup_*/
 backend/data/reference_docs/*.pdf
 .claude/
 *.log
+# Neo4j Aura credentials files (downloaded from the Aura console) - never commit them
+Neo4j-*.txt
+aura*.txt
+*credentials*.txt
+.hf-cache/
