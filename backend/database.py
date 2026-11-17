@@ -140,6 +140,8 @@ class Neo4jDatabase:
         self._settings = settings
         self._driver = None
         self._lock = threading.Lock()
+        self._overview_lock = threading.Lock()
+        self._overview_cache = None
         self.vector_search_available = True
 
     # ------------------------------------------------------------------ #
@@ -530,7 +532,7 @@ class Neo4jDatabase:
                     k: int = 5) -> list[dict]:
         """Full-text search over CWE / CAPEC / ATT&CK names."""
         wanted = [_check_label(label) for label in labels]
-        tokens = re.findall(r"[A-Za-z0-9]{2,}", text)[:24]   # strips all Lucene syntax
+        tokens = re.findall(r"[a-z0-9]{2,}", (text or "").lower())[:24]   # strips all Lucene syntax
         if not tokens:
             return []
         try:
@@ -663,28 +665,37 @@ class Neo4jDatabase:
 
     def graph_overview(self, per_label: int = 3) -> list[dict]:
         """The best-connected CWE / CAPEC / ATT&CK entities: a sensible place to start exploring."""
-        cached = getattr(self, "_overview_cache", None)
+        with self._overview_lock:
+            cached = self._overview_cache
         if cached and (datetime.now(timezone.utc) - cached[0]).total_seconds() < 600:
             return cached[1]
         out: list[dict] = []
         for label in (LABEL_CWE, LABEL_CAPEC, LABEL_ATTACK):
             rows = self._read(
-                f"MATCH (n:{label}) WITH n, size([(n)--() | 1]) AS degree ORDER BY degree DESC LIMIT $k "
+                f"MATCH (n:{label}) WITH n, COUNT { (n)--() } AS degree ORDER BY degree DESC LIMIT $k "
                 "RETURN n {.id, .name} AS node", k=int(per_label))
             out += [self._brief(r["node"], label) for r in rows]
         if out:
-            self._overview_cache = (datetime.now(timezone.utc), out)
+            with self._overview_lock:
+                self._overview_cache = (datetime.now(timezone.utc), out)
         return out
 
     # ------------------------------------------------------------------ #
     # Statistics
     # ------------------------------------------------------------------ #
     def counts(self) -> dict:
-        nodes = {label: self._read(f"MATCH (n:{label}) RETURN count(n) AS c")[0]["c"]
-                 for label in NODE_LABELS}
-        rels = {rel: self._read(f"MATCH ()-[r:{rel}]->() RETURN count(r) AS c")[0]["c"]
-                for rel in REL_TYPES}
-        return {"nodes": nodes, "relationships": rels}
+        def work(tx) -> dict:
+            nodes = {label: tx.run(f"MATCH (n:{label}) RETURN count(n) AS c").single()["c"]
+                     for label in NODE_LABELS}
+            rels = {rel: tx.run(f"MATCH ()-[r:{rel}]->() RETURN count(r) AS c").single()["c"]
+                    for rel in REL_TYPES}
+            return {"nodes": nodes, "relationships": rels}
+
+        try:
+            with self._session() as session:
+                return session.execute_read(work)
+        except (AuthError, ServiceUnavailable, SessionExpired, OSError) as exc:
+            raise self._wrap(exc) from exc
 
     def server_info(self) -> dict:
         rows = self._read("CALL dbms.components() YIELD name, versions, edition "
