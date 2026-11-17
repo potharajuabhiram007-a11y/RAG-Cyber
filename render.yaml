@@ -42,8 +42,12 @@ services:
       # --- data ---
       - key: NEO4J_DATABASE
         value: neo4j
-      - key: NVD_SYNC_START_DATE  # Aura Free holds 200,000 nodes: load recent CVEs only
-        value: "2024-01-01"
+      # Aura Free holds 200,000 nodes and 1 GB. NVD now publishes ~100,000 CVEs a year,
+      # so keep only the newest 100,000 (older ones are deleted as new ones arrive).
+      - key: MAX_CVES
+        value: "100000"
+      - key: NVD_SYNC_START_DATE  # only used if the database is loaded without copy-to
+        value: "2026-01-01"
       - key: EMBEDDING_PROVIDER
         value: sentence-transformers
       - key: EMBEDDING_MODEL

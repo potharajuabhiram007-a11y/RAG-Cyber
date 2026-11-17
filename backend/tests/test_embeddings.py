@@ -89,6 +89,25 @@ def test_sentence_transformers_is_the_default_provider(monkeypatch):
         load_settings()
 
 
+def test_reembed_resume_only_embeds_what_is_missing(knowledge):
+    from backend.manage import reembed
+    from backend.tests.fakes import InMemoryGraph
+
+    db = InMemoryGraph()
+    for label, nodes in knowledge.db.nodes.items():
+        db.nodes[label] = {k: dict(v) for k, v in nodes.items()}
+    model = FakeModel(dims=8)
+    reembed(db, st_client(model), embed_cves=True)                    # full run
+    total = sum(len(call) for call in model.calls)
+    assert total > 0
+    first = next(iter(db.nodes["CVE"].values()))
+    first.pop("embedding"); first.pop("embedding_hash")             # "interrupted" node
+    model.calls.clear()
+    reembed(db, st_client(model), embed_cves=True, resume=True)
+    assert sum(len(call) for call in model.calls) == 1                # only that node
+    assert first["embedding"]
+
+
 def test_real_onnx_model_matches_meaning_not_just_words(monkeypatch):
     """Runs only where the model is already downloaded (no network in tests)."""
     pytest.importorskip("onnxruntime")

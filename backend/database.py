@@ -222,6 +222,8 @@ class Neo4jDatabase:
         statements.append(
             f"CREATE FULLTEXT INDEX {CVE_TEXT_INDEX} IF NOT EXISTS "
             f"FOR (n:{LABEL_CVE}) ON EACH [n.description]")
+        statements.append("CREATE INDEX cve_published IF NOT EXISTS "
+                          "FOR (n:CVE) ON (n.published)")   # retention cap (MAX_CVES)
         statements.append("CREATE INDEX cyberterm_source IF NOT EXISTS "
                           "FOR (n:CyberTerm) ON (n.source_file)")
         statements.append("CREATE INDEX cyberdocument_source IF NOT EXISTS "
@@ -379,6 +381,37 @@ class Neo4jDatabase:
         return counts
 
     # ------------------------------------------------------------------ #
+    # CVE retention (MAX_CVES): keep only the most recently published CVEs
+    # ------------------------------------------------------------------ #
+    _NEWEST_FIRST = "ORDER BY coalesce(c.published, '') DESC, c.id DESC"
+
+    def cve_count(self) -> int:
+        return self._read("MATCH (c:CVE) RETURN count(c) AS c")[0]["c"]
+
+    def cve_retention_floor(self, keep: int) -> str | None:
+        """Publish date of the ``keep``-th newest CVE, or None while fewer are stored."""
+        if keep <= 0:
+            return None
+        rows = self._read(f"MATCH (c:CVE) RETURN coalesce(c.published, '') AS p {self._NEWEST_FIRST} "
+                          "SKIP $skip LIMIT 1", skip=int(keep) - 1)
+        return rows[0]["p"] if rows else None
+
+    def prune_cves(self, keep: int, batch_size: int = 5000) -> int:
+        """Delete the oldest CVEs (and their edges) beyond the newest ``keep``."""
+        if keep <= 0:
+            return 0
+        removed = 0
+        while True:
+            ids = [r["id"] for r in self._read(
+                f"MATCH (c:CVE) RETURN c.id AS id {self._NEWEST_FIRST} SKIP $keep LIMIT $n",
+                keep=int(keep), n=int(batch_size))]
+            if not ids:
+                return removed
+            removed += self._write(lambda tx, ids=ids: tx.run(
+                "MATCH (c:CVE) WHERE c.id IN $ids WITH c, c.id AS id DETACH DELETE c "
+                "RETURN count(id) AS c", ids=ids).single()["c"])
+
+    # ------------------------------------------------------------------ #
     # Foundational collection maintenance
     # ------------------------------------------------------------------ #
     def delete_stale_foundation(self, source_file: str, keep_ids: Sequence[str]) -> int:
@@ -424,6 +457,18 @@ class Neo4jDatabase:
                 session.run(query).consume()
             except Neo4jError:
                 session.run(legacy).consume()
+
+    def export_nodes(self, label: str, after_id: str, limit: int,
+                     published_from: str | None = None) -> list[dict]:
+        """All properties, embedding included, of up to ``limit`` nodes (by id) - for
+        copying the graph to another database (`manage copy-to`)."""
+        _check_label(label)
+        where = "n.id > $after" + (" AND coalesce(n.published, '') >= $floor"
+                                   if published_from is not None else "")
+        rows = self._read(f"MATCH (n:{label}) WHERE {where} RETURN properties(n) AS node "
+                          "ORDER BY n.id LIMIT $limit", after=after_id, limit=int(limit),
+                          floor=published_from or "")
+        return [r["node"] for r in rows]
 
     def page_nodes(self, label: str, after_id: str, limit: int) -> list[dict]:
         _check_label(label)

@@ -137,8 +137,9 @@ ATTACK_BUNDLE = {"type": "bundle", "id": "bundle--1", "objects": [
 ]}
 
 
-def nvd_item(cve_id, description, cwes=(), score=None, modified="2026-01-02T00:00:00.000"):
-    cve = {"id": cve_id, "published": "2024-01-01T00:00:00.000", "lastModified": modified,
+def nvd_item(cve_id, description, cwes=(), score=None, modified="2026-01-02T00:00:00.000",
+             published="2024-01-01T00:00:00.000"):
+    cve = {"id": cve_id, "published": published, "lastModified": modified,
            "vulnStatus": "Analyzed", "descriptions": [{"lang": "en", "value": description}],
            "metrics": {}, "weaknesses": [], "references": [
                {"url": f"https://vendor.test/advisory/{cve_id}", "tags": ["Vendor Advisory"]}]}

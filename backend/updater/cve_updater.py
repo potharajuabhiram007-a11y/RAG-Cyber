@@ -156,6 +156,10 @@ class CVEUpdater:
         # NVD: 5 requests / 30 s without a key, 50 / 30 s with one.
         self._request_interval = 0.7 if settings.nvd_api_key else 6.5
         self._last_request = 0.0
+        # MAX_CVES retention: publish date of the oldest CVE worth keeping, and how many
+        # new CVEs were written since the last prune.
+        self._floor: str | None = None
+        self._unpruned = 0
 
     # ------------------------------------------------------------------ #
     # HTTP
@@ -219,6 +223,13 @@ class CVEUpdater:
         if not unique:
             return 0, skipped
         stored = self.db.get_property_map(LABEL_CVE, [r["id"] for r in unique], "content_hash")
+        if self._floor:
+            # With MAX_CVES set and the cap reached, a CVE published before the oldest one
+            # kept would be pruned straight away: do not store (or embed) it at all.
+            # NVD often modifies old CVEs, so this is most of an incremental update.
+            unique = [r for r in unique if r["id"] in stored or (r.get("published") or "") >= self._floor]
+            if not unique:
+                return 0, skipped
         if self.settings.embed_cves:
             attach_embeddings(self.db, self.embedder, LABEL_CVE, unique, EMBEDDING_TEXT[LABEL_CVE])
         now = utc_now_iso()
@@ -227,7 +238,24 @@ class CVEUpdater:
         for row in to_write:
             row["synced_at"] = now
         self.db.upsert_cves(to_write)
+        self._unpruned += sum(1 for r in to_write if r["id"] not in stored)
         return len(to_write), skipped
+
+    def enforce_cap(self, force: bool = False) -> int:
+        """Apply MAX_CVES: delete the oldest CVEs beyond the cap.
+
+        Runs every 5,000 new CVEs during a sync (so a long first load never holds
+        more than cap + 5,000) and once at the end.  Returns the number deleted.
+        """
+        cap = self.settings.max_cves
+        if not cap or (not force and self._unpruned < 5000):
+            return 0
+        removed = self.db.prune_cves(cap)
+        self._unpruned = 0
+        self._floor = self.db.cve_retention_floor(cap)
+        if removed:
+            log.info("nvd: removed %d oldest CVEs to stay within MAX_CVES=%d", removed, cap)
+        return removed
 
     # ------------------------------------------------------------------ #
     # Synchronisation
@@ -238,10 +266,14 @@ class CVEUpdater:
             state = self.db.get_sync_state(SOURCE)
             self.db.save_sync_state(SOURCE, status="running",
                                     last_attempt_at=format_nvd_datetime(started))
+            self._unpruned = 0
+            self._floor = None
+            self.enforce_cap(force=True)        # also sets the retention floor
             if full or not state.get("checkpoint"):
                 stats = self._initial_sync(state, started, restart=full)
             else:
                 stats = self._incremental_sync(parse_iso(state["checkpoint"]), started)
+            stats["pruned"] = stats.get("pruned", 0) + self.enforce_cap(force=True)
             finished = utc_now_iso()
             self.db.save_sync_state(SOURCE, status="success", last_error=None,
                                     last_success_at=finished, last_checked_at=finished,
@@ -314,3 +346,4 @@ class CVEUpdater:
         stats["fetched"] += len(items)
         stats["written"] += written
         stats["skipped_invalid"] += skipped
+        stats["pruned"] = stats.get("pruned", 0) + self.enforce_cap()

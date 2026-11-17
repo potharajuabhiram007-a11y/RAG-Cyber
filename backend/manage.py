@@ -6,7 +6,8 @@
     python -m backend.manage ingest [--force]      # reference documents only
     python -m backend.manage evaluate              # run the labelled benchmark
     python -m backend.manage ask "What is CWE-89?"
-    python -m backend.manage reembed               # after changing the embedding model
+    python -m backend.manage reembed [--resume]    # after changing the embedding model
+    python -m backend.manage copy-to aura.txt [--max-cves N]   # copy to e.g. AuraDB Free
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ import json
 import sys
 
 from backend.config import ConfigurationError, configure_logging, load_settings
-from backend.database import NODE_LABELS, Neo4jDatabase
+from backend.database import NODE_LABELS, REL_CVE_CWE, REL_TYPES, Neo4jDatabase
 from backend.evaluation import EvaluationStore, run_evaluation
 from backend.rag.generator import Assistant, Generator
 from backend.rag.retriever import Retriever
@@ -26,28 +27,90 @@ from backend.updater.data_processor import (
 from backend.updater.scheduler import SyncManager
 
 
-def reembed(db: Neo4jDatabase, embedder: EmbeddingClient, embed_cves: bool) -> None:
-    """Drop the vector indexes and recompute every embedding with the current model."""
-    db.drop_vector_indexes()
-    for label in NODE_LABELS:
-        db.clear_embeddings(label)
+def reembed(db: Neo4jDatabase, embedder: EmbeddingClient, embed_cves: bool,
+            resume: bool = False) -> None:
+    """Recompute every embedding with the current model.
+
+    Without ``resume`` the vector indexes and all stored vectors are dropped first.
+    With ``resume`` nothing is dropped: nodes whose stored vector already comes from
+    the current model and text are skipped, so an interrupted run continues where it
+    stopped.
+    """
+    if not resume:
+        db.drop_vector_indexes()
+        for label in NODE_LABELS:
+            db.clear_embeddings(label)
     db.init_schema(embedder.dimensions)
     for label in NODE_LABELS:
         if label == "CVE" and not embed_cves:
             continue
-        after, done = "", 0
+        after, done, skipped = "", 0, 0
         while True:
             nodes = db.page_nodes(label, after, 500)
             if not nodes:
                 break
+            after = nodes[-1]["id"]
             texts = [EMBEDDING_TEXT[label](node) for node in nodes]
-            rows = [{"id": node["id"], "embedding": vector,
-                     "embedding_hash": content_hash([embedder.signature, text])}
-                    for node, text, vector in zip(nodes, texts, embedder.embed(texts)) if vector]
-            db.upsert_nodes(label, rows)
-            after, done = nodes[-1]["id"], done + len(nodes)
-            print(f"  {label}: {done} nodes re-embedded", end="\r")
-        print(f"  {label}: {done} nodes re-embedded")
+            hashes = [content_hash([embedder.signature, text]) for text in texts]
+            todo = [i for i, node in enumerate(nodes) if node.get("embedding_hash") != hashes[i]]
+            skipped += len(nodes) - len(todo)
+            if todo:
+                vectors = embedder.embed([texts[i] for i in todo])
+                rows = [{"id": nodes[i]["id"], "embedding": vector, "embedding_hash": hashes[i]}
+                        for i, vector in zip(todo, vectors) if vector]
+                db.upsert_nodes(label, rows)
+            done += len(todo)
+            print(f"  {label}: {done} nodes re-embedded, {skipped} already current", end="\r")
+        print(f"  {label}: {done} nodes re-embedded, {skipped} already current")
+
+
+def target_settings(settings, env_file: str):
+    """Settings for the copy target, read from a credentials file such as the one
+    Neo4j Aura offers for download (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)."""
+    from dataclasses import replace
+    from dotenv import dotenv_values
+
+    values = {k: (v or "").strip() for k, v in dotenv_values(env_file).items()}
+    missing = [n for n in ("NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD") if not values.get(n)]
+    if missing:
+        raise ConfigurationError(f"{env_file} is missing {', '.join(missing)}")
+    return replace(settings, neo4j_uri=values["NEO4J_URI"], neo4j_username=values["NEO4J_USERNAME"],
+                   neo4j_password=values["NEO4J_PASSWORD"],
+                   neo4j_database=values.get("NEO4J_DATABASE") or "neo4j")
+
+
+def copy_to(source: Neo4jDatabase, target: Neo4jDatabase, dimensions: int, max_cves: int,
+            batch: int = 250) -> dict:
+    """Copy the graph to another (e.g. AuraDB Free) database, embeddings included.
+
+    Only the newest ``max_cves`` CVEs are copied (0 = all).  Relationships are rebuilt
+    on the target from the identifier lists on the nodes, exactly as a sync does, and
+    the sync checkpoints are copied so the target continues with incremental updates.
+    Nothing is re-downloaded or re-embedded.  Safe to re-run: every write is a MERGE.
+    """
+    target.init_schema(dimensions)
+    floor = source.cve_retention_floor(max_cves) if max_cves else None
+    copied = {}
+    for label in [l for l in NODE_LABELS if l != "CVE"] + ["CVE"]:   # CWEs before CVE links
+        after, done = "", 0
+        while True:
+            rows = source.export_nodes(label, after, batch,
+                                       published_from=floor if label == "CVE" else None)
+            if not rows:
+                break
+            target.upsert_nodes(label, rows, batch_size=batch)
+            after, done = rows[-1]["id"], done + len(rows)
+            print(f"  {label}: {done} copied", end="\r", flush=True)
+        print(f"  {label}: {done} copied          ")
+        copied[label] = done
+    rebuilt = target.rebuild_relationships([r for r in REL_TYPES if r != REL_CVE_CWE], "copy")
+    target.link_cves_to_cwes()
+    removed = target.prune_cves(max_cves) if max_cves else 0   # ties at the floor date
+    for state in source.all_sync_states():
+        state = dict(state)
+        target.save_sync_state(state.pop("source"), **state)
+    return {"copied": copied, "relationships": rebuilt, "pruned_on_target": removed,
+            "target": target.counts()}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -64,7 +127,13 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("evaluate")
     ask = sub.add_parser("ask")
     ask.add_argument("question")
-    sub.add_parser("reembed")
+    reemb = sub.add_parser("reembed")
+    reemb.add_argument("--resume", action="store_true",
+                       help="keep stored vectors that already match the model (continue a run)")
+    copy = sub.add_parser("copy-to", help="copy the graph to another Neo4j (e.g. AuraDB Free)")
+    copy.add_argument("target_env", help="credentials file of the target (NEO4J_URI, ...)")
+    copy.add_argument("--max-cves", type=int, default=None,
+                      help="copy only the newest N CVEs (default: MAX_CVES, 0 = all)")
     args = parser.parse_args(argv)
 
     try:
@@ -84,7 +153,23 @@ def main(argv: list[str] | None = None) -> int:
             print("Neo4j: connected", db.server_info())
             return 0
         if args.command == "reembed":
-            reembed(db, embedder, settings.embed_cves)
+            reembed(db, embedder, settings.embed_cves, resume=args.resume)
+            return 0
+        if args.command == "copy-to":
+            try:
+                target = Neo4jDatabase(target_settings(settings, args.target_env))
+            except ConfigurationError as exc:
+                print(f"Configuration error: {exc}", file=sys.stderr)
+                return 2
+            if not target.verify():
+                print("Target Neo4j is NOT reachable - check the credentials file", file=sys.stderr)
+                return 1
+            cap = settings.max_cves if args.max_cves is None else args.max_cves
+            try:
+                summary = copy_to(db, target, embedder.dimensions, cap)
+            finally:
+                target.close()
+            print(json.dumps(summary, indent=2))
             return 0
         db.init_schema(embedder.dimensions)
         if args.command == "init-db":
