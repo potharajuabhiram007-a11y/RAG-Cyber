@@ -2196,7 +2196,7 @@
     let overviewLoaded = false, searchTimer = null, results = [], activeResult = -1, requestId = 0;
 
     /* views: lanes by entity type (Flow), a tidy tree, or rings around the selected entity */
-    const KG_MODES = ["flow", "tree", "radial"];
+    const KG_MODES = ["flow", "tree", "radial", "3d"];
     const FLOW_LANES = ["CVE", "CWE", "CAPEC", "ATTACK"];
     const FLOW_TITLES = { CVE: "CVE \u00b7 Vulnerabilities", CWE: "CWE \u00b7 Weaknesses", CAPEC: "CAPEC \u00b7 Attack patterns", ATTACK: "ATT&CK \u00b7 Techniques" };
     const FLOW_W = 140, FLOW_H = 28;                        // size of one entity box
@@ -2206,6 +2206,7 @@
       flow: "Flow view: one lane per entity type, CVE to CWE to CAPEC to ATT&CK. Select a box to load its neighbours.",
       tree: "Tree view: entities are laid out left to right from the first one you searched. Drag to move, scroll to zoom.",
       radial: "Radial view: the selected entity sits in the centre with its neighbours on rings around it.",
+      "3d": "3D view: drag to rotate the graph, scroll to zoom, select a node to load its neighbours.",
     };
     let mode = "flow";
     try { const saved = localStorage.getItem(KG_MODE_KEY); if (KG_MODES.includes(saved)) mode = saved; } catch (error) { /* no storage */ }

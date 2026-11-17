@@ -261,6 +261,9 @@ def create_app(state: AppState | None = None, start_background: bool = True) -> 
     def metrics() -> dict:
         return state.evaluation.summary()
 
+    from backend.api_extra import router as extra_router    # imported here: it imports this module
+    app.include_router(extra_router)
+
     if FRONTEND_DIR.is_dir():
         app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
     return app

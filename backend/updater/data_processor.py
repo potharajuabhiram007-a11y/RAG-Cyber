@@ -841,6 +841,14 @@ def parse_text_document(path: Path) -> ParsedDocument:
                 doc.terms.append(TermRecord(term=match.group(1).strip(),
                                             definition=match.group(2).strip(), category=section,
                                             page_number=None, aliases=term_aliases(match.group(1))))
+            else:
+                # "TLS: Transport Layer Security" lines, also inside multi-line blocks
+                acronym = _ACRONYM_LINE_RE.match(line)
+                if acronym and sum(c.isupper() for c in acronym.group(1)) >= 2:
+                    doc.terms.append(TermRecord(
+                        term=acronym.group(1), definition=acronym.group(2).strip(),
+                        category="Abbreviation", page_number=None,
+                        aliases=term_aliases(acronym.group(1), [acronym.group(2)])))
             buffer.append(line.replace("**", ""))
     flush()
     return doc
