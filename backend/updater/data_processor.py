@@ -70,6 +70,7 @@ def http_get(client: httpx.Client, url: str, *, params: dict | None = None,
     host = httpx.URL(url).host
     last_error = "unknown error"
     for attempt in range(max_retries + 1):
+        retry_after = ""
         try:
             response = client.get(url, params=params, headers=headers)
         except httpx.HTTPError as exc:
@@ -81,10 +82,9 @@ def http_get(client: httpx.Client, url: str, *, params: dict | None = None,
             if response.status_code not in RETRY_STATUSES:
                 raise FetchError(f"{host} answered {last_error}; not retrying")
             retry_after = response.headers.get("Retry-After", "")
-            if retry_after.isdigit():
-                sleep(min(float(retry_after), 120.0))
         if attempt < max_retries:
-            delay = min(backoff_base * (2 ** attempt), 120.0)
+            delay = (min(float(retry_after), 120.0) if retry_after.isdigit()
+                     else min(backoff_base * (2 ** attempt), 120.0))
             log.warning("Request to %s failed (%s); retry %d/%d in %.0fs",
                         host, last_error, attempt + 1, max_retries, delay)
             sleep(delay)
@@ -170,6 +170,8 @@ MAX_XML_BYTES = 400 * 1024 * 1024
 def unzip_single_xml(data: bytes) -> bytes:
     """Return the XML payload of a MITRE download (plain XML or a ZIP with one)."""
     if not data.startswith(b"PK"):
+        if len(data) > MAX_XML_BYTES:
+            raise DataValidationError("XML file is unreasonably large")
         return data
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
@@ -179,7 +181,11 @@ def unzip_single_xml(data: bytes) -> bytes:
             member = max(members, key=lambda m: m.file_size)
             if member.file_size > MAX_XML_BYTES:
                 raise DataValidationError("XML file in archive is unreasonably large")
-            return archive.read(member)
+            with archive.open(member) as stream:
+                payload = stream.read(MAX_XML_BYTES + 1)     # bounded even if the header lies
+            if len(payload) > MAX_XML_BYTES:
+                raise DataValidationError("XML file in archive is unreasonably large")
+            return payload
     except zipfile.BadZipFile as exc:
         raise DataValidationError("Downloaded archive is not a valid ZIP file") from exc
 
@@ -188,7 +194,7 @@ def parse_xml(data: bytes) -> ET.Element:
     """Parse untrusted XML.  Documents carrying a DTD are refused outright, which
     rules out entity-expansion and external-entity tricks."""
     payload = unzip_single_xml(data)
-    if b"<!DOCTYPE" in payload[:4096] or b"<!ENTITY" in payload[:4096]:
+    if re.search(rb"<!\s*(?:DOCTYPE|ENTITY)\b", payload, re.I):
         raise DataValidationError("XML with a DOCTYPE/ENTITY declaration is not accepted")
     try:
         return ET.fromstring(payload)
@@ -363,7 +369,8 @@ class EmbeddingClient:
                     break
             except (httpx.HTTPError, KeyError, ValueError) as exc:
                 last_error = type(exc).__name__
-            time.sleep(min(2.0 * (2 ** attempt), 60.0))
+            if attempt < s.http_max_retries:
+                time.sleep(min(2.0 * (2 ** attempt), 60.0))
         raise FetchError(f"Embedding provider '{s.embedding_provider}' failed ({last_error})")
 
 
@@ -865,7 +872,8 @@ def document_to_rows(doc: ParsedDocument) -> tuple[list[dict], list[dict]]:
         if node_id in term_rows:        # same term twice in one document: merge
             existing = term_rows[node_id]
             if term.definition not in existing["definition"]:
-                existing["definition"] += " " + term.definition
+                existing["definition"] = clean_text(
+                    existing["definition"] + " " + term.definition, 2000)
             existing["aliases"] = dedupe(existing["aliases"] + term.aliases)
             continue
         term_rows[node_id] = {

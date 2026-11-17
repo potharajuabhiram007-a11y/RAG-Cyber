@@ -80,7 +80,7 @@ def run(db, embedder, settings, name, tuning, split, use_llm, group="", limit=No
     """split "dev" = the tuning set, "test" = the held-out set (final report only)."""
     path = harness.TUNING_PATH if split == "dev" else harness.HELDOUT_PATH
     print(f"  {name} [{path.stem}{', llm' if use_llm else ''}]", flush=True)
-    record = harness.run_experiment(db, embedder, settings, name, tuning, "all", use_llm, dataset_path=path,
+    record = harness.run_experiment(db, embedder, settings, name, tuning, split, use_llm, dataset_path=path,
                                     group=group, progress=progress(name) if use_llm else None, limit=limit)
     print("   ", harness.headline(record), flush=True)
     return record
@@ -90,7 +90,7 @@ def load_records(split="dev", use_llm=False, limit=None):
     tag = "llm" if use_llm else "nollm"
     out = {}
     stem = "tuning" if split == "dev" else "heldout"
-    for path in sorted(harness.EXPERIMENT_DIR.glob(f"*__{stem}-all{f'-n{limit}' if limit else ''}__{tag}.json")):
+    for path in sorted(harness.EXPERIMENT_DIR.glob(f"*__{stem}-{split}{f'-n{limit}' if limit else ''}__{tag}.json")):
         record = json.loads(path.read_text(encoding="utf-8"))
         out[record["name"]] = record
     return out
@@ -172,6 +172,8 @@ def table(original, tuned):
 
 def cmd_report(args):
     path = TUNED_PATH.with_name("tuned_config_llm.json" if args.llm else "tuned_config.json")
+    if not path.is_file():
+        sys.exit(f"Tuned configuration not found: {path}. Run the tuning step first.")
     tuned = Tuning.from_file(path)
     db, embedder, settings = context()
     try:

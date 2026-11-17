@@ -1,119 +1,71 @@
-"""Additional API endpoints for the RAG‑Cyber frontend.
-These provide the extra data needed for stats, graph exploration, entity search,
-severity calculations and evaluation management. The implementations are simple
-stubs that call the existing backend services where possible.
-"""
+"""Additional read-only API endpoints (statistics, graph exploration, entity search).
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from backend.main import require_admin, require_database
-from backend.models import SyncRequest
-from typing import List, Optional
+The router is not mounted by ``create_app`` by default; include it with
+``app.include_router(router, prefix="/api/extra")``.  Handlers read the application
+state from ``request.app.state.rag`` and never build a second application.
+"""
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+
+from backend.database import label_for_id
+from backend.main import AppState, require_admin, require_database
 
 router = APIRouter()
 
-# ------------------------------------------------------------------
-# Statistics endpoints
-# ------------------------------------------------------------------
+
+def _state(request: Request) -> AppState:
+    return request.app.state.rag
+
+
 @router.get("/stats/entities")
-def get_entity_stats(_: None = Depends(require_database)) -> dict:
-    """Return counts of each entity type.
-    The underlying Neo4j database provides a ``counts`` method returning a dict
-    with keys like ``cve``, ``cwe`` etc. We expose it directly.
-    """
-    # Access the global FastAPI app state via FastAPI's request state is not
-    # available here, so we rely on the dependency that ensures the database is
-    # ready. The ``AppState`` is stored on ``app.state.rag`` – we can retrieve it
-    # via a temporary import hack.
-    from backend.main import AppState, create_app
-    state: AppState = create_app().state.rag
-    return state.db.counts()
+def get_entity_stats(request: Request, _: None = Depends(require_database)) -> dict:
+    """Number of nodes per label."""
+    return _state(request).db.counts()["nodes"]
+
 
 @router.get("/stats/relationships")
-def get_relationship_stats(_: None = Depends(require_database)) -> dict:
-    """Return total relationship count.
-    """
-    from backend.main import AppState, create_app
-    state: AppState = create_app().state.rag
-    return {"relationships": state.db.relationship_count()}
+def get_relationship_stats(request: Request, _: None = Depends(require_database)) -> dict:
+    """Number of relationships per type."""
+    return _state(request).db.counts()["relationships"]
 
-# ------------------------------------------------------------------
-# Graph exploration endpoint
-# ------------------------------------------------------------------
+
 @router.get("/graph/neighborhood/{entity_id}")
-def get_graph_neighborhood(
-    entity_id: str,
-    depth: int = Query(2, ge=1, le=4),
-    limit: int = Query(200, ge=1, le=500),
-    _: None = Depends(require_database),
-) -> dict:
-    """Return a sub‑graph around ``entity_id``.
-    The Neo4j ``Database`` class already has a ``neighborhood`` helper; we call it
-    and slice the results according to ``depth`` and ``limit``.
-    """
-    from backend.main import AppState, create_app
-    state: AppState = create_app().state.rag
-    try:
-        subgraph = state.db.neighborhood(entity_id, depth=depth, limit=limit)
-    except Exception as exc:
-        raise HTTPException(404, f"Entity {entity_id} not found or no neighborhood") from exc
-    return subgraph
+def get_graph_neighborhood(request: Request, entity_id: str,
+                           limit: int = Query(10, ge=1, le=500),
+                           _: None = Depends(require_database)) -> dict:
+    """An entity plus a bounded sample of its neighbours, grouped by relation."""
+    if label_for_id(entity_id) is None:
+        raise HTTPException(404, "Not a CVE, CWE, CAPEC or ATT&CK identifier")
+    found = _state(request).db.graph_entity(entity_id, per_group=min(limit, 25))
+    if found is None:
+        raise HTTPException(404, f"{entity_id.strip().upper()} is not in the knowledge graph")
+    return found
 
-# ------------------------------------------------------------------
-# Entity search endpoint
-# ------------------------------------------------------------------
+
 @router.get("/entities/search")
-def search_entities(
-    query: str,
-    limit: int = Query(20, ge=1, le=100),
-    _: None = Depends(require_database),
-) -> list[dict]:
-    """Simple fuzzy search across all entity labels.
-    Delegates to ``db.search_entities`` if it exists; otherwise returns empty.
-    """
-    from backend.main import AppState, create_app
-    state: AppState = create_app().state.rag
-    if hasattr(state.db, "search_entities"):
-        return state.db.search_entities(query, limit=limit)
-    return []
+def search_entities(request: Request, query: str = Query("", max_length=80),
+                    limit: int = Query(20, ge=1, le=100),
+                    _: None = Depends(require_database)) -> list[dict]:
+    """Find entities by identifier prefix or by name."""
+    return _state(request).db.graph_search(query, limit=limit)
 
-# ------------------------------------------------------------------
-# Severity calculator endpoints
-# ------------------------------------------------------------------
+
 @router.get("/severity/cve/{cve_id}")
-def get_cve_severity(cve_id: str, _: None = Depends(require_database)) -> dict:
-    """Return stored CVSS vector and score for a CVE if present.
-    This is a placeholder – real implementation would query a CVE store.
-    """
-    # Placeholder response
-    return {"cve": cve_id, "vector": "AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", "score": 9.8}
+def get_cve_severity(request: Request, cve_id: str,
+                     _: None = Depends(require_database)) -> dict:
+    """The stored CVSS data of a CVE."""
+    node = _state(request).db.get_node("CVE", cve_id.strip().upper())
+    if node is None:
+        raise HTTPException(404, f"{cve_id.strip().upper()} is not in the knowledge graph")
+    return {"cve": node.get("id"), "severity": node.get("severity"),
+            "base_score": node.get("base_score"), "vector": node.get("cvss_vector")}
 
-@router.post("/severity/calculate")
-def calculate_severity(payload: dict, _: None = Depends(require_admin)) -> dict:
-    """Calculate CVSS score from metrics.
-    Expects ``version`` ("3.1" or "4.0") and a ``metrics`` dict. Returns a dummy
-    score for demonstration.
-    """
-    # In a real system you would import the official CVSS library.
-    version = payload.get("version", "3.1")
-    metrics = payload.get("metrics", {})
-    # Dummy calculation – just return a fixed score.
-    return {"version": version, "score": 7.5, "vector": "AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L"}
-
-# ------------------------------------------------------------------
-# Evaluation management endpoints
-# ------------------------------------------------------------------
-@router.get("/evaluation/history")
-def evaluation_history(_: None = Depends(require_admin)) -> list[dict]:
-    """List past evaluation runs.
-    Placeholder returning an empty list.
-    """
-    return []
 
 @router.post("/evaluation/run")
-def run_evaluation(request: SyncRequest, _: None = Depends(require_admin)) -> dict:
-    """Trigger a new evaluation run.
-    This simply forwards to the existing admin sync endpoint for demonstration.
-    """
-    # Reuse the admin sync logic – could also call a dedicated evaluation routine.
-    from backend.main import trigger_sync
-    return trigger_sync(request, _: None, __: None)  # type: ignore
+def run_evaluation_endpoint(request: Request, _: None = Depends(require_admin),
+                            __: None = Depends(require_database)) -> dict:
+    """Run the labelled benchmark through the live assistant (slow; admin only)."""
+    from backend.evaluation import run_evaluation
+    results = run_evaluation(_state(request).assistant)
+    return {"completed": True, "metrics": results.get("metrics")}

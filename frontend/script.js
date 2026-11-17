@@ -76,7 +76,7 @@
   const sourcesList = document.getElementById("sources");
   const welcomeTemplate = document.getElementById("welcome").cloneNode(true);
 
-  let apiBase = (document.querySelector('meta[name="rag-cyber-api"]').content || "").replace(/\/$/, "");
+  let apiBase = (document.querySelector('meta[name="rag-cyber-api"]')?.content || "").replace(/\/$/, "");
   let busy = false;
   let history = [];
   let panelTimer = null;
@@ -104,7 +104,9 @@
 
   function relativeTime(iso) {
     if (!iso) return "";
-    const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+    const ms = new Date(iso).getTime();
+    if (!Number.isFinite(ms)) return "";
+    const seconds = Math.max(0, (Date.now() - ms) / 1000);
     if (seconds < 90) return "just now";
     if (seconds < 3600) return Math.round(seconds / 60) + " min ago";
     if (seconds < 86400) return Math.round(seconds / 3600) + " h ago";
@@ -185,9 +187,12 @@
         const table = el("table");
         rows.forEach((cells, rowIndex) => {
           if (rowIndex > 0 && cells.join("|") === rows[0].join("|")) return; // repeated header
+          if (rowIndex > 0 && cells.every((c) => /^:?-{2,}:?$/.test(c.trim()))) return; // Markdown separator row
           const tr = el("tr");
           for (let c = 0; c < width; c += 1) {
-            tr.appendChild(el(rowIndex === 0 ? "th" : "td", null, cells[c] || ""));
+            const cell = el(rowIndex === 0 ? "th" : "td");
+            appendInline(cell, cells[c] || "");
+            tr.appendChild(cell);
           }
           table.appendChild(tr);
         });
@@ -1008,6 +1013,7 @@
     let step = 0;
     wrapper.loadingTimer = setInterval(() => {
       if (step < steps.length) headline.textContent = steps[step];
+      else clearInterval(wrapper.loadingTimer);
       step += 1;
     }, 900);
     scrollToBottom();
@@ -1084,13 +1090,14 @@
     work = work.replace(MITIGATION_BLOCK_RE, (_, block) => {
       mitigations = block.split(MITIGATION_SPLIT_RE).map((part) => part.trim()).filter(Boolean).map((part) => {
         const entry = MITIGATION_ENTRY_RE.exec(part);
-        return entry ? { id: entry[1], phase: entry[2] || "", text: entry[3].trim() } : { text: part };
+        return entry ? { id: entry[1], phase: entry[2] || "", text: (entry[3] || "").trim() } : { text: part };
       });
       return "\u0002";
     });
     const sentences = (chunk) => chunk.split(/(?<=[.!?])\s+(?=[A-Z])/).map((s) => s.trim()).filter(Boolean)
       .map((s) => ({ text: s }));
-    const [before, after = ""] = work.split("\u0002");
+    const [before, ...rest] = work.split("\u0002");
+    const after = rest.join(" ");
     const steps = [...sentences(before), ...mitigations, ...sentences(after)];
     const notes = steps.filter((step) => /^These measures come from/.test(step.text));
     return { steps: steps.filter((step) => !notes.includes(step)), notes, urls };
@@ -1484,12 +1491,13 @@
     const answerSection = el("div", "section");
     const head = el("div", "section-head");
     head.appendChild(el("h3", "section-title", "Answer"));
-    const notFound = data.answer.trim() === NOT_FOUND;
+    const answerText = typeof data?.answer === "string" ? data.answer : "";
+    const notFound = answerText.trim() === NOT_FOUND;
     if (!notFound && navigator.clipboard) {
       const copy = el("button", "mini", "Copy");
       copy.type = "button";
       copy.addEventListener("click", () => {
-        navigator.clipboard.writeText(data.answer.replace(/\*\*/g, "")).then(
+        navigator.clipboard.writeText(answerText.replace(/\*\*/g, "")).then(
           () => {
             toast("Answer copied");
             copy.textContent = "\u2713";
@@ -1501,7 +1509,7 @@
     }
     answerSection.appendChild(head);
     const answer = el("div", notFound ? "answer not-found" : "answer");
-    renderAnswer(answer, data.answer);
+    renderAnswer(answer, answerText);
     [...answer.children].slice(0, 16).forEach((block, j) => block.style.setProperty("--j", String(j)));
     answerSection.appendChild(answer);
 
@@ -1587,10 +1595,12 @@
     const welcome = document.getElementById("welcome");
     if (welcome) welcome.remove();
     history.forEach((entry) => {
-      addUserMessage(entry.q, new Date(entry.t), false);
-      const wrapper = el("div", "msg msg-ai no-anim");
-      chat.appendChild(wrapper);
-      renderResponse(wrapper, entry.data, false);
+      try {
+        addUserMessage(entry.q, new Date(entry.t), false);
+        const wrapper = el("div", "msg msg-ai no-anim");
+        chat.appendChild(wrapper);
+        renderResponse(wrapper, entry.data, false);
+      } catch (error) { /* a damaged saved entry must not block the others */ }
     });
     scrollToBottom();
   }
@@ -1718,20 +1728,26 @@
     let final = null;
     const handle = (line) => {
       if (!line.trim()) return;
-      const event = JSON.parse(line);
-      if (event.type === "delta") onDelta(event.text);
+      let event;
+      try { event = JSON.parse(line); } catch (error) { return; }   // ignore a damaged line
+      if (!event || typeof event !== "object") return;
+      if (event.type === "delta") { if (typeof event.text === "string") onDelta(event.text); }
       else if (event.type === "final") final = event.response;
       else if (event.type === "error") throw new Error(event.detail || "The answer could not be produced.");
     };
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop();
-      lines.forEach(handle);
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+        lines.forEach(handle);
+      }
+      handle(buffer + decoder.decode());
+    } finally {
+      try { reader.releaseLock(); } catch (error) { /* already released */ }
     }
-    handle(buffer + decoder.decode());
     if (!final) throw new Error("The connection closed before the answer was complete.");
     return final;
   }
@@ -1761,7 +1777,8 @@
       preview.node.replaceChildren();             // renderAnswer appends
       // small models sometimes echo the prompt's tags; the server removes them from
       // the final answer, so they are hidden in the preview as well
-      renderAnswer(preview.node, preview.text.replace(/<\/?[a-z][a-z_-]*>?/gi, ""));
+      renderAnswer(preview.node, preview.text.replace(
+        /<\/?(?:question|answer|evidence|confirmed[_-]relationships|relationships[_-]not[_-]found)>/gi, ""));
       if (nearBottom) chat.scrollTop = chat.scrollHeight;
     });
   }
@@ -1779,19 +1796,30 @@
     const placeholder = addLoading();
     try {
       const preview = { node: null, text: "", frame: 0 };
-      const data = await streamChat(message, (piece) => showStreaming(placeholder, preview, piece));
-      cancelAnimationFrame(preview.frame);
-      // text that was already read while streaming is not animated in a second time
-      renderResponse(placeholder, data, !preview.node);
-      history.push({ q: message, t: asked.toISOString(), data });
-      saveHistory();
-      archiveAdd(message, asked, data);
-    } catch (error) {
-      const offline = error instanceof TypeError;
-      renderError(placeholder, offline
-        ? "The CyberIntelliX backend could not be reached. Make sure it is running and try again."
-        : `The request failed: ${error.message}`);
-      checkStatus();
+      let data = null;
+      try {
+        data = await streamChat(message, (piece) => showStreaming(placeholder, preview, piece));
+      } catch (error) {
+        cancelAnimationFrame(preview.frame);
+        const offline = error instanceof TypeError;
+        renderError(placeholder, offline
+          ? "The CyberIntelliX backend could not be reached. Make sure it is running and try again."
+          : `The request failed: ${error.message}`);
+        checkStatus();
+      }
+      if (data) {
+        cancelAnimationFrame(preview.frame);
+        try {
+          // text that was already read while streaming is not animated in a second time
+          renderResponse(placeholder, data, !preview.node);
+          history.push({ q: message, t: asked.toISOString(), data });
+          saveHistory();
+          archiveAdd(message, asked, data);
+        } catch (error) {
+          // a rendering bug is not a connection problem
+          renderError(placeholder, `The answer could not be displayed: ${error.message}`);
+        }
+      }
     } finally {
       busy = false;
       sendButton.disabled = !input.value.trim();
@@ -1990,7 +2018,7 @@
     for (;;) {
       try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); return; }
       catch (error) {                           // storage full: forget the oldest entries
-        if (archive.length <= 1) return;
+        if (error?.name !== "QuotaExceededError" || archive.length <= 1) return;
         archive = archive.slice(0, Math.max(1, archive.length - 10));
       }
     }
@@ -3011,7 +3039,7 @@
     document.getElementById("kg-fit").addEventListener("click", fit);
     document.getElementById("kg-reset").addEventListener("click", () => {
       requestId += 1;
-      nodes.clear(); edges.clear();
+      nodes.clear(); edges.clear(); cache.clear();
       selected = null; hover = null; target = null;
       view.x = 0; view.y = 0; view.k = 1;
       searchInput.value = "";
@@ -3055,7 +3083,10 @@
   updateHistoryCount();
 
   restoreHistory();
-  checkStatus().then((ok) => { if (ok) refreshPanel(); else panelTimer = setTimeout(refreshPanel, 20000); });
+  checkStatus().then((ok) => {
+    if (ok) refreshPanel(); else panelTimer = setTimeout(refreshPanel, 20000);
+    if (currentView === "graph") route();
+  });
   setInterval(checkStatus, 60000);
   route();
 })();

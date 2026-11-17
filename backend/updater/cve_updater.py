@@ -104,8 +104,8 @@ def parse_cve(item: dict) -> dict | None:
 
     references, patches = [], []
     for ref in cve.get("references") or []:
-        url = clean_text((ref or {}).get("url"), 500)
-        if not url.startswith(("http://", "https://")):
+        url = clean_text((ref or {}).get("url"))
+        if not url.startswith(("http://", "https://")) or len(url) > 2000 or " " in url:
             continue
         references.append(url)
         if _PATCH_TAGS & set((ref or {}).get("tags") or []):

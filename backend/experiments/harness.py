@@ -51,8 +51,9 @@ def ranked_ids(response) -> list[str]:
 
 
 def retrieval_scores(case: dict, response) -> dict | None:
-    primary, required = case.get("primary_id"), list(case.get("required_ids") or [])
-    if case["expect"] != "answer" or not primary:
+    primary = case.get("primary_id")
+    required = list(case.get("required_ids") or ([primary] if primary else []))
+    if case["expect"] != "answer" or not primary or not required:
         return None
     ranking = ranked_ids(response)
     out = {"mrr": 1.0 / (ranking.index(primary) + 1) if primary in ranking else 0.0}
@@ -63,12 +64,14 @@ def retrieval_scores(case: dict, response) -> dict | None:
     return out
 
 
-def groundedness(response) -> float | None:
+def groundedness(response, question: str = "") -> float | None:
     """Mean sentence support of an answered case; None when nothing could be scored."""
     answer = response.answer.strip()
     if answer == RESULT_NOT_FOUND:
         return None
-    pool = " ".join([e.text for e in response.evidence] + [e.title or "" for e in response.evidence]
+    # the appended verification notes are produced from the evidence, not by the model
+    answer = re.split(r"\*\*(?:Verified in the knowledge graph|Not verified):\*\*", answer)[0]
+    pool = " ".join([question] + [e.text for e in response.evidence] + [e.title or "" for e in response.evidence]
                     + [n.name or "" for n in response.related_entities])
     available = {stem(t) for t in phrase_tokens(pool)}
     scores = []
@@ -121,7 +124,7 @@ def evaluate(assistant: Assistant, cases: list[dict], progress=None) -> dict:
         judgement["split"] = case.get("split")
         judgements.append(judgement)
         retrieval.append(retrieval_scores(case, response))
-        grounded.append(groundedness(response))
+        grounded.append(groundedness(response, case["question"]))
         if progress:
             progress(index + 1, len(cases))
     scored = [r for r in retrieval if r]
@@ -135,8 +138,9 @@ def evaluate(assistant: Assistant, cases: list[dict], progress=None) -> dict:
                                                for key in ("mrr", *(f"p@{k}" for k in KS), *(f"r@{k}" for k in KS))}},
         "groundedness": {"answers_scored": len([g for g in grounded if g is not None]),
                          "sentence_support": _mean(grounded)},
-        "latency_seconds": {"mean": round(statistics.fmean(latencies), 3),
-                            "p95": round(sorted(latencies)[max(0, int(len(latencies) * 0.95) - 1)], 3)},
+        "latency_seconds": ({"mean": round(statistics.fmean(latencies), 3),
+                             "p95": round(sorted(latencies)[max(0, int(len(latencies) * 0.95) - 1)], 3)}
+                            if latencies else {"mean": None, "p95": None}),
         "cases": judgements,
     }
 

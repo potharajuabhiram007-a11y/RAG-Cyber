@@ -65,14 +65,23 @@ def _env_int(name: str, default: int, minimum: int | None = None) -> int:
     return value
 
 
-def _env_float(name: str, default: float) -> float:
+def _env_float(name: str, default: float, minimum: float | None = None,
+               maximum: float | None = None) -> float:
+    import math
     raw = _env(name)
     if not raw:
         return default
     try:
-        return float(raw)
+        value = float(raw)
     except ValueError as exc:
         raise ConfigurationError(f"{name} must be a number, got {raw!r}") from exc
+    if not math.isfinite(value):
+        raise ConfigurationError(f"{name} must be a finite number, got {raw!r}")
+    if minimum is not None and value < minimum:
+        raise ConfigurationError(f"{name} must be >= {minimum}, got {value}")
+    if maximum is not None and value > maximum:
+        raise ConfigurationError(f"{name} must be <= {maximum}, got {value}")
+    return value
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -210,6 +219,8 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         raise ConfigurationError(
             "LLM_PROVIDER=openai needs LLM_API_KEY (or LLM_BASE_URL for a local "
             "OpenAI-compatible server such as LM Studio).")
+    if llm_provider == "anthropic" and not llm_key and not _env("ANTHROPIC_API_KEY") and not llm_base:
+        raise ConfigurationError("LLM_PROVIDER=anthropic needs LLM_API_KEY.")
 
     emb_provider = _env("EMBEDDING_PROVIDER", "local").lower()
     if emb_provider not in {"local", "openai", "ollama"}:
@@ -233,6 +244,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         nvd_api_url=_env("NVD_API_URL", Settings.nvd_api_url),
         nvd_results_per_page=min(_env_int("NVD_RESULTS_PER_PAGE", 2000, minimum=1), 2000),
         nvd_overlap_minutes=_env_int("NVD_OVERLAP_MINUTES", 15, minimum=0),
+        nvd_window_days=min(_env_int("NVD_WINDOW_DAYS", 120, minimum=1), 120),
         nvd_sync_start_date=_env("NVD_SYNC_START_DATE"),
         cwe_xml_url=_env("CWE_XML_URL", Settings.cwe_xml_url),
         capec_xml_url=_env("CAPEC_XML_URL", Settings.capec_xml_url),
@@ -241,7 +253,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         llm_api_key=llm_key,
         llm_model=_env("LLM_MODEL", _DEFAULT_LLM_MODELS.get(llm_provider, "")),
         llm_base_url=llm_base,
-        llm_timeout_seconds=_env_float("LLM_TIMEOUT_SECONDS", 120.0),
+        llm_timeout_seconds=_env_float("LLM_TIMEOUT_SECONDS", 120.0, minimum=1.0),
         embedding_provider=emb_provider,
         embedding_api_key=emb_key,
         embedding_model=_env("EMBEDDING_MODEL", _DEFAULT_EMBED_MODELS.get(emb_provider, "")),
@@ -256,9 +268,10 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         admin_api_key=_env("ADMIN_API_KEY"),
         cors_origins=tuple(_env_list("CORS_ORIGINS", ",".join(Settings.cors_origins))),
         max_message_chars=_env_int("MAX_MESSAGE_CHARS", 2000, minimum=10),
-        http_timeout_seconds=_env_float("HTTP_TIMEOUT_SECONDS", 60.0),
+        max_request_bytes=_env_int("MAX_REQUEST_BYTES", 16_384, minimum=1024),
+        http_timeout_seconds=_env_float("HTTP_TIMEOUT_SECONDS", 60.0, minimum=1.0),
         http_max_retries=_env_int("HTTP_MAX_RETRIES", 5, minimum=0),
-        vector_min_score=_env_float("VECTOR_MIN_SCORE", 0.0),
+        vector_min_score=_env_float("VECTOR_MIN_SCORE", 0.0, minimum=0.0, maximum=1.0),
         tuning_config=_env("TUNING_CONFIG"),
         reference_docs_dir=_env("REFERENCE_DOCS_DIR", Settings.reference_docs_dir),
         log_level=_env("LOG_LEVEL", "INFO").upper(),
