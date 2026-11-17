@@ -529,6 +529,8 @@ class Neo4jDatabase:
             else:
                 raise ValueError(f"Invalid direction {direction!r}")
         last, prev = f"n{len(hops)}", f"n{len(hops) - 1}"
+        if hops[-1][2] == LABEL_CVE:
+            return self._traverse_to_cves(pattern, last, prev, start_id, limit)
         rows = self._read(
             f"MATCH {pattern} WHERE {last} <> n0 "
             f"WITH {last} AS node, collect(DISTINCT {prev}.id) AS via "
@@ -545,6 +547,31 @@ class Neo4jDatabase:
             nodes.append(node)
         nodes.sort(key=lambda n: _natural_key(n.get("id", "")))
         return {"nodes": nodes, "total": rows[0]["total"]}
+
+    def _traverse_to_cves(self, pattern: str, last: str, prev: str, start_id: str,
+                          limit: int) -> dict:
+        """Reverse traversal ending at CVEs (e.g. ATT&CK <- CAPEC <- CWE <- CVE).
+
+        A CWE can have tens of thousands of CVEs, so the total is counted on its own
+        and only the ``limit`` most relevant CVEs are returned: highest CVSS score
+        first, then the most recently published.  Ordering by id would return the
+        oldest records from 1999 instead.
+        """
+        total = self._read(f"MATCH {pattern} RETURN count(DISTINCT {last}) AS total",
+                           id=start_id)[0]["total"]
+        if not total:
+            return {"nodes": [], "total": 0}
+        rows = self._read(
+            f"MATCH {pattern} WITH {last} AS node, collect(DISTINCT {prev}.id) AS via "
+            "ORDER BY coalesce(node.base_score, -1.0) DESC, coalesce(node.published, '') DESC, "
+            "node.id DESC LIMIT $limit "
+            "RETURN node {.*, embedding: null} AS node, via", id=start_id, limit=int(limit))
+        nodes = []
+        for row in rows:
+            node = strip_embedding(row["node"]) or {}
+            node["via"] = sorted(row["via"])
+            nodes.append(node)
+        return {"nodes": nodes, "total": total}
 
     def count_related(self, start_label: str, start_id: str, hop: Hop) -> int:
         rel, direction, label = hop

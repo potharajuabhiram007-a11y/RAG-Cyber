@@ -388,7 +388,8 @@ TRAVERSALS: dict[str, tuple[tuple[str, tuple[Hop, ...], bool], ...]] = {
         ("Attack patterns (CWE_CAPEC)", ((REL_CWE_CAPEC, "out", LABEL_CAPEC),), True),
         ("ATT&CK techniques (CWE_CAPEC -> CAPEC_ATTACK)",
          ((REL_CWE_CAPEC, "out", LABEL_CAPEC), (REL_CAPEC_ATTACK, "out", LABEL_ATTACK)), True),
-        ("Example vulnerabilities (CVE_CWE)", ((REL_CVE_CWE, "in", LABEL_CVE),), False),
+        ("Vulnerabilities (CVEs) with this weakness (reverse: CWE <- CVE_CWE <- CVE)",
+         ((REL_CVE_CWE, "in", LABEL_CVE),), False),
     ),
     LABEL_CAPEC: (
         ("Exploited weaknesses (CWE_CAPEC)", ((REL_CWE_CAPEC, "in", LABEL_CWE),), True),
@@ -397,6 +398,9 @@ TRAVERSALS: dict[str, tuple[tuple[str, tuple[Hop, ...], bool], ...]] = {
         ("Child attack patterns (CAPEC_CHILD)", ((REL_CAPEC_CHILD, "in", LABEL_CAPEC),), False),
         ("Can precede (CAN_PRECEDE)", ((REL_CAN_PRECEDE, "out", LABEL_CAPEC),), False),
         ("Can follow (CAN_PRECEDE)", ((REL_CAN_PRECEDE, "in", LABEL_CAPEC),), False),
+        ("Vulnerabilities (CVEs) open to this attack pattern "
+         "(reverse: CAPEC <- CWE_CAPEC <- CWE <- CVE_CWE <- CVE)",
+         ((REL_CWE_CAPEC, "in", LABEL_CWE), (REL_CVE_CWE, "in", LABEL_CVE)), False),
     ),
     LABEL_ATTACK: (
         ("Parent technique (SUBTECHNIQUE_OF)", ((REL_SUBTECHNIQUE_OF, "out", LABEL_ATTACK),), False),
@@ -404,6 +408,10 @@ TRAVERSALS: dict[str, tuple[tuple[str, tuple[Hop, ...], bool], ...]] = {
         ("Attack patterns (CAPEC_ATTACK)", ((REL_CAPEC_ATTACK, "in", LABEL_CAPEC),), True),
         ("Weaknesses (CAPEC_ATTACK <- CWE_CAPEC)",
          ((REL_CAPEC_ATTACK, "in", LABEL_CAPEC), (REL_CWE_CAPEC, "in", LABEL_CWE)), True),
+        ("Vulnerabilities (CVEs) linked to this technique "
+         "(reverse: ATT&CK <- CAPEC_ATTACK <- CAPEC <- CWE_CAPEC <- CWE <- CVE_CWE <- CVE)",
+         ((REL_CAPEC_ATTACK, "in", LABEL_CAPEC), (REL_CWE_CAPEC, "in", LABEL_CWE),
+          (REL_CVE_CWE, "in", LABEL_CVE)), False),
     ),
 }
 MAX_IDS_WITH_CONTEXT = 3
@@ -546,7 +554,27 @@ class Retriever:
             title=node.get("name") or node["id"], text=describe_entity(label, node),
             url=node.get("source_url")))
         self._collect_mitigations(result, label, node, limit=6)
+        upstream = reverse_upstream(context)
         for group in context.groups:
+            if group.label == LABEL_CVE and group.direction == "in":
+                if not group.nodes:
+                    result.missing.append(reverse_gap(context))
+                    continue
+                shown = group.shown()
+                more = f" (showing the {len(shown)} highest-scoring of {group.total:,})" \
+                    if group.total > len(shown) else ""
+                for related in group.nodes:
+                    for via in related.get("via") or [node["id"]]:
+                        edge = (related["id"], group.rel_type, via)
+                        if edge not in result.relationships:
+                            result.relationships.append(edge)
+                lines = [cve_line(n, upstream, detailed=index < 6) for index, n in enumerate(shown)]
+                result.evidence.append(Evidence(
+                    kind="entity", source=SOURCE_NAMES[CATEGORY_CVE],
+                    identifier=", ".join(n["id"] for n in shown[:6]) + (" ..." if len(shown) > 6 else ""),
+                    title=f"{group.relation} for {node['id']}: {group.total:,} CVEs in the graph{more}",
+                    text="\n".join(lines)))
+                continue
             if not group.nodes:
                 if group.chain:
                     target = {LABEL_CWE: "CWE weakness", LABEL_CAPEC: "CAPEC attack pattern",
@@ -901,6 +929,51 @@ def _foundation_evidence(kind: str, row: dict, score: float | None) -> Evidence:
 def _join(values, limit: int = 12) -> str:
     values = list(values or [])
     return ", ".join(values[:limit]) + (f" (+{len(values) - limit} more)" if len(values) > limit else "")
+
+
+def reverse_upstream(context: EntityContext) -> dict[str, list[str]]:
+    """For an ATT&CK technique: CWE id -> the CAPEC ids that link it to the technique,
+    so a CVE reached in reverse can show its whole path (CVE -> CWE -> CAPEC -> ATT&CK)."""
+    if context.label != LABEL_ATTACK:
+        return {}
+    return {n["id"]: n.get("via") or [] for g in context.groups
+            if g.label == LABEL_CWE and g.direction == "in" for n in g.nodes}
+
+
+def cve_line(node: dict, upstream: dict[str, list[str]] | None = None,
+             detailed: bool = True) -> str:
+    """One CVE reached by a reverse traversal: score, date, path and (optionally) text."""
+    facts = []
+    if node.get("base_score") is not None:
+        facts.append(f"CVSS {node['base_score']}" + (f" {node['severity']}" if node.get("severity") else ""))
+    else:
+        facts.append("no CVSS score from NVD")
+    if node.get("published"):
+        facts.append(f"published {str(node['published'])[:10]}")
+    paths = []
+    for cwe in node.get("via") or []:
+        capecs = (upstream or {}).get(cwe) or []
+        paths.append(cwe + (f" <- {', '.join(capecs[:3])}" if capecs else ""))
+    line = f"{node['id']} ({', '.join(facts)})"
+    if paths:
+        line += f" via {'; '.join(paths[:3])}"
+    if detailed and node.get("description"):
+        line += f" - {clean_text(node['description'], 260)}"
+    return line
+
+
+def reverse_gap(context: EntityContext) -> str:
+    """Explain where a reverse traversal towards CVEs stopped."""
+    node_id, label = context.node["id"], context.label
+    by_label = {g.label: g for g in context.groups if g.direction == "in"}
+    if label == LABEL_ATTACK and not (by_label.get(LABEL_CAPEC) and by_label[LABEL_CAPEC].nodes):
+        return (f"No CVE is linked to {node_id}: MITRE lists no CAPEC attack pattern for this "
+                "technique, so the graph has no CAPEC -> CWE -> CVE path from it (most ATT&CK "
+                "techniques have no CAPEC mapping). Its sub-techniques or parent technique may have one.")
+    if label in (LABEL_ATTACK, LABEL_CAPEC) and not (by_label.get(LABEL_CWE) and by_label[LABEL_CWE].nodes):
+        return (f"No CVE is linked to {node_id}: the CAPEC attack pattern(s) on its path list no "
+                "CWE weakness, so the graph has no CWE -> CVE path from it.")
+    return (f"No CVE in the knowledge graph lists the CWE weakness(es) linked to {node_id}.")
 
 
 def describe_entity(label: str, node: dict) -> str:

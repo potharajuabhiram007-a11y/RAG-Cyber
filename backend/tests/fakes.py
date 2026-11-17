@@ -195,8 +195,14 @@ class InMemoryGraph:
             frontier = reached
         frontier.pop(start_id, None)
         label = hops[-1][2]
-        ordered = sorted(frontier, key=lambda i: [int(p) if p.isdigit() else p
-                                                  for p in re.split(r"(\d+)", i)])
+        if label == "CVE":   # same order as Neo4jDatabase._traverse_to_cves
+            cves = self.nodes["CVE"]
+            ordered = sorted(frontier, reverse=True, key=lambda i: (
+                cves[i].get("base_score") if cves[i].get("base_score") is not None else -1.0,
+                cves[i].get("published") or "", i))
+        else:
+            ordered = sorted(frontier, key=lambda i: [int(p) if p.isdigit() else p
+                                                      for p in re.split(r"(\d+)", i)])
         nodes = [{**(strip_embedding(self.nodes[label][i]) or {}), "via": sorted(frontier[i])}
                  for i in ordered[:limit]]
         return {"nodes": nodes, "total": len(ordered)}
