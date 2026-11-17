@@ -122,6 +122,32 @@ def get_graph_neighborhood(request: Request, entity_id: str,
     return found
 
 
+@router.get("/graph/kill-chain/{entity_id}")
+def get_kill_chain(request: Request, entity_id: str, limit: int = Query(25, ge=1, le=100),
+                   _: None = Depends(require_database)) -> dict:
+    """Entities up to four hops away along CVE -> CWE -> CAPEC -> ATT&CK (both directions)."""
+    if label_for_id(entity_id) is None:
+        raise HTTPException(404, "Not a CVE, CWE, CAPEC or ATT&CK identifier")
+    chain = _state(request).db.multi_hop_kill_chain(entity_id, limit=limit)
+    if not chain["nodes"] and not chain["edges"] and _state(request).db.get_node(
+            label_for_id(entity_id), entity_id.strip().upper()) is None:
+        raise HTTPException(404, f"{entity_id.strip().upper()} is not in the knowledge graph")
+    return chain
+
+
+@router.get("/cve/filter")
+def filter_cves(request: Request, severity: str | None = Query(None, max_length=20),
+                year: int | None = Query(None, ge=1988, le=2100),
+                min_score: float | None = Query(None, ge=0.0, le=10.0),
+                vendor: str | None = Query(None, max_length=80),
+                limit: int = Query(20, ge=1, le=100),
+                _: None = Depends(require_database)) -> dict:
+    """CVEs by severity, publication year, minimum CVSS score or vendor / product."""
+    results = _state(request).db.filter_cves(severity=severity, year=year, min_score=min_score,
+                                             vendor=vendor, limit=limit)
+    return {"results": results, "count": len(results)}
+
+
 @router.get("/entities/search")
 def search_entities(request: Request, query: str = Query("", max_length=80),
                     limit: int = Query(20, ge=1, le=100),

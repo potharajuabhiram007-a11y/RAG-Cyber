@@ -11,6 +11,17 @@ class ChatRequest(BaseModel):
 
     message: str = Field(..., min_length=1, max_length=2000,
                          description="The user's question or message.")
+    history_ids: list[str] = Field(
+        default_factory=list, max_length=12,
+        description="Entity identifiers of the previous answer, used to resolve follow-ups.")
+
+    @field_validator("history_ids")
+    @classmethod
+    def _valid_ids(cls, value: list[str]) -> list[str]:
+        # Only well-formed identifiers are accepted, so nothing else reaches retrieval.
+        from backend.database import label_for_id
+        ids = [i.strip().upper() for i in value if isinstance(i, str)]
+        return [i for i in ids if len(i) <= 20 and label_for_id(i)]
 
     @field_validator("message")
     @classmethod

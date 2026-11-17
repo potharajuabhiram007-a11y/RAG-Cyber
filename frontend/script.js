@@ -78,6 +78,7 @@
 
   let apiBase = (document.querySelector('meta[name="rag-cyber-api"]')?.content || "").replace(/\/$/, "");
   let busy = false;
+  let lastEntityIds = [];           // entities of the previous answer: lets follow-ups say "it"
   let history = [];
   let panelTimer = null;
 
@@ -1711,7 +1712,7 @@
      the model writes, the returned promise resolves with the complete response. */
   async function streamChat(message, onDelta) {
     const request = { method: "POST", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ message }) };
+                      body: JSON.stringify({ message, history_ids: lastEntityIds.slice(0, 6) }) };
     const response = await fetch(apiBase + "/api/chat/stream", request);
     if (response.status === 404 || response.status === 405 || !response.body) {
       return api("/api/chat", request);          // older backend without streaming
@@ -1813,6 +1814,7 @@
           // text that was already read while streaming is not animated in a second time
           renderResponse(placeholder, data, !preview.node);
           history.push({ q: message, t: asked.toISOString(), data });
+          lastEntityIds = (Array.isArray(data.identifiers) ? data.identifiers : []).filter((id) => ID_RE.test(id));
           saveHistory();
           archiveAdd(message, asked, data);
         } catch (error) {

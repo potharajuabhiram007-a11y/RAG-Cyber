@@ -167,6 +167,8 @@ def create_app(state: AppState | None = None, start_background: bool = True) -> 
     def chat(request: ChatRequest, _: None = Depends(require_database)) -> ChatResponse:
         if len(request.message) > settings.max_message_chars:
             raise HTTPException(422, f"message is longer than {settings.max_message_chars} characters")
+        if request.history_ids:
+            return state.assistant.ask(request.message, history_ids=request.history_ids)
         return state.assistant.ask(request.message)
 
     @app.post("/api/chat/stream")
@@ -180,8 +182,9 @@ def create_app(state: AppState | None = None, start_background: bool = True) -> 
 
         def work() -> None:
             try:
+                extra = {"history_ids": request.history_ids} if request.history_ids else {}
                 response = state.assistant.ask(
-                    request.message, on_delta=lambda text: events.put(("delta", text)))
+                    request.message, on_delta=lambda text: events.put(("delta", text)), **extra)
                 events.put(("final", response))
             except Exception as exc:        # reported to the client as an event
                 log.exception("Streaming chat request failed")
