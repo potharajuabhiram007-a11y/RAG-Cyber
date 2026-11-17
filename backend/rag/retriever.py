@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Sequence
@@ -50,7 +51,7 @@ _ID_PATTERNS = (
      lambda m: f"CWE-{int(m.group(1))}"),
     (LABEL_CAPEC, re.compile(r"\bCAPEC[-\s_:]{0,2}(\d{1,5})\b", re.I),
      lambda m: f"CAPEC-{int(m.group(1))}"),
-    (LABEL_ATTACK, re.compile(r"\bT(\d{4})(?:[./](\d{3}))?\b", re.I),
+    (LABEL_ATTACK, re.compile(r"\bT(\d{4})(?:[./](\d{3}))?\b(?![./]\d)", re.I),
      lambda m: f"T{m.group(1)}" + (f".{m.group(2)}" if m.group(2) else "")),
 )
 
@@ -108,7 +109,8 @@ def detect_general(message: str) -> list[str]:
     for phrase, kind in _GENERAL_PHRASES:
         needle = f" {phrase} "
         if needle in padded:
-            padded = padded.replace(needle, "  ")
+            while needle in padded:
+                padded = padded.replace(needle, "  ")
             if kind not in kinds:
                 kinds.append(kind)
     leftovers = [tok for tok in padded.split() if tok not in _GENERAL_FILLERS]
@@ -259,7 +261,7 @@ def cve_search_terms(message: str) -> tuple[list[list[str]], list[str]]:
             continue
         if token in _CVE_BOOST:
             boost.append(token)
-        elif [token] not in [g[:1] for g in groups]:
+        elif not any({token, stem(token)} & set(g) for g in groups):
             groups.append([token] + ([stem(token)] if stem(token) != token else []))
     return groups, boost
 
@@ -308,7 +310,7 @@ class RelatedGroup:
         """Nodes to display.  For multi-hop results the selection rotates over the
         intermediate nodes, so every linked CWE / CAPEC is represented instead of
         the first one filling the whole list."""
-        limit = limit or DISPLAY_LIMIT
+        limit = DISPLAY_LIMIT if limit is None else max(0, limit)
         if len(self.nodes) <= limit:
             return list(self.nodes)
         buckets: dict[str, list[dict]] = {}
@@ -466,6 +468,7 @@ class Retriever:
         self._lexicon: Lexicon | None = None
         self._lexicon_version = ""
         self._lexicon_checked = 0.0
+        self._lexicon_lock = threading.Lock()
 
     # ------------------------------------------------------------------ #
     # Analysis
@@ -622,14 +625,16 @@ class Retriever:
     # 3. Semantic retrieval (fundamentals first, then the four datasets)
     # ------------------------------------------------------------------ #
     def _get_lexicon(self) -> Lexicon:
-        now = time.monotonic()
-        if self._lexicon is None or now - self._lexicon_checked > 60:
-            version = self.db.foundation_version()
-            if self._lexicon is None or version != self._lexicon_version:
-                self._lexicon = Lexicon(self.db.list_terms(), self.db.list_document_sections())
-                self._lexicon_version = version
-            self._lexicon_checked = now
-        return self._lexicon
+        with self._lexicon_lock:
+            now = time.monotonic()
+            if self._lexicon is None or now - self._lexicon_checked > 60:
+                version = self.db.foundation_version()
+                if self._lexicon is None or version != self._lexicon_version:
+                    self._lexicon = Lexicon(self.db.list_terms(),
+                                            self.db.list_document_sections())
+                    self._lexicon_version = version
+                self._lexicon_checked = now
+            return self._lexicon
 
     def _query_vector(self, analysis: QueryAnalysis) -> list[float] | None:
         try:
@@ -649,7 +654,13 @@ class Retriever:
         domain_hits = [t for i, t in enumerate(tokens)
                        if t in content and (i in covered or t in DOMAIN_VOCABULARY
                                             or stem(t) in DOMAIN_VOCABULARY)]
-        vector = self._query_vector(analysis)
+        vector_cache: list = []
+
+        def vector() -> list[float] | None:
+            """The query embedding, computed only when a vector search needs it."""
+            if not vector_cache:
+                vector_cache.append(self._query_vector(analysis))
+            return vector_cache[0]
 
         nickname = find_nickname(analysis.message)
         if nickname:
@@ -685,7 +696,7 @@ class Retriever:
                     return described
 
         if matches and term_coverage >= 0.5 and not analysis.strong_intent:
-            return self._fundamentals_result(analysis, matches, vector)
+            return self._fundamentals_result(analysis, matches, None)
 
         if cve_question and not described_tried:
             described = self._cve_description_search(analysis, min_groups=1)
@@ -693,14 +704,14 @@ class Retriever:
                 return described
 
         if analysis.intent_labels or not matches:
-            entity = self._entity_search(analysis, vector)
+            entity = self._entity_search(analysis, vector())
             if entity is not None:
                 return entity
 
         if matches and term_coverage >= 0.5:
-            return self._fundamentals_result(analysis, matches, vector)
+            return self._fundamentals_result(analysis, matches, None)
 
-        semantic = self._fundamentals_semantic(analysis, vector)
+        semantic = self._fundamentals_semantic(analysis, vector())
         if semantic is not None:
             return semantic
 
