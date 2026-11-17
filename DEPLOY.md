@@ -7,7 +7,7 @@ The frontend stays on Vercel.
 |---|---|---|
 | Database | Neo4j on `localhost` | Neo4j AuraDB Free |
 | Backend | `uvicorn` on port 8000 | Render free web service |
-| Model | Ollama `llama3.2` | Hosted llama model through the Groq API |
+| Model | Ollama `llama3.2` | `openai/gpt-oss-120b` through the Groq API |
 | Public address | Temporary Cloudflare tunnel | Permanent `onrender.com` address |
 
 No application code changes are needed. Everything is done with settings, plus the
@@ -39,8 +39,9 @@ No application code changes are needed. Everything is done with settings, plus t
 
 1. Sign up at <https://console.groq.com> and create an API key.
 2. Keep the key for step 4. Check that the model named in `render.yaml`
-   (`llama-3.3-70b-versatile`) is still on Groq's model list; if not, pick another one
-   from that list.
+   (`openai/gpt-oss-120b`) is still on Groq's model list; if not, pick another one
+   from that list. Groq shut down its Llama chat models (`llama-3.3-70b-versatile`,
+   `llama-3.1-8b-instant`) for free accounts on 16 August 2026.
 
 ## Step 3. Load the data from the laptop (once)
 
