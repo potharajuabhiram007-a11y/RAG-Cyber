@@ -7,6 +7,15 @@ pydantic>=2.7,<3.0
 python-dotenv>=1.0
 APScheduler>=3.10,<4.0
 pypdf>=4.2
+# Embeddings (EMBEDDING_PROVIDER=sentence-transformers, the default) run the
+# Sentence-Transformers model with ONNX Runtime (EMBEDDING_RUNTIME=onnx).
+onnxruntime>=1.18
+tokenizers>=0.19
+huggingface_hub>=0.23
+numpy>=1.26
+# Optional, only for EMBEDDING_RUNTIME=torch (about twice the memory):
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install sentence-transformers
 # Only needed when LLM_PROVIDER=anthropic
 anthropic>=1.0
 # Tests

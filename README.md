@@ -90,16 +90,18 @@ Edit `.env`. Only the Neo4j settings are mandatory:
 | `NVD_API_KEY` | optional free key; raises the NVD rate limit from 5 to 50 requests / 30 s |
 | `NVD_SYNC_START_DATE` | optional; limit the first load to CVEs published since this date |
 | `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL` | `none`, `anthropic`, `openai` (any OpenAI-compatible API, e.g. LM Studio) or `ollama` |
-| `EMBEDDING_PROVIDER`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_BASE_URL` | `local`, `openai` or `ollama` |
+| `EMBEDDING_PROVIDER`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_BASE_URL` | `sentence-transformers` (default, `all-MiniLM-L6-v2` on the CPU), `local` (feature hashing), `openai` or `ollama` |
 | `UPDATE_INTERVAL_HOURS`, `NVD_UPDATE_INTERVAL_HOURS` | schedule of MITRE and NVD updates |
 | `ADMIN_API_KEY` | required for the manual sync endpoint |
 | `LOG_LEVEL` | `INFO`, `DEBUG`, ... |
 
-**Local development without any API key:** leave `LLM_PROVIDER=none` and
-`EMBEDDING_PROVIDER=local`. Answers are then assembled deterministically from
-the retrieved evidence (the UI labels them "Extractive answer") and embeddings
-come from a built-in hashing embedder. For better wording configure an LLM; for
-better semantic search configure a neural embedding model, then run
+**Local development without any API key:** leave `LLM_PROVIDER=none`. Answers are
+then assembled deterministically from the retrieved evidence (the UI labels them
+"Extractive answer"). Embeddings come from the Sentence-Transformers model
+`all-MiniLM-L6-v2` (384 dimensions), which runs on the CPU with ONNX Runtime and
+needs no key; it is downloaded (about 90 MB) from Hugging Face on first use. `EMBEDDING_PROVIDER=local` switches to the
+older built-in feature-hashing embedder, which needs no download but matches words
+rather than meaning. After changing the provider or model run
 `python -m backend.manage reembed`.
 
 Secrets live only in `.env`; nothing is sent to the browser and nothing needs to
@@ -111,6 +113,11 @@ one-line explanation.
 ```bash
 pip install -r backend/requirements.txt
 ```
+
+The embedding model runs with ONNX Runtime, so PyTorch is not needed. To run it
+with the sentence-transformers library instead (same vectors, about twice the
+memory), install `torch` (CPU build) and `sentence-transformers` and set
+`EMBEDDING_RUNTIME=torch`.
 
 Check the configuration and the database connection:
 

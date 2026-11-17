@@ -8,6 +8,7 @@ The frontend stays on Vercel.
 | Database | Neo4j on `localhost` | Neo4j AuraDB Free |
 | Backend | `uvicorn` on port 8000 | Render free web service |
 | Model | Ollama `llama3.2` | `openai/gpt-oss-120b` through the Groq API |
+| Embeddings | `all-MiniLM-L6-v2` (ONNX Runtime) | the same model on Render, downloaded during the build |
 | Public address | Temporary Cloudflare tunnel | Permanent `onrender.com` address |
 
 No application code changes are needed. Everything is done with settings, plus the
@@ -24,10 +25,11 @@ No application code changes are needed. Everything is done with settings, plus t
   "backend offline" until then. Updates run only while it is awake; each wake-up catches up.
 * **The database pauses.** Aura pauses a free database after a few days without use. Resume
   it from the Aura console.
-* **Memory is tight.** Render gives 512 MB. Reading a new ATT&CK release needs about
-  340 MB on its own (measured on the laptop), so that update could fail on Render. This
-  happens only when MITRE publishes a release, a few times a year. If it fails, run that
-  update once from the laptop (step 3).
+* **Memory is tight.** Render gives 512 MB. The backend with the sentence-transformer
+  embedding model (run with ONNX Runtime) uses about 280 MB (measured on the laptop).
+  Reading a new ATT&CK release needs about 340 MB more, so that update will likely fail
+  on Render. This happens only when MITRE publishes a release, a few times a year. When
+  it does, run that update once from the laptop (step 3).
 
 ## Step 1. Create the database (Neo4j Aura)
 

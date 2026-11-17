@@ -6,7 +6,12 @@ services:
     name: cyberintellix-api
     runtime: python
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
+    # Install, then download the embedding model during the build so a cold start
+    # does not have to fetch it.
+    buildCommand: >-
+      pip install -r backend/requirements.txt &&
+      python -c "from backend.updater.st_onnx import OnnxSentenceEncoder;
+      OnnxSentenceEncoder('sentence-transformers/all-MiniLM-L6-v2')"
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/status
     autoDeploy: true
@@ -40,7 +45,15 @@ services:
       - key: NVD_SYNC_START_DATE  # Aura Free holds 200,000 nodes: load recent CVEs only
         value: "2024-01-01"
       - key: EMBEDDING_PROVIDER
-        value: local
+        value: sentence-transformers
+      - key: EMBEDDING_MODEL
+        value: sentence-transformers/all-MiniLM-L6-v2
+      - key: EMBEDDING_RUNTIME    # ONNX: ~280 MB in total, fits the 512 MB free instance
+        value: onnx
+      - key: HF_HOME              # model cache inside the project folder, kept from the build
+        value: /opt/render/project/src/.hf-cache
+      - key: OMP_NUM_THREADS      # the free instance has a fraction of one CPU
+        value: "1"
       - key: UPDATE_INTERVAL_HOURS
         value: "24"
       - key: NVD_UPDATE_INTERVAL_HOURS

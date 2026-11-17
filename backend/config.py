@@ -122,11 +122,12 @@ class Settings:
     llm_timeout_seconds: float = 120.0
 
     # --- Embeddings ------------------------------------------------------
-    embedding_provider: str = "local"   # local | openai | ollama
+    embedding_provider: str = "local"   # local | sentence-transformers | openai | ollama
     embedding_api_key: str = field(default="", repr=False)
     embedding_model: str = ""
     embedding_base_url: str = ""
     embedding_dimensions: int = 256     # only used by the local provider
+    embedding_runtime: str = "onnx"     # sentence-transformers only: onnx | torch
     embed_cves: bool = True
 
     # --- Scheduling ------------------------------------------------------
@@ -175,6 +176,8 @@ class Settings:
             "llm_model": self.llm_model or None,
             "embedding_provider": self.embedding_provider,
             "embedding_model": self.embedding_model or None,
+            "embedding_runtime": (self.embedding_runtime
+                                  if self.embedding_provider == "sentence-transformers" else None),
             "embed_cves": self.embed_cves,
             "scheduler_enabled": self.scheduler_enabled,
             "mitre_update_interval_hours": self.update_interval_hours,
@@ -184,7 +187,9 @@ class Settings:
 
 
 _DEFAULT_LLM_MODELS = {"anthropic": "claude-opus-5-5", "openai": "gpt-4o-mini", "ollama": "llama3"}
-_DEFAULT_EMBED_MODELS = {"openai": "text-embedding-3-small", "ollama": "nomic-embed-text"}
+_DEFAULT_EMBED_MODELS = {"openai": "text-embedding-3-small", "ollama": "nomic-embed-text",
+                         "sentence-transformers": "sentence-transformers/all-MiniLM-L6-v2"}
+EMBEDDING_PROVIDERS = ("sentence-transformers", "local", "openai", "ollama")
 
 
 def load_settings(require_neo4j: bool = True) -> Settings:
@@ -211,10 +216,16 @@ def load_settings(require_neo4j: bool = True) -> Settings:
             "LLM_PROVIDER=openai needs LLM_API_KEY (or LLM_BASE_URL for a local "
             "OpenAI-compatible server such as LM Studio).")
 
-    emb_provider = _env("EMBEDDING_PROVIDER", "local").lower()
-    if emb_provider not in {"local", "openai", "ollama"}:
+    emb_provider = _env("EMBEDDING_PROVIDER", "sentence-transformers").lower()
+    if emb_provider in {"sentence_transformers", "sentence-transformer", "st"}:
+        emb_provider = "sentence-transformers"
+    if emb_provider not in EMBEDDING_PROVIDERS:
         raise ConfigurationError(
-            f"EMBEDDING_PROVIDER must be one of local, openai, ollama (got {emb_provider!r})")
+            f"EMBEDDING_PROVIDER must be one of {', '.join(EMBEDDING_PROVIDERS)} "
+            f"(got {emb_provider!r})")
+    emb_runtime = _env("EMBEDDING_RUNTIME", "onnx").lower()
+    if emb_runtime not in {"onnx", "torch"}:
+        raise ConfigurationError(f"EMBEDDING_RUNTIME must be onnx or torch (got {emb_runtime!r})")
     emb_key = _env("EMBEDDING_API_KEY")
     emb_base = _env("EMBEDDING_BASE_URL")
     if emb_provider == "openai" and not emb_key and not emb_base:
@@ -247,6 +258,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         embedding_model=_env("EMBEDDING_MODEL", _DEFAULT_EMBED_MODELS.get(emb_provider, "")),
         embedding_base_url=emb_base,
         embedding_dimensions=_env_int("EMBEDDING_DIMENSIONS", 256, minimum=32),
+        embedding_runtime=emb_runtime,
         embed_cves=_env_bool("EMBED_CVES", True),
         update_interval_hours=mitre_hours,
         nvd_update_interval_hours=_env_int("NVD_UPDATE_INTERVAL_HOURS", min(2, mitre_hours),

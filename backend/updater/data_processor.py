@@ -20,6 +20,7 @@ import json
 import logging
 import math
 import re
+import threading
 import time
 import zipfile
 import zlib
@@ -285,12 +286,26 @@ def local_embedding(text: str, dimensions: int) -> list[float] | None:
     return [round(v / norm, 6) for v in vector]
 
 
-class EmbeddingClient:
-    """Configurable embedding provider (local | openai-compatible | ollama)."""
+ST_BATCH = 256   # texts encoded per call; bounds peak memory during a large sync
 
-    def __init__(self, settings: Settings, http_client: httpx.Client | None = None):
+
+class EmbeddingClient:
+    """Configurable embedding provider.
+
+    * ``sentence-transformers`` - a Sentence-Transformers model run in-process on the CPU
+      (default model ``all-MiniLM-L6-v2``, 384 dimensions); vectors are L2-normalised.
+      ``EMBEDDING_RUNTIME`` picks ONNX Runtime (default, about half the memory) or the
+      sentence-transformers library on PyTorch; both give the same vectors.
+    * ``local`` - the dependency-free feature-hashing fallback (:func:`local_embedding`).
+    * ``openai`` / ``ollama`` - remote embedding endpoints.
+    """
+
+    def __init__(self, settings: Settings, http_client: httpx.Client | None = None,
+                 model: Any = None):
         self._settings = settings
         self._client = http_client
+        self._model = model          # SentenceTransformer, loaded lazily (tests inject a fake)
+        self._model_lock = threading.Lock()
         self._dimensions: int | None = (
             settings.embedding_dimensions if settings.embedding_provider == "local" else None)
 
@@ -306,8 +321,51 @@ class EmbeddingClient:
             return f"local-hash-v1:{s.embedding_dimensions}"
         return f"{s.embedding_provider}:{s.embedding_model}"
 
+    def _st_model(self):
+        """Load the Sentence-Transformers model once (it is reused for every call)."""
+        if self._model is None:
+            with self._model_lock:
+                if self._model is None:
+                    s = self._settings
+                    log.info("Loading sentence-transformers model %s (%s runtime)",
+                             s.embedding_model, s.embedding_runtime)
+                    try:
+                        if s.embedding_runtime == "torch":
+                            from sentence_transformers import SentenceTransformer
+                            self._model = SentenceTransformer(s.embedding_model, device="cpu")
+                        else:
+                            from backend.updater.st_onnx import OnnxSentenceEncoder
+                            self._model = OnnxSentenceEncoder(s.embedding_model)
+                    except ImportError as exc:
+                        raise FetchError(
+                            f"EMBEDDING_RUNTIME={s.embedding_runtime} is missing a package "
+                            f"({exc}); run pip install -r backend/requirements.txt") from exc
+                    except (OSError, ValueError) as exc:
+                        raise FetchError(f"Could not load embedding model {s.embedding_model}: "
+                                         f"{exc}") from exc
+        return self._model
+
+    def _st_embed(self, texts: Sequence[str]) -> list[list[float] | None]:
+        cleaned = [clean_text(t, 6000) for t in texts]
+        wanted = [i for i, text in enumerate(cleaned) if text]
+        vectors: list[list[float] | None] = [None] * len(cleaned)
+        model = self._st_model()
+        for start in range(0, len(wanted), ST_BATCH):
+            chunk = wanted[start:start + ST_BATCH]
+            with self._model_lock:   # one encode at a time: bounded memory, thread-safe
+                encoded = model.encode([cleaned[i] for i in chunk], batch_size=32,
+                                       normalize_embeddings=True, convert_to_numpy=True,
+                                       show_progress_bar=False)
+            for i, vector in zip(chunk, encoded):
+                vectors[i] = [round(float(v), 6) for v in vector]
+        return vectors
+
     @property
     def dimensions(self) -> int:
+        if self._dimensions is None and self.provider == "sentence-transformers":
+            size = self._st_model().get_sentence_embedding_dimension()
+            if size:
+                self._dimensions = int(size)
         if self._dimensions is None:
             probe = self.embed(["dimension probe"])[0]
             if not probe:
@@ -328,6 +386,8 @@ class EmbeddingClient:
         s = self._settings
         if s.embedding_provider == "local":
             return [local_embedding(t, s.embedding_dimensions) for t in texts]
+        if s.embedding_provider == "sentence-transformers":
+            return self._st_embed(texts)
         cleaned = [clean_text(t, 6000) or "empty" for t in texts]
         vectors: list[list[float] | None] = []
         for start in range(0, len(cleaned), 64):
