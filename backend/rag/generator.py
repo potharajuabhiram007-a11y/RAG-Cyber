@@ -35,7 +35,8 @@ from backend.models import (
 from backend.rag.tuning import DEFAULT_TUNING, Tuning
 from backend.rag.retriever import (
     STATUS_GENERAL, STATUS_UNSUPPORTED, EntityContext,
-    RetrievalResult, Retriever, describe_entity, extract_identifiers,
+    RetrievalResult, Retriever, cve_line, describe_entity, extract_identifiers, reverse_gap,
+    reverse_upstream,
 )
 from backend.updater.data_processor import clean_text
 
@@ -385,10 +386,17 @@ def _entity_section(context: EntityContext) -> list[str]:
         if fact.startswith(("Mitigations:", "Source:")):
             continue
         lines.append(fact if fact.startswith("Description:") else f"- {fact}")
+    upstream = reverse_upstream(context)
     for group in context.groups:
         if not group.nodes:
             continue
         shown = group.shown()
+        if group.label == LABEL_CVE and group.direction == "in":
+            suffix = (f" ({group.total:,} in the graph; the {len(shown)} highest-scoring)"
+                      if group.total > len(shown) else "")
+            lines.append(f"**{group.relation}**{suffix}:")
+            lines += [f"- {cve_line(n, upstream, detailed=i < 3)}" for i, n in enumerate(shown)]
+            continue
         suffix = f" (showing {len(shown)} of {group.total})" if group.total > len(shown) else ""
         lines.append(f"**{group.relation}**{suffix}:")
         for related in shown:
@@ -452,7 +460,48 @@ def verified_facts(result: RetrievalResult) -> str:
     context = result.contexts[0]
     lines = describe_entity(context.label, context.node).split("\n")
     facts = [f for f in lines[1:] if not f.startswith(_FACT_SKIP)][:8]
-    return "**Verified in the knowledge graph:** " + lines[0] + "".join(f"\n- {f}" for f in facts)
+    text = "**Verified in the knowledge graph:** " + lines[0] + "".join(f"\n- {f}" for f in facts)
+    if _ASKS_FOR_CVES.search(result.analysis.message) and (reverse := reverse_summary(context)):
+        text += "\n\n" + reverse
+    return text
+
+
+_ASKS_FOR_CVES = re.compile(r"\b(cves?|vulnerabilit\w*|exploit\w*|affected|weak\s+points?)\b", re.I)
+_PATH_NAMES = {LABEL_CWE: "CVE → CWE", LABEL_CAPEC: "CVE → CWE → CAPEC",
+               LABEL_ATTACK: "CVE → CWE → CAPEC → ATT&CK technique"}
+
+
+def reverse_summary(context: EntityContext, limit: int = 6) -> str:
+    """Reverse traversal (CWE / CAPEC / ATT&CK back to CVEs) written out from the graph:
+    how many CVEs are reached, the highest-scoring ones with their full path, or where
+    the chain stops.  Added under every answer that asks for vulnerabilities, so the
+    result does not depend on how well a language model reads the evidence."""
+    if context.label not in _PATH_NAMES:
+        return ""
+    group = next((g for g in context.groups if g.label == LABEL_CVE and g.direction == "in"), None)
+    if group is None:
+        return ""
+    start = context.node["id"]
+    header = (f"**Reverse traversal** (graph path {_PATH_NAMES[context.label]}, "
+              f"followed backwards from {start}):")
+    if not group.nodes:
+        return header + "\n- " + reverse_gap(context)
+    upstream = reverse_upstream(context)
+    shown = group.shown(limit)
+    lines = [header, f"- {group.total:,} CVE{'s' if group.total != 1 else ''} in the knowledge graph "
+                     f"reach {start}" + (f"; the {len(shown)} highest-scoring:" if group.total > len(shown) else ":")]
+    for node in shown:
+        facts = [f"CVSS {node['base_score']} {node.get('severity') or ''}".strip()
+                 if node.get("base_score") is not None else "no CVSS score",
+                 str(node.get("published") or "")[:10]]
+        paths = []
+        for cwe in (node.get("via") or [])[:2]:
+            capecs = upstream.get(cwe) or []
+            middle = f" → {capecs[0]}" if capecs else ""
+            paths.append(f"{node['id']} → {cwe}{middle} → {start}" if context.label != LABEL_CWE
+                         else f"{node['id']} → {cwe}")
+        lines.append(f"- {' | '.join(paths) or node['id']} ({', '.join(f for f in facts if f)})")
+    return "\n".join(lines)
 
 
 def build_hint(result: RetrievalResult) -> tuple[str, bool]:

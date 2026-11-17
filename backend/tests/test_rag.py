@@ -66,6 +66,53 @@ def test_cve_graph_traversal_to_capec_and_reports_missing_attack(assistant):
     assert not any(e.type == "ATTACK" for e in response.related_entities)
 
 
+def test_reverse_traversal_from_capec_reaches_cves_with_details(assistant):
+    response = assistant.ask("Which CVEs are related to CAPEC-66?")
+    assert "CVE-2024-0001" in related_ids(response)
+    assert ("CVE-2024-0001", "CVE_CWE", "CWE-89") in edges(response)
+    # the CVE line carries its score, date and the CWE it was reached through
+    assert "CVE-2024-0001 (CVSS 9.8 CRITICAL, published 2024-01-01) via CWE-89" in response.answer
+
+
+def test_reverse_traversal_explains_where_the_chain_stops(assistant):
+    response = assistant.ask("Which vulnerabilities are linked to T1059?")
+    assert not any(e.type == "CVE" for e in response.related_entities)
+    assert any("MITRE lists no CAPEC attack pattern" in note for note in response.missing_relationships)
+
+
+def test_reverse_traversal_from_attack_shows_the_whole_path(knowledge):
+    from backend.rag.generator import Assistant, Generator
+    from backend.rag.retriever import Retriever
+    from backend.tests.fakes import InMemoryGraph
+
+    db = InMemoryGraph()
+    for label, nodes in knowledge.db.nodes.items():
+        db.nodes[label] = {k: dict(v) for k, v in nodes.items()}
+    db.nodes["CAPEC"]["CAPEC-66"]["attack_ids"] = ["T1059"]          # T1059 <- CAPEC-66
+    db.rebuild_relationships([r for r in db.edges if r != "CVE_CWE"], "test")
+    db.link_cves_to_cwes()
+    assistant = Assistant(Retriever(db, knowledge.embedder, knowledge.settings),
+                          Generator(knowledge.settings))
+    response = assistant.ask("Which CVEs are linked to T1059?")
+    assert "CVE-2024-0001" in related_ids(response)
+    # ATT&CK <- CAPEC <- CWE <- CVE, written out for the reader
+    assert "via CWE-89 <- CAPEC-66" in response.answer
+
+
+def test_verified_section_spells_out_the_reverse_traversal(knowledge):
+    from backend.rag.generator import verified_facts
+    from backend.rag.retriever import Retriever
+
+    retriever = Retriever(knowledge.db, knowledge.embedder, knowledge.settings)
+    asked = verified_facts(retriever.retrieve("Which CVEs are related to CAPEC-66?"))
+    assert "**Reverse traversal** (graph path CVE → CWE → CAPEC" in asked
+    assert "CVE-2024-0001 → CWE-89 → CAPEC-66 (CVSS 9.8 CRITICAL, 2024-01-01)" in asked
+    stops = verified_facts(retriever.retrieve("Which vulnerabilities are linked to T1059?"))
+    assert "MITRE lists no CAPEC attack pattern" in stops
+    # not added when the question is not about vulnerabilities
+    assert "Reverse traversal" not in verified_facts(retriever.retrieve("Explain CAPEC-66"))
+
+
 def test_missing_cve_returns_result_not_found(assistant):
     response = assistant.ask("What is CVE-2099-99999?")
     assert response.answer == RESULT_NOT_FOUND
