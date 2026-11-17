@@ -10,5 +10,6 @@ backend/data/*.tmp
 dist/
 backup_*/
 backend/data/reference_docs/*.pdf
+!backend/data/reference_docs/*.pdf
 .claude/
 *.log
