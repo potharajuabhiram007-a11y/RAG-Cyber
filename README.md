@@ -173,6 +173,11 @@ uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 Interactive API documentation: <http://127.0.0.1:8000/docs>.
 
+**With Docker:** `docker compose up -d --build` starts Neo4j and the backend (with the
+website) together, using the settings in `.env`; open <http://localhost:8000>. The
+`Dockerfile` alone builds the backend image for hosts such as Render or Hugging Face
+Spaces. See [DEPLOY.md](DEPLOY.md).
+
 ## 7. Starting the frontend
 
 The backend serves the frontend: open <http://127.0.0.1:8000>.
