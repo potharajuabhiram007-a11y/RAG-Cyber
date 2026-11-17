@@ -35,8 +35,8 @@ services:
         value: openai/gpt-oss-120b
 
       # --- data ---
-      - key: NEO4J_DATABASE
-        value: neo4j
+      - key: NEO4J_DATABASE       # new Aura instances name the database after the instance id
+        sync: false               # (the 8 characters before .databases.neo4j.io); older ones use "neo4j"
       - key: NVD_SYNC_START_DATE  # Aura Free holds 200,000 nodes: load recent CVEs only
         value: "2024-01-01"
       - key: EMBEDDING_PROVIDER
