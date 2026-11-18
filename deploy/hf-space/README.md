@@ -14,7 +14,7 @@ short_description: Cybersecurity RAG assistant over CVE, CWE, CAPEC and ATT&CK
 The API and website of CyberIntelliX: a retrieval-augmented assistant over a Neo4j
 knowledge graph of CVE, CWE, CAPEC and MITRE ATT&CK.
 
-* Database: Neo4j AuraDB (the newest 100,000 CVEs plus all CWE, CAPEC and ATT&CK).
+* Database: Neo4j AuraDB (the newest 150,000 CVEs plus all CWE, CAPEC and ATT&CK).
 * Embeddings: `sentence-transformers/all-MiniLM-L6-v2`, run with ONNX Runtime.
 * Answers: `openai/gpt-oss-120b` through the Groq API.
 * Updates: CVEs from NVD every 2 hours, MITRE data every 24 hours.

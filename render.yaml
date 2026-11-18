@@ -43,11 +43,12 @@ services:
 
       # --- data ---
       # Aura Free holds 200,000 nodes and 1 GB. NVD now publishes ~100,000 CVEs a year,
-      # so keep only the newest 100,000 (older ones are deleted as new ones arrive).
+      # so keep only the newest 150,000 (older ones are deleted as new ones arrive);
+      # about 153,000 nodes and 165,000 relationships in total.
       - key: MAX_CVES
-        value: "100000"
+        value: "150000"
       - key: NVD_SYNC_START_DATE  # only used if the database is loaded without copy-to
-        value: "2026-01-01"
+        value: "2025-01-01"
       - key: EMBEDDING_PROVIDER
         value: sentence-transformers
       - key: EMBEDDING_MODEL
