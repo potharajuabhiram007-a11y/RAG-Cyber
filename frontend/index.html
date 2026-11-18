@@ -13,7 +13,7 @@
       var theme = null;
       try { theme = localStorage.getItem("ragcyber.theme"); } catch (e) {}
       if (theme !== "dark" && theme !== "light") {
-        theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        theme = "dark";   /* black and neon lime is the default identity */
       }
       document.documentElement.setAttribute("data-theme", theme);
     })();
@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=48">
+  <link rel="stylesheet" href="style.css?v=49">
 </head>
 <body class="entry">
   <div class="fx-aurora" aria-hidden="true"></div>
@@ -30,7 +30,7 @@
       <a class="brand" href="#/assistant" aria-label="CyberIntelliX home">
         <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
           <path d="M24 3 6 10v12c0 11 7.6 19.8 18 23 10.4-3.2 18-12 18-23V10L24 3Z" fill="currentColor"/>
-          <path d="M24 12 14 16v7c0 6.2 4.2 11.2 10 13 5.8-1.8 10-6.8 10-13v-7l-10-4Z" fill="#ffffff"/>
+          <path d="M24 12 14 16v7c0 6.2 4.2 11.2 10 13 5.8-1.8 10-6.8 10-13v-7l-10-4Z" fill="#000000"/>
           <path d="m21 19 8 4.5-8 4.5v-9Z" fill="currentColor"/>
         </svg>
         <span class="brand-text">CyberIntelli<span class="brand-x">X</span></span>
@@ -118,22 +118,22 @@
                             <stop offset="0" class="h3d-s1"/><stop offset="0.55" class="h3d-s2"/><stop offset="1" class="h3d-s3"/>
                           </linearGradient>
                           <linearGradient id="h3d-edge" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0" stop-color="#93C5FD"/><stop offset="0.5" stop-color="#3B82F6"/><stop offset="1" stop-color="#6366F1"/>
+                            <stop offset="0" stop-color="#D7FF75"/><stop offset="0.5" stop-color="#8BEB00"/><stop offset="1" stop-color="#55A900"/>
                           </linearGradient>
                           <linearGradient id="h3d-shine" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
                           </linearGradient>
                         </defs>
                         <path class="h3d-outline" d="M0-121C27-105 62-97 94-97V-8C94 58 47 105 0 136C-47 105-94 58-94-8V-97C-62-97-27-105 0-121Z" fill="url(#h3d-face)" stroke="url(#h3d-edge)" stroke-width="7" stroke-linejoin="round"/>
-                        <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="none" stroke="#60A5FA" stroke-opacity="0.45" stroke-width="1.4" stroke-dasharray="4 5" class="h3d-inner"/>
+                        <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="none" stroke="#A3FF00" stroke-opacity="0.45" stroke-width="1.4" stroke-dasharray="4 5" class="h3d-inner"/>
                         <path d="M0-103C24-90 54-83 78-82V-24C40-38-40-38-78-24V-82C-54-83-24-90 0-103Z" fill="url(#h3d-shine)"/>
                         <g class="h3d-lock">
                           <path d="M-19-4v-16a19 19 0 0 1 38 0v16" fill="none" stroke="url(#h3d-edge)" stroke-width="8" stroke-linecap="round"/>
                           <rect x="-31" y="-6" width="62" height="48" rx="10" fill="url(#h3d-edge)"/>
                           <rect x="-31" y="-6" width="62" height="15" rx="8" fill="#ffffff" fill-opacity="0.3"/>
-                          <circle cy="13" r="6" fill="#ffffff"/><path d="M-3 14h6l2 14H-5Z" fill="#ffffff"/>
+                          <circle cy="13" r="6" fill="#000000"/><path d="M-3 14h6l2 14H-5Z" fill="#000000"/>
                         </g>
-                        <path class="h3d-scan" d="M-94-60H94" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+                        <path class="h3d-scan" d="M-94-60H94" stroke="#D7FF75" stroke-width="2" stroke-linecap="round"/>
                       </svg>
                     </div>
                     <div class="h3d-orbit">
@@ -345,6 +345,6 @@
     </div>
   </div>
   <script src="script.js?v=34"></script>
-  <script src="fx.js?v=3" defer></script>
+  <script src="fx.js?v=4" defer></script>
 </body>
 </html>
