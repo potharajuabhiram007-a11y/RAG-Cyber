@@ -1235,3 +1235,9 @@ html[data-theme="dark"] .fx-aurora::after {
 /* the dark disc stays behind the 3D scene so the artwork also sits on the light theme */
 /* the glass-shield scene draws everything itself: no photo, no disc */
 .hx.hx-webgl .hx-stage { display: none; }
+
+/* 3D hero: with bloom the canvas paints the page's dark colour, so its edges fade into the page */
+.hx-gl.hx-gl--bloom {
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);
+          mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);
+}
