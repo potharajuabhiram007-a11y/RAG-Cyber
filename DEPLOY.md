@@ -19,7 +19,7 @@ Everything is done with settings, the `render.yaml` file in this folder and the
 * **Not every CVE.** AuraDB Free holds 200,000 nodes, 400,000 relationships and 1 GB
   (Neo4j's docs; its product page says 50,000 nodes, so check the limit shown in your
   Aura console). NVD holds over 420,000 CVEs and publishes about 100,000 a year, so
-  `MAX_CVES=100000` keeps only the newest 100,000 (back to early January 2026 as of
+  `MAX_CVES=150000` keeps only the newest 150,000 (back to early January 2025 as of
   November 2026). Each update deletes the oldest CVEs beyond the cap and skips old CVEs
   that NVD modifies, so the database stays the same size. CWE, CAPEC, ATT&CK and the
   reference documents (about 2,900 nodes) are always kept in full. If the console shows
@@ -60,10 +60,10 @@ instead of downloaded and embedded again.
 2. With the local Neo4j running, run:
 
    ```bash
-   .venv\Scripts\python -m backend.manage copy-to Neo4j-xxxxxxxx-Created-....txt --max-cves 100000
+   .venv\Scripts\python -m backend.manage copy-to Neo4j-xxxxxxxx-Created-....txt --max-cves 150000
    ```
 
-   It copies CWE, CAPEC, ATT&CK, the reference documents and the newest 100,000 CVEs,
+   It copies CWE, CAPEC, ATT&CK, the reference documents and the newest 150,000 CVEs,
    rebuilds the relationships on Aura and copies the sync checkpoints, so the cloud
    backend continues with small incremental updates. It prints the counts in Aura at
    the end. It can be re-run safely.
