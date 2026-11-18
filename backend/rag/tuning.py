@@ -57,7 +57,10 @@ class Tuning:
     @classmethod
     def from_file(cls, path) -> "Tuning":
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
-        return cls.from_dict(payload.get("parameters", payload))
+        if not isinstance(payload, dict):
+            raise ValueError("Tuning file must contain a JSON object")
+        params = payload.get("parameters")
+        return cls.from_dict(params if isinstance(params, dict) else payload)
 
 
 DEFAULT_TUNING = Tuning()

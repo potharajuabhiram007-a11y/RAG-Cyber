@@ -21,3 +21,4 @@ backup_*/
 # Not needed at run time
 backend/tests/
 backend/data/experiments/
+frontend/node_modules/

@@ -214,6 +214,7 @@ class LLMClient:
                    if self.settings.llm_api_key else {})
         body = self._post_json(f"{base}/chat/completions", {
             "model": self.settings.llm_model, "temperature": self.temperature,
+            "max_tokens": self.answer_tokens,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         }, headers)
         try:
@@ -273,8 +274,9 @@ class LLMClient:
 # --------------------------------------------------------------------------- #
 # Prompt construction and answer validation
 # --------------------------------------------------------------------------- #
-_TAG_RE = re.compile(r"</?\s*(evidence|confirmed_relationships|relationships_not_found|question)\s*>",
-                     re.I)
+_TAG_RE = re.compile(
+    r"</?\s*(?:answer|question|evidence|confirmed[_-]relationships|relationships[_-]not[_-]found"
+    r"|recommended[_-]actions)\b[^>]*>", re.I)
 
 
 def _safe(text: str, limit: int = 2600) -> str:
@@ -297,8 +299,13 @@ def build_user_prompt(result: RetrievalResult, budget: int | None = None) -> str
             header += f" | title: {clean_text(item.title, 160)}"
         if item.page_number:
             header += f" | page: {item.page_number}"
-        body = _safe(item.text) if left is None else _safe(item.text, min(2600, left))
-        if left is not None:
+        if left is None:
+            body = _safe(item.text)
+        else:
+            avail = left - len(header) - 2
+            if avail < 120:
+                break
+            body = _safe(item.text, min(2600, avail))
             left -= len(header) + len(body)
         blocks.append(f"{header}\n{body}")
     parts = [f"<question>{_safe(result.analysis.message, 2000)}</question>",
@@ -313,12 +320,26 @@ def build_user_prompt(result: RetrievalResult, budget: int | None = None) -> str
                           for a, rel, b in result.relationships[:60 if budget is None else 20])
         parts.append(f"<confirmed_relationships>\n{edges}\n</confirmed_relationships>")
     if result.missing:
-        parts.append("<relationships_not_found>\n" + "\n".join(result.missing)
+        parts.append("<relationships_not_found>\n" + "\n".join(_safe(m, 300) for m in result.missing)
                      + "\n</relationships_not_found>")
     if result.mitigations:
         parts.append("Mitigations listed by the sources (also inside the evidence):\n"
                      + "\n".join(f"- {_safe(m, 500)}" for m in result.mitigations[:8]))
     return "\n\n".join(parts)
+
+
+_FOLLOW_UP_RE = re.compile(
+    r"\b(it|its|this|that|these|those|them|they|their|same|above|previous|former|latter)\b", re.I)
+
+
+def _with_context(message: str, history_ids) -> str:
+    """Follow-up questions ("How do I fix it?") are resolved against the entities of the
+    previous answer.  A message that names an entity, or does not look like a follow-up,
+    is left exactly as it is, so single-turn behaviour never changes."""
+    ids = list(dict.fromkeys(history_ids or []))[:3]
+    if not ids or extract_identifiers(message) or not _FOLLOW_UP_RE.search(message):
+        return message
+    return f"{message} ({', '.join(ids)})"
 
 
 def allowed_identifiers(result: RetrievalResult) -> set[str]:
@@ -609,8 +630,8 @@ class Assistant:
     def __init__(self, retriever: Retriever, generator: Generator, evaluation=None):
         self.retriever, self.generator, self.evaluation = retriever, generator, evaluation
 
-    def ask(self, message: str, on_delta=None) -> ChatResponse:
-        result = self.retriever.retrieve(message)
+    def ask(self, message: str, on_delta=None, history_ids=None) -> ChatResponse:
+        result = self.retriever.retrieve(_with_context(message, history_ids))
         answer, mode = self.generator.generate(
             result, lambda label, identifier: self.retriever.db.get_node(label, identifier) is not None,
             on_delta)

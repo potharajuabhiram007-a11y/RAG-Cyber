@@ -51,6 +51,7 @@ def build(db: Neo4jDatabase, seed: int, per_category: int, split: str, exclude: 
     PER_CATEGORY = per_category
     earlier = load_dataset(DATASET_PATH)["cases"] + [c for p in exclude for c in load_dataset(p)["cases"]]
     used = {c.get("primary_id") for c in earlier} | {i for c in earlier for i in c.get("required_ids") or []}
+    used_questions = {(c.get("question") or "").strip().lower() for c in earlier}
     cases: list[dict] = []
 
     def add(category, difficulty, question, expect="answer", primary=None, facts=()):
@@ -59,6 +60,7 @@ def build(db: Neo4jDatabase, seed: int, per_category: int, split: str, exclude: 
             if primary:
                 case["primary_id"] = primary
                 case["required_ids"] = [primary]
+                used.add(primary)
             case["required_facts"] = [list(f) for f in facts]
         cases.append(case)
 
@@ -91,6 +93,8 @@ def build(db: Neo4jDatabase, seed: int, per_category: int, split: str, exclude: 
         if cve_id in used:
             continue
         node = db.get_node("CVE", cve_id)
+        if not node:
+            continue
         words = " ".join((node.get("description") or "").split()).split()
         if not 12 <= len(words) <= 60:
             continue
@@ -108,7 +112,8 @@ def build(db: Neo4jDatabase, seed: int, per_category: int, split: str, exclude: 
     terms = _unique(db._read("MATCH (n:CyberTerm) RETURN n.term AS term"), "term")
     terms = [t for t in terms if 3 <= len(t["term"]) <= 30 and t["term"].isascii()]
     rng.shuffle(terms)
-    for row in terms[:16]:
+    fresh = [t for t in terms if f"what is {t['term']}?".lower() not in used_questions]
+    for row in fresh[:16]:
         add("FUNDAMENTALS", "direct", f"What is {row['term']}?", facts=[[row["term"]]])
 
     # ---- harder: the entity is described by its own definition, without its name
@@ -189,7 +194,8 @@ def build(db: Neo4jDatabase, seed: int, per_category: int, split: str, exclude: 
         name = " ".join("".join(rng.choice(SYLLABLES) for _ in range(2)) for _ in range(2))
         if label != "CVE" or db.cve_text_search([[name.split()[0]]], k=1)["total"] == 0:
             add(label, "described", template.format(name), expect="not_found")
-    for question in rng.sample(OFF_DOMAIN, 12):
+    off_domain = [q for q in OFF_DOMAIN if q.strip().lower() not in used_questions]
+    for question in rng.sample(off_domain, min(12, len(off_domain))):
         add("UNSUPPORTED", "described", question, expect="not_found")
 
     # ---- ids and the dev / test split (alternating inside every category)
