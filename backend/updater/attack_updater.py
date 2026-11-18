@@ -30,7 +30,7 @@ def _inactive(obj: dict) -> bool:
     return bool(obj.get("revoked") or obj.get("x_mitre_deprecated"))
 
 
-_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\((?:https?://)[^)\s]+\)")
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\((?:https?://)[^\s)]+\)")
 _HTML_TAG_RE = re.compile(r"</?(?:code|br|p|b|i|em|strong|ul|li)\s*/?>", re.I)
 
 
@@ -72,7 +72,8 @@ def parse_attack_bundles(payloads: list[bytes]) -> tuple[list[dict], dict]:
                 tactics = dedupe(
                     str(phase.get("phase_name"))
                     for phase in obj.get("kill_chain_phases") or []
-                    if isinstance(phase, dict) and str(phase.get("kill_chain_name", "")).startswith("mitre"))
+                    if isinstance(phase, dict) and phase.get("phase_name")
+                    and str(phase.get("kill_chain_name", "")).startswith("mitre"))
                 capec_ids = dedupe(normalize_capec_id(i) or "" for i, _ in stix_external_ids(obj, ("capec",)))
                 existing = techniques.get(attack_id)
                 domains = dedupe((existing or {}).get("domains", []) + list(obj.get("x_mitre_domains") or []))
@@ -82,6 +83,8 @@ def parse_attack_bundles(payloads: list[bytes]) -> tuple[list[dict], dict]:
                     existing["tactics"] = dedupe(existing["tactics"] + tactics)
                     existing["category"] = ", ".join(existing["tactics"]) or None
                     existing["capec_ids"] = dedupe(existing["capec_ids"] + capec_ids)
+                    existing["platforms"] = dedupe(
+                        existing["platforms"] + [str(p) for p in obj.get("x_mitre_platforms") or []])
                     continue
                 techniques[attack_id] = {
                     "id": attack_id, "name": obj.get("name", ""),

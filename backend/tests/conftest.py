@@ -258,7 +258,38 @@ def knowledge() -> Harness:
     h.sync_all()
     summary = FoundationIngestor(h.db, h.embedder, h.settings).ingest_all()
     assert not summary["errors"], summary["errors"]
+    if h.db.counts()["nodes"]["CyberTerm"] < 5:
+        # The reference PDFs are git-ignored, so a fresh clone has none: seed the few
+        # entries the fundamentals tests rely on (same source title and page numbers).
+        _seed_reference_fallback(h)
     return h
+
+
+def _seed_reference_fallback(h: Harness) -> None:
+    from backend.database import LABEL_DOC, LABEL_TERM
+    from backend.updater.data_processor import (
+        EMBEDDING_TEXT, ChunkRecord, ParsedDocument, TermRecord, attach_embeddings,
+        document_to_rows, term_aliases,
+    )
+    title = "Cybersecurity & Computer Networks - Basic Terms Handbook"
+    doc = ParsedDocument(
+        title=title, source_file="basic_terms_handbook_fallback.pdf",
+        terms=[
+            TermRecord("Firewall", "Filters network traffic based on rules set by an administrator, permitting or blocking each connection by its address, port number and protocol type. Usually deployed at the boundary between a trusted internal zone and an untrusted external zone, often combined with logging, alerting and reporting features.", "Network Security", 6, term_aliases("Firewall")),
+            TermRecord("TCP", "Transmission Control Protocol: reliable, connection-oriented "
+                       "delivery of data between hosts.", "Networking", 4, term_aliases("TCP")),
+            TermRecord("Encryption", "Converting plaintext to ciphertext so that only "
+                       "authorised parties can read it.", "Cryptography", 8, term_aliases("Encryption")),
+        ],
+        chunks=[ChunkRecord(
+            "OSI Model",
+            "The OSI Model has seven layers: Application, Presentation, Session, Transport, "
+            "Network, Data Link and Physical.", 3)])
+    term_rows, doc_rows = document_to_rows(doc)
+    attach_embeddings(h.db, h.embedder, LABEL_TERM, term_rows, EMBEDDING_TEXT[LABEL_TERM])
+    attach_embeddings(h.db, h.embedder, LABEL_DOC, doc_rows, EMBEDDING_TEXT[LABEL_DOC])
+    h.db.upsert_nodes(LABEL_TERM, term_rows)
+    h.db.upsert_nodes(LABEL_DOC, doc_rows)
 
 
 @pytest.fixture(scope="session")

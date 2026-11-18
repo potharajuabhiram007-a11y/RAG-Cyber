@@ -203,6 +203,8 @@ class EvaluationStore:
         self._lock = threading.Lock()
         self._mtime: float | None = None
         self._results: dict | None = None
+        self._dataset_mtime: float | None = None
+        self._dataset_hash: str | None = None
 
     def results(self) -> dict | None:
         with self._lock:
@@ -240,7 +242,12 @@ class EvaluationStore:
                             f"{self.current.get(key) or 'none'!s}")
         if self.dataset_path is not None:
             try:
-                current_hash = content_hash(load_dataset(self.dataset_path)["cases"])[:16]
+                mtime = Path(self.dataset_path).stat().st_mtime
+                if mtime != self._dataset_mtime or self._dataset_hash is None:
+                    self._dataset_hash = content_hash(
+                        load_dataset(self.dataset_path)["cases"])[:16]
+                    self._dataset_mtime = mtime
+                current_hash = self._dataset_hash
             except (OSError, ValueError):
                 return None
             if results.get("dataset_hash") != current_hash:

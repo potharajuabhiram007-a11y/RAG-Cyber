@@ -17,7 +17,7 @@ import sys
 
 from backend.config import ConfigurationError, configure_logging, load_settings
 from backend.database import NODE_LABELS, REL_CVE_CWE, REL_TYPES, Neo4jDatabase
-from backend.evaluation import EvaluationStore, run_evaluation
+from backend.evaluation import DATASET_PATH, EvaluationStore, run_evaluation
 from backend.rag.generator import Assistant, Generator
 from backend.rag.retriever import Retriever
 from backend.rag.tuning import DEFAULT_TUNING, Tuning
@@ -36,11 +36,14 @@ def reembed(db: Neo4jDatabase, embedder: EmbeddingClient, embed_cves: bool,
     the current model and text are skipped, so an interrupted run continues where it
     stopped.
     """
+    dims = embedder.dimensions          # resolved first: may fail, and must precede any drop
     if not resume:
         db.drop_vector_indexes()
         for label in NODE_LABELS:
+            if label == "CVE" and not embed_cves:
+                continue
             db.clear_embeddings(label)
-    db.init_schema(embedder.dimensions)
+    db.init_schema(dims)
     for label in NODE_LABELS:
         if label == "CVE" and not embed_cves:
             continue
@@ -179,13 +182,22 @@ def main(argv: list[str] | None = None) -> int:
         if args.command in {"sync", "ingest"}:
             sources = ["foundation"] if args.command == "ingest" else args.sources
             full = args.force if args.command == "ingest" else args.full
-            results = manager.run_many(sources, full=full)
+            try:
+                results = manager.run_many(sources, full=full)
+            except ValueError as exc:
+                print(str(exc), file=sys.stderr)
+                return 2
             for result in results:
                 print(json.dumps(result.as_dict(), default=str)[:1200])
             return 0 if all(r.ok for r in results) else 1
         tuning = Tuning.from_file(settings.tuning_config) if settings.tuning_config else DEFAULT_TUNING
         assistant = Assistant(Retriever(db, embedder, settings, tuning),
-                              Generator(settings, tuning=tuning), EvaluationStore())
+                              Generator(settings, tuning=tuning),
+                              EvaluationStore(
+                                  current={"llm_provider": settings.llm_provider,
+                                           "llm_model": settings.llm_model or None,
+                                           "tuning": tuning.to_dict()},
+                                  dataset_path=DATASET_PATH))
         if args.command == "ask":
             response = assistant.ask(args.question)
             print(response.answer)

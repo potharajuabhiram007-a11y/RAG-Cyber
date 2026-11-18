@@ -13,7 +13,7 @@ import re
 from typing import Sequence
 
 from backend.database import (
-    GRAPH_LABELS, label_for_id,
+    GRAPH_LABELS, KILL_CHAIN_RELS, expand_kill_chain, label_for_id,
     FULLTEXT_LABELS, NODE_LABELS, REL_CVE_CWE, REL_ENDPOINTS, REL_RULES, REL_TYPES, Hop,
     strip_embedding,
 )
@@ -183,7 +183,8 @@ class InMemoryGraph:
             return [b for (a, b) in self.edges[rel] if a == node_id]
         return [a for (a, b) in self.edges[rel] if b == node_id]
 
-    def traverse(self, start_label: str, start_id: str, hops: Sequence[Hop], limit: int = 15) -> dict:
+    def traverse(self, start_label: str, start_id: str, hops: Sequence[Hop], limit: int = 15,
+                 order_by_score: bool = False) -> dict:
         if start_id not in self.nodes[start_label]:
             return {"nodes": [], "total": 0}
         frontier = {start_id: {start_id}}            # node id -> ids of the previous hop
@@ -195,14 +196,16 @@ class InMemoryGraph:
             frontier = reached
         frontier.pop(start_id, None)
         label = hops[-1][2]
+        natural = lambda i: [int(p) if p.isdigit() else p for p in re.split(r"(\d+)", i)]  # noqa: E731
         if label == "CVE":   # same order as Neo4jDatabase._traverse_to_cves
             cves = self.nodes["CVE"]
             ordered = sorted(frontier, reverse=True, key=lambda i: (
                 cves[i].get("base_score") if cves[i].get("base_score") is not None else -1.0,
                 cves[i].get("published") or "", i))
+        elif order_by_score:
+            ordered = sorted(frontier, key=lambda i: (-(self.nodes[label][i].get("base_score") or 0), i))
         else:
-            ordered = sorted(frontier, key=lambda i: [int(p) if p.isdigit() else p
-                                                      for p in re.split(r"(\d+)", i)])
+            ordered = sorted(frontier, key=natural)
         nodes = [{**(strip_embedding(self.nodes[label][i]) or {}), "via": sorted(frontier[i])}
                  for i in ordered[:limit]]
         return {"nodes": nodes, "total": len(ordered)}
@@ -292,6 +295,41 @@ class InMemoryGraph:
     def graph_overview(self, per_label: int = 3) -> list[dict]:
         return [self._brief(node, label) for label in ("CWE", "CAPEC", "ATTACK")
                 for node in list(self.nodes[label].values())[:per_label]]
+
+    def multi_hop_kill_chain(self, entity_id: str, limit: int = 25) -> dict:
+        def fetch(label: str, ids: list[str], cap: int) -> list[dict]:
+            rows = []
+            for rel in KILL_CHAIN_RELS:
+                start, end = REL_ENDPOINTS[rel]
+                for (x, y) in self.edges[rel]:
+                    if start == label and x in ids and y != x:
+                        rows.append({"a": x, "rel": rel, "outgoing": True, "label": end,
+                                     "node": self._brief(self.nodes[end][y], end)})
+                    if end == label and y in ids and x != y:
+                        rows.append({"a": y, "rel": rel, "outgoing": False, "label": start,
+                                     "node": self._brief(self.nodes[start][x], start)})
+            rows.sort(key=lambda r: (-(r["node"].get("base_score") or 0), r["node"]["id"]))
+            return rows[:cap]
+
+        return expand_kill_chain(entity_id, limit,
+                                 lambda label, node_id: self.get_node(label, node_id), fetch)
+
+    def filter_cves(self, severity=None, year=None, min_score=None, vendor=None, limit: int = 20) -> list[dict]:
+        rows = []
+        for node in self.nodes["CVE"].values():
+            if severity and (node.get("severity") or "").upper() != str(severity).upper():
+                continue
+            if year is not None and not (node.get("published") or "").startswith(str(int(year))):
+                continue
+            if min_score is not None and (node.get("base_score") is None or node["base_score"] < min_score):
+                continue
+            if vendor and not any(str(vendor).lower() in p.lower() for p in node.get("affected_products") or []):
+                continue
+            rows.append({"id": node["id"], "severity": node.get("severity"),
+                         "base_score": node.get("base_score"), "published": node.get("published"),
+                         "summary": (node.get("description") or "")[:200]})
+        rows.sort(key=lambda r: (-(r["base_score"] or 0), r["published"] or ""), reverse=False)
+        return rows[:max(1, min(int(limit), 100))]
 
     def counts(self) -> dict:
         return {"nodes": {label: len(self.nodes[label]) for label in NODE_LABELS},

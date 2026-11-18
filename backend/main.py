@@ -54,6 +54,7 @@ class AppState:
         self.assistant = assistant if assistant is not None else Assistant(
             Retriever(self.db, self.embedder, settings, tuning), Generator(settings, tuning=tuning),
             self.evaluation)
+        self._schema_lock = threading.Lock()
         self.schema_ready = False
         self.startup_error: str | None = None
 
@@ -61,16 +62,35 @@ class AppState:
         """Create constraints / indexes; retried lazily if Neo4j was down at start."""
         if self.schema_ready:
             return True
-        try:
-            self.db.init_schema(self.embedder.dimensions)
-            self.schema_ready, self.startup_error = True, None
-        except (DatabaseUnavailable, SchemaMismatch) as exc:
-            self.startup_error = str(exc)
-            log.error("Database not ready: %s", exc)
-        except Exception as exc:
-            self.startup_error = f"{type(exc).__name__} while preparing the database"
-            log.exception("Unexpected error while initialising the schema")
-        return self.schema_ready
+        with self._schema_lock:
+            if self.schema_ready:
+                return True
+            try:
+                self.db.init_schema(self.embedder.dimensions)
+                self.schema_ready, self.startup_error = True, None
+            except (DatabaseUnavailable, SchemaMismatch) as exc:
+                self.startup_error = str(exc)
+                log.error("Database not ready: %s", exc)
+            except Exception as exc:
+                self.startup_error = f"{type(exc).__name__} while preparing the database"
+                log.exception("Unexpected error while initialising the schema")
+            return self.schema_ready
+
+
+def require_admin(request: Request, x_admin_key: str | None = Header(default=None)) -> None:
+    """Admin-key check usable from any router (reads the state of the running app)."""
+    key = request.app.state.rag.settings.admin_api_key
+    if not key:
+        raise HTTPException(503, "Manual synchronisation is disabled: set ADMIN_API_KEY in .env")
+    if not x_admin_key or not hmac.compare_digest(x_admin_key.encode(), key.encode()):
+        raise HTTPException(401, "Invalid or missing X-Admin-Key header")
+
+
+def require_database(request: Request) -> None:
+    """503 unless the knowledge graph is ready (reads the state of the running app)."""
+    state = request.app.state.rag
+    if not state.ensure_schema():
+        raise HTTPException(503, state.startup_error or "The knowledge graph is not available")
 
 
 def create_app(state: AppState | None = None, start_background: bool = True) -> FastAPI:
@@ -147,6 +167,8 @@ def create_app(state: AppState | None = None, start_background: bool = True) -> 
     def chat(request: ChatRequest, _: None = Depends(require_database)) -> ChatResponse:
         if len(request.message) > settings.max_message_chars:
             raise HTTPException(422, f"message is longer than {settings.max_message_chars} characters")
+        if request.history_ids:
+            return state.assistant.ask(request.message, history_ids=request.history_ids)
         return state.assistant.ask(request.message)
 
     @app.post("/api/chat/stream")
@@ -160,8 +182,9 @@ def create_app(state: AppState | None = None, start_background: bool = True) -> 
 
         def work() -> None:
             try:
+                extra = {"history_ids": request.history_ids} if request.history_ids else {}
                 response = state.assistant.ask(
-                    request.message, on_delta=lambda text: events.put(("delta", text)))
+                    request.message, on_delta=lambda text: events.put(("delta", text)), **extra)
                 events.put(("final", response))
             except Exception as exc:        # reported to the client as an event
                 log.exception("Streaming chat request failed")
@@ -240,6 +263,9 @@ def create_app(state: AppState | None = None, start_background: bool = True) -> 
     @app.get("/api/metrics")
     def metrics() -> dict:
         return state.evaluation.summary()
+
+    from backend.api_extra import router as extra_router    # imported here: it imports this module
+    app.include_router(extra_router)
 
     if FRONTEND_DIR.is_dir():
         app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
