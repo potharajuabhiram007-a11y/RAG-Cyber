@@ -168,10 +168,144 @@
 
   function parallax(e) {
     if (!document.body.classList.contains("entry")) return;
-    const art = document.querySelector(".hero-art");
-    if (!art) return;
+    const rig = document.querySelector(".h3d-rig");
+    if (!rig) return;
     const x = e.clientX / window.innerWidth - 0.5, y = e.clientY / window.innerHeight - 0.5;
-    art.style.translate = `${(x * -14).toFixed(1)}px ${(y * -10).toFixed(1)}px`;
+    rig.style.setProperty("--ry", `${(x * 16).toFixed(2)}deg`);   // the scene turns towards the pointer
+    rig.style.setProperty("--rx", `${(-y * 10).toFixed(2)}deg`);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 5. 3D hero: shield thickness, and light lines to the orbiting nodes.
+   * ------------------------------------------------------------------ */
+  function buildShieldDepth() {
+    const depth = document.querySelector(".h3d-depth");
+    if (!depth || depth.childElementCount) return;
+    const layers = 14;
+    for (let i = 1; i <= layers; i += 1) {
+      const slab = document.createElement("i");
+      slab.style.transform = `translateZ(${-i * 1.6}px)`;
+      slab.style.filter = `brightness(${(1 - i / (layers * 1.6)).toFixed(3)})`;
+      depth.appendChild(slab);
+    }
+  }
+
+  function startHeroLinks() {
+    const canvas = document.querySelector(".h3d-links");
+    const host = document.querySelector(".h3d");
+    if (!canvas || !host) return;
+    const ctx = canvas.getContext("2d");
+    const sparks = [];
+    let frame = 0, last = 0;
+    const draw = (time) => {
+      frame = requestAnimationFrame(draw);
+      if (time - last < 33) return;
+      last = time;
+      if (!document.body.classList.contains("entry") || !host.offsetParent) return;   // hero not shown
+      const box = host.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== Math.round(box.width * dpr) || canvas.height !== Math.round(box.height * dpr)) {
+        canvas.width = Math.round(box.width * dpr); canvas.height = Math.round(box.height * dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, box.width, box.height);
+      const shield = document.querySelector(".h3d-face");
+      if (!shield) return;
+      const s = shield.getBoundingClientRect();
+      const cx = s.left + s.width / 2 - box.left, cy = s.top + s.height / 2 - box.top;
+      const dark = document.documentElement.getAttribute("data-theme") === "dark";
+      document.querySelectorAll(".h3d-node b").forEach((label, index) => {
+        const r = label.getBoundingClientRect();
+        const x = r.left + r.width / 2 - box.left, y = r.top + r.height / 2 - box.top;
+        const color = getComputedStyle(label).color;
+        const grad = ctx.createLinearGradient(cx, cy, x, y);
+        grad.addColorStop(0, dark ? "rgba(79,140,255,0.05)" : "rgba(37,99,235,0.04)");
+        grad.addColorStop(1, color.replace("rgb(", "rgba(").replace(")", dark ? ",0.55)" : ",0.4)"));
+        ctx.strokeStyle = grad; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
+        if (Math.random() < 0.06) sparks.push({ i: index, t: 0, speed: 0.012 + Math.random() * 0.012, color });
+        for (const spark of sparks) {
+          if (spark.i !== index) continue;
+          const px = cx + (x - cx) * spark.t, py = cy + (y - cy) * spark.t;
+          ctx.fillStyle = spark.color; ctx.shadowColor = spark.color; ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(px, py, 2.4, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      });
+      for (let k = sparks.length - 1; k >= 0; k -= 1) { sparks[k].t += sparks[k].speed; if (sparks[k].t > 1) sparks.splice(k, 1); }
+    };
+    document.addEventListener("visibilitychange", () => {
+      cancelAnimationFrame(frame);
+      if (!document.hidden) frame = requestAnimationFrame(draw);
+    });
+    frame = requestAnimationFrame(draw);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 6. Light / dark theme (the head script applies the saved one before paint).
+   * ------------------------------------------------------------------ */
+  const THEME_KEY = "ragcyber.theme";
+  function syncThemeButton() {
+    const button = document.getElementById("theme-toggle");
+    if (!button) return;
+    const dark = document.documentElement.getAttribute("data-theme") === "dark";
+    const label = dark ? "Switch to light mode" : "Switch to dark mode";
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    button.setAttribute("aria-pressed", String(dark));
+  }
+  function toggleTheme() {
+    const root = document.documentElement;
+    const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    if (!reduce.matches) {
+      root.classList.add("theme-switching");                 // colours glide instead of jumping
+      clearTimeout(toggleTheme.timer);
+      toggleTheme.timer = setTimeout(() => root.classList.remove("theme-switching"), 550);
+    }
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem(THEME_KEY, next); } catch (error) { /* private mode */ }
+    syncThemeButton();
+    document.dispatchEvent(new CustomEvent("themechange", { detail: { theme: next } }));
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 7. Search boxes type example questions while they are empty.
+   * ------------------------------------------------------------------ */
+  function typingPlaceholder(field, examples, prefix) {
+    if (!field) return;
+    const original = field.placeholder;
+    let item = 0, chars = 0, deleting = false, timer = 0;
+    const step = () => {
+      const idle = !field.value && document.activeElement !== field && field.offsetParent;
+      if (!idle) { field.placeholder = original; timer = setTimeout(step, 600); return; }
+      const text = examples[item];
+      chars += deleting ? -1 : 1;
+      field.placeholder = prefix + text.slice(0, chars) + (chars < text.length || deleting ? "|" : "");
+      let wait = deleting ? 28 : 55;
+      if (!deleting && chars >= text.length) { deleting = true; wait = 1800; }
+      else if (deleting && chars <= 0) { deleting = false; item = (item + 1) % examples.length; wait = 350; }
+      timer = setTimeout(step, wait);
+    };
+    field.addEventListener("focus", () => { field.placeholder = original; });
+    timer = setTimeout(step, 1200);
+    return () => clearTimeout(timer);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 8. Magnetic buttons: they lean a little towards the pointer.
+   * ------------------------------------------------------------------ */
+  const MAGNETIC = "#send, #new-chat, .btn-primary, .theme-toggle, .hero-foot li";
+  function magnetic(e) {
+    document.querySelectorAll(".magnetic").forEach((el) => {
+      const r = el.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+      const reach = Math.max(r.width, r.height) * 1.1;
+      if (Math.hypot(dx, dy) < reach) {
+        el.style.setProperty("--mgx", `${(dx * 0.18).toFixed(1)}px`);
+        el.style.setProperty("--mgy", `${(dy * 0.22).toFixed(1)}px`);
+      } else if (el.style.getPropertyValue("--mgx")) {
+        el.style.removeProperty("--mgx"); el.style.removeProperty("--mgy");
+      }
+    });
   }
 
   /* ------------------------------------------------------------------ *
@@ -187,6 +321,10 @@
 
   function init() {
     watchCounters();
+    syncThemeButton();
+    const themeButton = document.getElementById("theme-toggle");
+    if (themeButton) themeButton.addEventListener("click", toggleTheme);
+    buildShieldDepth();
     window.addEventListener("load", remeasureComposer);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasureComposer);
     window.addEventListener("resize", remeasureComposer);
@@ -194,6 +332,11 @@
     if (reduce.matches) return;
 
     startBackground();
+    startHeroLinks();
+    typingPlaceholder(document.getElementById("input"), [
+      "Explain CVE-2026-44523", "Which CVEs are linked to T1110?", "What is SQL injection?",
+      "How do I mitigate CWE-79?", "Show the attack chain for CAPEC-66"], "Ask: ");
+    typingPlaceholder(document.getElementById("kg-search"), ["CVE-2026-44523", "CWE-79", "CAPEC-66", "T1110 Brute Force"], "Find ");
 
     revealer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -220,6 +363,8 @@
       document.addEventListener("pointermove", tilt, { passive: true });
       document.addEventListener("pointerout", untilt);
       window.addEventListener("pointermove", parallax, { passive: true });
+      document.querySelectorAll(MAGNETIC).forEach((el) => el.classList.add("magnetic"));
+      window.addEventListener("pointermove", magnetic, { passive: true });
     }
   }
 

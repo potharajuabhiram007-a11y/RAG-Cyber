@@ -7,10 +7,21 @@
        when hosting the frontend separately from the FastAPI backend. -->
   <meta name="rag-cyber-api" content="">
   <title>CyberIntelliX</title>
+  <script>
+    /* apply the saved (or system) theme before the first paint, so the page never flashes the wrong one */
+    (function () {
+      var theme = null;
+      try { theme = localStorage.getItem("ragcyber.theme"); } catch (e) {}
+      if (theme !== "dark" && theme !== "light") {
+        theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=46">
+  <link rel="stylesheet" href="style.css?v=48">
 </head>
 <body class="entry">
   <div class="fx-aurora" aria-hidden="true"></div>
@@ -33,6 +44,11 @@
         <a class="nav-link" href="#/graph" data-view="graph">Knowledge Graph</a>
         <a class="nav-link" href="#/history" data-view="history">History<span id="nav-history-count" class="nav-count" hidden></span></a>
       </nav>
+
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch to dark mode">
+        <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5 8.5 8.5 0 1 0 20.5 14.3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      </button>
 
       <span id="status" class="status status-unknown" title="Backend status">
         <span class="dot"></span><span id="status-text">Connecting</span>
@@ -88,52 +104,51 @@
             </div>
 
             <div class="hero-art" aria-hidden="true">
-              <svg viewBox="0 0 640 560" preserveAspectRatio="xMidYMid meet">
-                <defs>
-                  <linearGradient id="lime" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#93C5FD"/><stop offset="0.45" stop-color="#3B82F6"/><stop offset="1" stop-color="#4338CA"/>
-                  </linearGradient>
-                  <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#F1F6FF"/><stop offset="1" stop-color="#E0EAFE"/>
-                  </linearGradient>
-                  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-                  </linearGradient>
-                  <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-                    <stop offset="0" stop-color="#60A5FA" stop-opacity="0.32"/><stop offset="1" stop-color="#60A5FA" stop-opacity="0"/>
-                  </radialGradient>
-                </defs>
-                <circle class="hero-glow" cx="320" cy="280" r="230" fill="url(#glow)"/>
-
-                <!-- the knowledge graph: nodes in the four entity colours, turning slowly -->
-                <g class="hero-net">
-                  <g class="hero-links" fill="none"><path d="M320.0 57.3L395.0 106.2"/><path d="M395.0 106.2L484.0 122.5"/><path d="M484.0 122.5L501.1 208.0"/><path d="M501.1 208.0L552.0 280.0"/><path d="M552.0 280.0L501.1 352.0"/><path d="M501.1 352.0L484.0 437.5"/><path d="M484.0 437.5L395.0 453.8"/><path d="M395.0 453.8L320.0 502.7"/><path d="M320.0 502.7L245.0 453.8"/><path d="M245.0 453.8L156.0 437.5"/><path d="M156.0 437.5L138.9 352.0"/><path d="M138.9 352.0L88.0 280.0"/><path d="M88.0 280.0L138.9 208.0"/><path d="M138.9 208.0L156.0 122.5"/><path d="M156.0 122.5L245.0 106.2"/><path d="M245.0 106.2L320.0 57.3"/><path d="M320.0 57.3L484.0 122.5"/><path d="M484.0 122.5L552.0 280.0"/><path d="M552.0 280.0L484.0 437.5"/><path d="M484.0 437.5L320.0 502.7"/><path d="M320.0 502.7L156.0 437.5"/><path d="M156.0 437.5L88.0 280.0"/><path d="M88.0 280.0L156.0 122.5"/><path d="M156.0 122.5L320.0 57.3"/><path d="M395.0 106.2L395.0 453.8"/><path d="M501.1 352.0L138.9 352.0"/><path d="M245.0 453.8L245.0 106.2"/><path d="M138.9 208.0L501.1 208.0"/></g>
-                  <circle class="hero-node n-cve" cx="320.0" cy="57.3" r="7"/><circle class="hero-node n-cwe" cx="395.0" cy="106.2" r="5.5"/><circle class="hero-node n-capec" cx="484.0" cy="122.5" r="7"/><circle class="hero-node n-attack" cx="501.1" cy="208.0" r="5.5"/><circle class="hero-node n-cve" cx="552.0" cy="280.0" r="7"/><circle class="hero-node n-cwe" cx="501.1" cy="352.0" r="5.5"/><circle class="hero-node n-capec" cx="484.0" cy="437.5" r="7"/><circle class="hero-node n-attack" cx="395.0" cy="453.8" r="5.5"/><circle class="hero-node n-cve" cx="320.0" cy="502.7" r="7"/><circle class="hero-node n-cwe" cx="245.0" cy="453.8" r="5.5"/><circle class="hero-node n-capec" cx="156.0" cy="437.5" r="7"/><circle class="hero-node n-attack" cx="138.9" cy="352.0" r="5.5"/><circle class="hero-node n-cve" cx="88.0" cy="280.0" r="7"/><circle class="hero-node n-cwe" cx="138.9" cy="208.0" r="5.5"/><circle class="hero-node n-capec" cx="156.0" cy="122.5" r="7"/><circle class="hero-node n-attack" cx="245.0" cy="106.2" r="5.5"/>
-                </g>
-
-                <!-- two orbits with a bead travelling round each -->
-                <g transform="translate(320 280) rotate(-24)">
-                  <path class="hero-orbit" d="M-210 0a210 74 0 1 0 420 0a210 74 0 1 0-420 0" fill="none"/>
-                  <circle class="hero-bead bead-a" r="6"/>
-                </g>
-                <g transform="translate(320 280) rotate(28)">
-                  <path class="hero-orbit orbit-b" d="M-262 0a262 96 0 1 0 524 0a262 96 0 1 0-524 0" fill="none"/>
-                  <circle class="hero-bead bead-b" r="5"/>
-                </g>
-
-                <!-- the shield and its lock -->
-                <g transform="translate(320 274)">
-                  <g class="hero-shield">
-                    <path d="M0-121C27-105 62-97 94-97V-8C94 58 47 105 0 136C-47 105-94 58-94-8V-97C-62-97-27-105 0-121Z" fill="url(#glass)" stroke="url(#lime)" stroke-width="9" stroke-linejoin="round"/>
-                    <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="none" stroke="#3B82F6" stroke-opacity="0.25" stroke-width="1.5"/>
-                    <path d="M0-103C24-90 54-83 78-82V-20C40-34-40-34-78-20V-82C-54-83-24-90 0-103Z" fill="url(#shine)"/>
-                    <path d="M-19-4v-16a19 19 0 0 1 38 0v16" fill="none" stroke="url(#lime)" stroke-width="9" stroke-linecap="round"/>
-                    <rect x="-32" y="-6" width="64" height="50" rx="9" fill="url(#lime)"/>
-                    <rect x="-32" y="-6" width="64" height="16" rx="8" fill="#ffffff" fill-opacity="0.28"/>
-                    <circle cy="14" r="6.5" fill="#ffffff"/><path d="M-3.200 15h6.400l2 15h-10.400Z" fill="#ffffff"/>
-                  </g>
-                </g>
-              </svg>
+              <div class="h3d">
+                <canvas class="h3d-links"></canvas>
+                <div class="h3d-scene">
+                  <div class="h3d-rig">
+                    <div class="h3d-ring ring-a"></div>
+                    <div class="h3d-ring ring-b"></div>
+                    <div class="h3d-shield">
+                      <div class="h3d-depth"></div>
+                      <svg class="h3d-face" viewBox="-110 -135 220 280">
+                        <defs>
+                          <linearGradient id="h3d-face" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" class="h3d-s1"/><stop offset="0.55" class="h3d-s2"/><stop offset="1" class="h3d-s3"/>
+                          </linearGradient>
+                          <linearGradient id="h3d-edge" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#93C5FD"/><stop offset="0.5" stop-color="#3B82F6"/><stop offset="1" stop-color="#6366F1"/>
+                          </linearGradient>
+                          <linearGradient id="h3d-shine" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+                          </linearGradient>
+                        </defs>
+                        <path class="h3d-outline" d="M0-121C27-105 62-97 94-97V-8C94 58 47 105 0 136C-47 105-94 58-94-8V-97C-62-97-27-105 0-121Z" fill="url(#h3d-face)" stroke="url(#h3d-edge)" stroke-width="7" stroke-linejoin="round"/>
+                        <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="none" stroke="#60A5FA" stroke-opacity="0.45" stroke-width="1.4" stroke-dasharray="4 5" class="h3d-inner"/>
+                        <path d="M0-103C24-90 54-83 78-82V-24C40-38-40-38-78-24V-82C-54-83-24-90 0-103Z" fill="url(#h3d-shine)"/>
+                        <g class="h3d-lock">
+                          <path d="M-19-4v-16a19 19 0 0 1 38 0v16" fill="none" stroke="url(#h3d-edge)" stroke-width="8" stroke-linecap="round"/>
+                          <rect x="-31" y="-6" width="62" height="48" rx="10" fill="url(#h3d-edge)"/>
+                          <rect x="-31" y="-6" width="62" height="15" rx="8" fill="#ffffff" fill-opacity="0.3"/>
+                          <circle cy="13" r="6" fill="#ffffff"/><path d="M-3 14h6l2 14H-5Z" fill="#ffffff"/>
+                        </g>
+                        <path class="h3d-scan" d="M-94-60H94" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    </div>
+                    <div class="h3d-orbit">
+                  <span class="h3d-node" data-k="CVE" style="--a:0.0deg"><b>CVE</b></span>
+                  <span class="h3d-node" data-k="CWE" style="--a:51.4deg"><b>CWE</b></span>
+                  <span class="h3d-node" data-k="CAPEC" style="--a:102.9deg"><b>CAPEC</b></span>
+                  <span class="h3d-node" data-k="ATTACK" style="--a:154.3deg"><b>ATT&amp;CK</b></span>
+                  <span class="h3d-node" data-k="RAG" style="--a:205.7deg"><b>RAG</b></span>
+                  <span class="h3d-node" data-k="AI" style="--a:257.1deg"><b>AI</b></span>
+                  <span class="h3d-node" data-k="INTEL" style="--a:308.6deg"><b>Threat Intel</b></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="h3d-floor"></div>
+              </div>
             </div>
 
             <p class="hero-watermark" aria-hidden="true">CyberIntelli<span>X</span></p>
@@ -329,7 +344,7 @@
       </div>
     </div>
   </div>
-  <script src="script.js?v=33"></script>
-  <script src="fx.js?v=2" defer></script>
+  <script src="script.js?v=34"></script>
+  <script src="fx.js?v=3" defer></script>
 </body>
 </html>
