@@ -455,6 +455,54 @@ async function start() {
   const back = face.clone(); back.rotation.y = Math.PI;
   shieldSpin.add(face, back);
 
+  // light pulses travelling along the shield's outline, on both faces
+  const outline = shieldShape(1.0).getSpacedPoints(400).map((p) => new THREE.Vector3(p.x, p.y, 0.235 + bulge(p.x)));
+  const comets = [];
+  for (const [group, offset] of [[face, 0], [back, 0.5]]) {
+    for (let k = 0; k < 2; k += 1) {
+      const c = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0xa5f3fc, transparent: true, opacity: 0.95, depthWrite: false })));
+      c.scale.set(0.42, 0.42, 1); c.renderOrder = 7; group.add(c);
+      comets.push({ c, offset: offset + k * 0.5, speed: k ? 0.07 : 0.05 });
+    }
+  }
+
+  // graph nodes orbiting the shield on tilted paths, at different speeds and directions
+  const orbiters = [];
+  for (const spec of [
+    { r: 3.5, tilt: 1.2, roll: 0.22, speed: 0.07, n: 9, color: 0x67e8f9 },
+    { r: 4.3, tilt: 1.32, roll: -0.3, speed: -0.045, n: 11, color: 0x60a5fa },
+    { r: 5.1, tilt: 1.05, roll: 0.08, speed: 0.03, n: 8, color: 0x3b82f6 },
+  ]) {
+    const holder = new THREE.Group(); holder.rotation.set(spec.tilt, 0, spec.roll); shieldFloat.add(holder);
+    const spin = new THREE.Group(); holder.add(spin);
+    const pts = [], rand = seeded(spec.n * 13);
+    for (let i = 0; i < spec.n; i += 1) {
+      const a = (i / spec.n) * Math.PI * 2 + rand() * 0.4, rr = spec.r * (0.92 + rand() * 0.16);
+      pts.push(new THREE.Vector3(Math.cos(a) * rr, Math.sin(a) * rr, (rand() - 0.5) * 0.4));
+    }
+    // links between neighbours on the orbit, as gentle arcs
+    const seg = [];
+    for (let i = 0; i < spec.n; i += 1) {
+      const a = pts[i], b = pts[(i + 1) % spec.n], mid = a.clone().add(b).multiplyScalar(0.5);
+      mid.multiplyScalar(1.06);
+      const curve = new THREE.QuadraticBezierCurve3(a, mid, b).getPoints(12);
+      for (let j = 0; j < curve.length - 1; j += 1) seg.push(curve[j], curve[j + 1]);
+    }
+    const lg = new THREE.BufferGeometry().setFromPoints(seg);
+    const lineMatO = glow(new THREE.LineBasicMaterial({ color: spec.color, transparent: true, opacity: 0.35, depthWrite: false }));
+    const lines = new THREE.LineSegments(lg, lineMatO); lines.renderOrder = 8; spin.add(lines);
+    const g = new THREE.BufferGeometry().setFromPoints(pts);
+    const n = pts.length, size = new Float32Array(n), phase = new Float32Array(n), bright = new Float32Array(n), soft = new Float32Array(n);
+    for (let i = 0; i < n; i += 1) { size[i] = i % 3 === 0 ? 0.3 : 0.17; phase[i] = rand() * 6.28; bright[i] = 1.1; soft[i] = 0; }
+    g.setAttribute("aSize", new THREE.BufferAttribute(size, 1)); g.setAttribute("aPhase", new THREE.BufferAttribute(phase, 1));
+    g.setAttribute("aBright", new THREE.BufferAttribute(bright, 1)); g.setAttribute("aSoft", new THREE.BufferAttribute(soft, 1));
+    const nodes = new THREE.Points(g, nodeMat); nodes.renderOrder = 9; nodes.frustumCulled = false; spin.add(nodes);
+    // a spark that runs round each orbit
+    const spark = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0xcffafe, transparent: true, opacity: 0.9, depthWrite: false })));
+    spark.scale.set(0.3, 0.3, 1); spark.renderOrder = 9; spin.add(spark);
+    orbiters.push({ spec, spin, lineMat: lineMatO, spark, pts });
+  }
+
   /* --- energy rings around the shield, and on the floor --- */
   const rings = [];
   const ringLine = (radius, color, speed, opacity) => {
@@ -498,7 +546,7 @@ async function start() {
     dustMat.uniforms.uCore.value.setHex(dark ? 0xbfdbfe : 0x3b82f6); dustMat.uniforms.uGlow.value.setHex(dark ? 0x1d4ed8 : 0x93c5fd);
     lineMat.uniforms.uA.value.setHex(dark ? 0x1d4ed8 : 0x93c5fd); lineMat.uniforms.uB.value.setHex(dark ? 0x67e8f9 : 0x1d4ed8);
     lineMat.uniforms.uGain.value = dark ? 1.9 : 0.9;
-    raysBase = dark ? 0.6 : 0.22;
+    raysBase = dark ? 0.42 : 0.2;
     fxMat.uniforms.uStrength.value = dark ? 0.42 : 0.4;
     circuitMat.uniforms.uStrength.value = dark ? 1 : 0.7;
     glassMat.opacity = dark ? 0.4 : 0.42;
@@ -529,8 +577,8 @@ async function start() {
     composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h);
     camera.aspect = w / h;
     const f = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
-    const wings = camera.aspect < 1 ? 4.3 : 6.3;
-    camera.userData.distance = Math.max(7.9 / 2 / f, wings / (f * camera.aspect));
+    const wings = camera.aspect < 1 ? 4.6 : 6.0;
+    camera.userData.distance = Math.max(10.2 / 2 / f, wings / (f * camera.aspect));
     camera.updateProjectionMatrix();
     const scale = (h * renderer.getPixelRatio()) / (2 * f);
     for (const m of [nodeMat, pulseMat, dustMat]) m.uniforms.uScale.value = scale;
@@ -540,7 +588,13 @@ async function start() {
 
   /* --- mouse parallax --- */
   const pointer = new THREE.Vector2(), ease = new THREE.Vector2();
-  window.addEventListener("pointermove", (e) => pointer.set(e.clientX / window.innerWidth - 0.5, e.clientY / window.innerHeight - 0.5), { passive: true });
+  const ndc = new THREE.Vector2(9, 9), centre = new THREE.Vector3(), corner = new THREE.Vector3();
+  let hover = 0;
+  window.addEventListener("pointermove", (e) => {
+    pointer.set(e.clientX / window.innerWidth - 0.5, e.clientY / window.innerHeight - 0.5);
+    const b = renderer.domElement.getBoundingClientRect();
+    ndc.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1);
+  }, { passive: true });
 
   let onScreen = true, frameId = 0, last = 0;
   new IntersectionObserver((list) => { onScreen = list[0].isIntersecting; }).observe(host);
@@ -556,10 +610,11 @@ async function start() {
 
     ease.lerp(pointer, 1 - Math.pow(0.03, dt || 0.016));
     camera.position.set(ease.x * 0.8, 0.45 - ease.y * 0.4, camera.userData.distance || 14);
-    camera.lookAt(0, -0.15, 0);
+    camera.lookAt(0, -0.85, 0);
     world.rotation.y = ease.x * 0.12;
     shieldFloat.rotation.x = ease.y * 0.08;                          // the shield leans toward the mouse a little
-    net.group.position.set(-ease.x * 0.5, ease.y * 0.2, 0);          // the deeper network moves more (parallax)
+    net.group.position.set(-ease.x * 0.35, ease.y * 0.15, 0);        // the background graph drifts a little (parallax)
+    net.group.rotation.y = Math.sin(t * 0.08) * 0.12;                // and sways slowly, opposite to the orbits
 
     shieldSpin.rotation.y = t * ((Math.PI * 2) / 15);                // one full turn every 15 s
     shieldFloat.position.y = 0.15 + Math.sin(t * 0.8) * 0.12;        // floating
@@ -569,8 +624,25 @@ async function start() {
     for (const m of timed) m.uniforms.uTime.value = t;
     fxMat.uniforms.uSweep.value = -0.5 + ((t % 7) / 2.4) * 2.6;      // a reflection crosses the glass every 7 s
     const flare = (1 - (t % 6) / 6) ** 6;                            // an energy flare every 6 s
-    raysMat.uniforms.uStrength.value = raysBase * (0.9 + 0.5 * flare);
-    borderOuter.opacity = 0.7 + 0.2 * Math.sin(t * 2.2);              // the rim pulses
+    raysMat.uniforms.uStrength.value = raysBase * (0.9 + 0.5 * flare + 0.5 * hover);
+    // hover: is the pointer over the shield? (its projected box)
+    shieldFloat.getWorldPosition(centre).project(camera);
+    corner.set(2.1, 2.7, 0).add(shieldFloat.getWorldPosition(new THREE.Vector3())).project(camera);
+    const over = Math.abs(ndc.x - centre.x) < Math.abs(corner.x - centre.x) && Math.abs(ndc.y - centre.y) < Math.abs(corner.y - centre.y) * 1.05;
+    hover += ((over ? 1 : 0) - hover) * Math.min(1, dt * 4);
+    const breathe = 0.5 + 0.5 * Math.sin(t * 0.9);                   // a slow breathing glow
+    borderOuter.opacity = Math.min(1, 0.6 + 0.25 * breathe + 0.25 * hover);
+    halo.material.opacity = (dark ? 0.28 : 0.12) * (0.8 + 0.4 * breathe + 0.9 * hover);
+    for (const k of comets) {                                        // pulses along the outline
+      const u = ((t * k.speed + k.offset) % 1 + 1) % 1, pt = outline[Math.floor(u * (outline.length - 1))];
+      k.c.position.copy(pt); k.c.material.opacity = (dark ? 0.95 : 0.6) * (0.7 + 0.3 * hover);
+    }
+    for (const o of orbiters) {                                      // nodes orbiting the shield
+      o.spin.rotation.z = t * o.spec.speed;
+      const u = (t * 0.12 * Math.sign(o.spec.speed) % 1 + 1) % 1, i = Math.floor(u * o.pts.length);
+      o.spark.position.lerpVectors(o.pts[i], o.pts[(i + 1) % o.pts.length], (u * o.pts.length) % 1);
+      o.lineMat.opacity = (dark ? 0.35 : 0.3) * (0.8 + 0.4 * breathe);
+    }
     borderHalo.opacity = (dark ? 0.16 : 0.1) * (1 + 1.2 * flare);
     glint.material.opacity = (dark ? 0.8 : 0.3) * Math.pow(Math.max(0, Math.sin(t * 0.9)), 30);
     glint.position.y = 2.1 + Math.sin(t * 0.45) * 0.3;
