@@ -24,18 +24,19 @@ const isDark = () => document.documentElement.getAttribute("data-theme") === "da
 const small = () => window.innerWidth < 760 || window.matchMedia("(pointer: coarse)").matches;
 
 const ENTITIES = [
-  { key: "CWE",   text: "CWE",                 tone: 0x60a5fa, model: "layers" },
+  { key: "CWE",   text: "CWE",                 tone: 0x8b5cf6, model: "layers" },
   { key: "CAPEC", text: "CAPEC",               tone: 0x22d3ee, model: "triangle" },
-  { key: "CVE",   text: "CVE",                 tone: 0xf43f5e, model: "shield" },
-  { key: "AI",    text: "AI",                  tone: 0xd946ef, model: "brain" },
-  { key: "INTEL", text: "Threat Intelligence", tone: 0x38bdf8, model: "gear" },
+  { key: "CVE",   text: "CVE",                 tone: 0xef4444, model: "shield" },
+  { key: "AI",    text: "AI",                  tone: 0xc026d3, model: "brain" },
+  { key: "INTEL", text: "Threat Intelligence", tone: 0x22d3ee, model: "gear" },
   { key: "RAG",   text: "RAG",                 tone: 0x3b82f6, model: "database" },
 ];
-const ORBIT = { radius: 3.55, tilt: 1.16, roll: -0.05, speed: 0.17 };
-const RINGS = [                                   // decorative rings the particles run along
-  { radius: 3.55, tilt: 1.16, roll: -0.05, speed: 0.30, color: 0x60a5fa, opacity: 0.55 },
-  { radius: 3.15, tilt: 1.30, roll: 0.10,  speed: -0.42, color: 0x22d3ee, opacity: 0.38 },
-  { radius: 3.95, tilt: 1.24, roll: -0.16, speed: 0.22, color: 0x93c5fd, opacity: 0.22 },
+const ORBIT = { radius: 3.6, tilt: 1.18, roll: -0.04, speed: 0.17 };
+const RINGS = [                                   // wide rings crossing at different angles
+  { radius: 3.6,  tilt: 1.18, roll: -0.04, speed: 0.30,  color: 0x60a5fa, opacity: 0.6 },
+  { radius: 3.25, tilt: 1.36, roll: 0.24,  speed: -0.42, color: 0x38bdf8, opacity: 0.42 },
+  { radius: 3.95, tilt: 1.10, roll: -0.30, speed: 0.22,  color: 0x93c5fd, opacity: 0.3 },
+  { radius: 3.0,  tilt: 1.44, roll: -0.16, speed: -0.3,  color: 0x3b82f6, opacity: 0.35 },
 ];
 
 function supportsWebGL() {
@@ -56,6 +57,33 @@ function glowDot() {
   r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.3, "rgba(255,255,255,0.75)"); r.addColorStop(1, "rgba(255,255,255,0)");
   g.fillStyle = r; g.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(c);
+}
+
+/* the faceted face: lighter glass on the left half, deep blue on the right, a bright
+   ridge between them and faint network lines across both */
+function faceTexture() {
+  const c = document.createElement("canvas"); c.width = 512; c.height = 700;
+  const g = c.getContext("2d");
+  const left = g.createLinearGradient(0, 0, 256, 700);
+  left.addColorStop(0, "rgba(191,219,254,0.62)"); left.addColorStop(1, "rgba(59,130,246,0.38)");
+  g.fillStyle = left; g.fillRect(0, 0, 256, 700);
+  const right = g.createLinearGradient(256, 0, 512, 700);
+  right.addColorStop(0, "rgba(37,99,235,0.6)"); right.addColorStop(1, "rgba(8,20,60,0.72)");
+  g.fillStyle = right; g.fillRect(256, 0, 256, 700);
+  const ridge = g.createLinearGradient(240, 0, 272, 0);
+  ridge.addColorStop(0, "rgba(255,255,255,0)"); ridge.addColorStop(0.5, "rgba(224,242,254,0.95)"); ridge.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = ridge; g.fillRect(240, 0, 32, 700);
+  // faint network lines and nodes
+  const nodes = [[120, 180], [200, 260], [330, 210], [400, 320], [150, 400], [300, 430], [220, 520], [360, 520], [256, 350]];
+  g.strokeStyle = "rgba(219,234,254,0.35)"; g.lineWidth = 1.6;
+  for (let i = 0; i < nodes.length; i += 1) for (let j = i + 1; j < nodes.length; j += 1) {
+    const [a, b] = [nodes[i], nodes[j]];
+    if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 190) { g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke(); }
+  }
+  g.fillStyle = "rgba(224,242,254,0.9)";
+  for (const [x, y] of nodes) { g.beginPath(); g.arc(x, y, 4, 0, Math.PI * 2); g.fill(); }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
 
 function circuitTexture() {
@@ -99,14 +127,14 @@ function pillCanvas(entity, hot) {
   const c = document.createElement("canvas"); c.width = w + m * 2; c.height = h + m * 2;
   const g = c.getContext("2d");
   const pill = new Path2D(); pill.roundRect(m, m, w, h, h / 2);
-  g.shadowColor = dark ? rgba(0x3b82f6, hot ? 0.95 : 0.65) : rgba(0x2563eb, hot ? 0.45 : 0.22);
+  g.shadowColor = dark ? rgba(entity.tone, hot ? 0.95 : 0.7) : rgba(entity.tone, hot ? 0.45 : 0.24);
   g.shadowBlur = (hot ? 28 : 18) * k;
   const fill = g.createLinearGradient(0, m, 0, m + h);
-  if (dark) { fill.addColorStop(0, "rgba(30,58,138,0.55)"); fill.addColorStop(1, "rgba(4,9,24,0.84)"); }
+  if (dark) { fill.addColorStop(0, rgba(entity.tone, 0.42)); fill.addColorStop(1, "rgba(4,9,24,0.86)"); }
   else { fill.addColorStop(0, "rgba(255,255,255,0.97)"); fill.addColorStop(1, "rgba(230,239,255,0.94)"); }
   g.fillStyle = fill; g.fill(pill); g.shadowBlur = 0;
   const rim = g.createLinearGradient(m, m, m + w, m + h);
-  rim.addColorStop(0, "#BAE6FD"); rim.addColorStop(0.45, dark ? "#3B82F6" : "#2563EB"); rim.addColorStop(1, "#22D3EE");
+  rim.addColorStop(0, "#E0F2FE"); rim.addColorStop(0.4, rgba(entity.tone, 1)); rim.addColorStop(1, rgba(entity.tone, 0.75));
   g.lineWidth = (hot ? 3.2 : 2.2) * k; g.strokeStyle = rim; g.stroke(pill);
   g.save(); g.clip(pill);
   const shine = g.createLinearGradient(0, m, 0, m + h * 0.6);
@@ -222,18 +250,22 @@ async function start() {
   const glass = new THREE.Mesh(new THREE.ExtrudeGeometry(inner, { depth: 0.18, bevelEnabled: false, curveSegments: 40 }), glassMat);
   glass.position.z = -0.09; glass.renderOrder = 10;
   const frameShape = shieldShape(1); frameShape.holes.push(new THREE.Path(inner.getPoints(80).reverse()));
-  const metalMat = new THREE.MeshStandardMaterial({ color: 0xc7dbff, metalness: 1, roughness: 0.2, envMapIntensity: 1.3 });
+  // a white-hot rim: bright, slightly metallic, glowing from within
+  const metalMat = new THREE.MeshStandardMaterial({ color: 0xdbeafe, emissive: 0x60a5fa, emissiveIntensity: 1.1,
+    metalness: 0.35, roughness: 0.18, envMapIntensity: 1.2 });
   const frame = new THREE.Mesh(new THREE.ExtrudeGeometry(frameShape, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.06,
     bevelSize: 0.05, bevelSegments: 3, curveSegments: 40 }), metalMat);
   frame.position.z = -0.15; frame.renderOrder = 11;
   shieldSpin.add(glass, frame);
-  const circuit = circuitTexture(), energy = energyTexture();
+  const facets = faceTexture(), energy = energyTexture();
   for (const side of [1, -1]) {                                   // both faces, so the full turn looks right
-    const face = new THREE.Mesh(boxUV(new THREE.ShapeGeometry(shieldShape(0.82), 40)),
-      glow(new THREE.MeshBasicMaterial({ map: circuit, transparent: true, opacity: 0.85, depthWrite: false })));
+    const face = new THREE.Mesh(boxUV(new THREE.ShapeGeometry(shieldShape(0.86), 40)),
+      new THREE.MeshBasicMaterial({ map: facets, transparent: true, opacity: 0.95, depthWrite: false }));
     const flow = new THREE.Mesh(boxUV(new THREE.ShapeGeometry(shieldShape(0.84), 40)),
       glow(new THREE.MeshBasicMaterial({ map: energy, transparent: true, opacity: 0.8, depthWrite: false })));
-    const edge = new THREE.Mesh(tubeAlong(outer, 0.045, 0), glow(new THREE.MeshBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.95, depthWrite: false })));
+    const edge = new THREE.Mesh(tubeAlong(outer, 0.05, 0), glow(new THREE.MeshBasicMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.95, depthWrite: false })));
+    const halo2 = new THREE.Mesh(tubeAlong(outer, 0.16, 0), glow(new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.28, depthWrite: false })));
+    halo2.position.z = 0.17 * side; if (side < 0) halo2.rotation.y = Math.PI; halo2.renderOrder = 12; shieldSpin.add(halo2);
     const innerEdge = new THREE.Mesh(tubeAlong(inner, 0.02, 0), glow(new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.7, depthWrite: false })));
     for (const m of [face, flow, edge, innerEdge]) { m.position.z = 0.17 * side; if (side < 0) m.rotation.y = Math.PI; m.renderOrder = 12; shieldSpin.add(m); }
   }
@@ -242,6 +274,11 @@ async function start() {
   // a light pool under the shield
   const pool = new THREE.Mesh(new THREE.CircleGeometry(1.6, 48), glow(new THREE.MeshBasicMaterial({ map: dot, color: 0x3b82f6, transparent: true, opacity: 0.7, depthWrite: false })));
   pool.rotation.x = -Math.PI / 2; pool.position.y = -3.6; pool.scale.set(1.9, 1, 1); pool.renderOrder = 2; world.add(pool);
+  // a bright horizon line with a soft glow under the shield
+  const horizon = new THREE.Mesh(new THREE.PlaneGeometry(13, 0.035), glow(new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.9, depthWrite: false })));
+  horizon.position.set(0, -3.55, -0.5); horizon.renderOrder = 2; world.add(horizon);
+  const horizonGlow = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0x2563eb, transparent: true, opacity: 0.55, depthWrite: false })));
+  horizonGlow.scale.set(12, 1.4, 1); horizonGlow.position.set(0, -3.55, -0.6); horizonGlow.renderOrder = 1; world.add(horizonGlow);
 
   /* --- rings with particles running along them --- */
   const rings = RINGS.map((spec) => {
@@ -291,6 +328,9 @@ async function start() {
     glassMat.opacity = dark ? 0.42 : 0.55; glassMat.color.setHex(dark ? 0x1d4ed8 : 0x2563eb);
     halo.material.opacity = dark ? 0.6 : 0.18; halo.material.color.setHex(dark ? 0x2563eb : 0x93c5fd);
     pool.material.opacity = dark ? 0.7 : 0.25;
+    horizon.material.color.setHex(dark ? 0x93c5fd : 0x3b82f6); horizon.material.opacity = dark ? 0.9 : 0.5;
+    horizonGlow.material.opacity = dark ? 0.55 : 0.15;
+    metalMat.emissiveIntensity = dark ? 1.1 : 0.45;
     cyanLight.intensity = dark ? 14 : 4; blueLight.intensity = dark ? 12 : 4;
     renderer.toneMappingExposure = dark ? 1.15 : 1.0;
     for (const r of rings) r.line.material.opacity = dark ? r.spec.opacity : Math.min(0.7, r.spec.opacity + 0.12);
