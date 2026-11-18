@@ -76,8 +76,10 @@ them. To change them, update the laptop database and copy again.
 1. Push this project to GitHub so that `render.yaml` is in the repository.
 2. Sign up at <https://render.com> with your GitHub account.
 3. Choose **New > Blueprint**, pick the `RAG-Cyber` repository and confirm.
-4. Render asks for four values: `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` (step 1)
-   and `LLM_API_KEY` (step 2).
+4. Render asks for five values: `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` and
+   `NEO4J_DATABASE` (all four from the Aura credentials file of step 1; newer Aura
+   instances name the database after the instance id, not `neo4j`) and `LLM_API_KEY`
+   (step 2).
 5. When the deploy finishes, note the address, for example
    `https://cyberintellix-api.onrender.com`, and open `<address>/api/status`. It should
    say `"status":"ok"` and `"database_connected":true`.

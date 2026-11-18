@@ -26,6 +26,8 @@ services:
         sync: false
       - key: NEO4J_PASSWORD
         sync: false
+      - key: NEO4J_DATABASE       # newer Aura instances name it after the instance id
+        sync: false
       - key: LLM_API_KEY          # key of the hosted model API
         sync: false
 
@@ -40,8 +42,6 @@ services:
         value: openai/gpt-oss-120b
 
       # --- data ---
-      - key: NEO4J_DATABASE
-        value: neo4j
       # Aura Free holds 200,000 nodes and 1 GB. NVD now publishes ~100,000 CVEs a year,
       # so keep only the newest 100,000 (older ones are deleted as new ones arrive).
       - key: MAX_CVES
