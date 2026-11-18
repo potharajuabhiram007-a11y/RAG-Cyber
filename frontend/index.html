@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=51">
+  <link rel="stylesheet" href="style.css?v=52">
 </head>
 <body class="entry">
   <div class="fx-aurora" aria-hidden="true"></div>
@@ -117,102 +117,20 @@
             </div>
 
             <div class="hero-art" aria-hidden="true">
-              <div class="h3d">
-                <canvas class="h3d-links"></canvas>
-                <div class="h3d-scene">
-                  <div class="h3d-rig">
-                    <div class="h3d-ring ring-a"></div>
-                    <div class="h3d-ring ring-b"></div>
-                    <div class="h3d-shield">
-                      <div class="h3d-depth"></div>
-                      <svg class="h3d-face" viewBox="-110 -135 220 280">
-                        <defs>
-                          <linearGradient id="sh-metal" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0" stop-color="#F7FAFF"/><stop offset="0.16" stop-color="#C3CEDF"/>
-                            <stop offset="0.34" stop-color="#7C8AA3"/><stop offset="0.5" stop-color="#E8EEF7"/>
-                            <stop offset="0.66" stop-color="#97A4BA"/><stop offset="0.84" stop-color="#5D6A82"/>
-                            <stop offset="1" stop-color="#D5DDEA"/>
-                          </linearGradient>
-                          <linearGradient id="sh-rimshade" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
-                            <stop offset="1" stop-color="#0B1324" stop-opacity="0.45"/>
-                          </linearGradient>
-                          <radialGradient id="sh-glass" cx="0.35" cy="0.25" r="0.95">
-                            <stop offset="0" class="sh-g1"/><stop offset="0.45" class="sh-g2"/><stop offset="1" class="sh-g3"/>
-                          </radialGradient>
-                          <linearGradient id="sh-bevel" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.15"/>
-                            <stop offset="1" stop-color="#000000" stop-opacity="0.35"/>
-                          </linearGradient>
-                          <linearGradient id="sh-gloss" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0" stop-color="#ffffff" stop-opacity="0.32"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-                          </linearGradient>
-                          <linearGradient id="sh-sweep" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0" stop-color="#ffffff" stop-opacity="0"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.38"/>
-                            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-                          </linearGradient>
-                          <linearGradient id="sh-lock" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.22" stop-color="#C9D6EA"/>
-                            <stop offset="0.45" stop-color="#7F90AE"/><stop offset="0.62" stop-color="#E3EAF5"/>
-                            <stop offset="1" stop-color="#6A7A96"/>
-                          </linearGradient>
-                          <linearGradient id="sh-lockshade" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0" stop-color="#ffffff" stop-opacity="0.5"/><stop offset="0.35" stop-color="#ffffff" stop-opacity="0"/>
-                            <stop offset="1" stop-color="#0B1324" stop-opacity="0.35"/>
-                          </linearGradient>
-                          <radialGradient id="sh-core" cx="0.5" cy="0.5" r="0.5">
-                            <stop offset="0" class="sh-c1"/><stop offset="1" class="sh-c2"/>
-                          </radialGradient>
-                          <clipPath id="sh-inner-clip"><path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z"/></clipPath>
-                        </defs>
-                        <!-- polished metal rim -->
-                        <path class="h3d-outline" d="M0-121C27-105 62-97 94-97V-8C94 58 47 105 0 136C-47 105-94 58-94-8V-97C-62-97-27-105 0-121Z" fill="url(#sh-metal)"/>
-                        <path d="M0-121C27-105 62-97 94-97V-8C94 58 47 105 0 136C-47 105-94 58-94-8V-97C-62-97-27-105 0-121Z" fill="url(#sh-rimshade)"/>
-                        <path d="M0-121C27-105 62-97 94-97V-8C94 58 47 105 0 136C-47 105-94 58-94-8V-97C-62-97-27-105 0-121Z" fill="none" stroke="#0B1324" stroke-opacity="0.35" stroke-width="1.2"/>
-                        <!-- recessed glass face -->
-                        <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="url(#sh-glass)"/>
-                        <g clip-path="url(#sh-inner-clip)">
-                          <circle cx="0" cy="8" r="72" fill="url(#sh-core)"/>
-                          <g class="sh-circuit" fill="none" stroke-width="1.1" stroke-linecap="round">
-                            <path d="M-78-40H-48l12 12h22M78-40H48l-12 12H14M-78 30H-52l10-10H-20M78 30H52L42 20H20M0 60v28M-30 76h60"/>
-                          </g>
-                          <g class="sh-circuit-dots">
-                            <circle cx="-48" cy="-40" r="2.2"/><circle cx="48" cy="-40" r="2.2"/><circle cx="-52" cy="30" r="2.2"/>
-                            <circle cx="52" cy="30" r="2.2"/><circle cx="0" cy="88" r="2.2"/>
-                          </g>
-                          <path d="M0-103C24-90 54-83 78-82V-30C34-46-34-46-78-30V-82C-54-83-24-90 0-103Z" fill="url(#sh-gloss)"/>
-                          <rect class="h3d-sweep" x="-60" y="-140" width="44" height="300" fill="url(#sh-sweep)"/>
-                        </g>
-                        <!-- bevelled inner edge -->
-                        <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="none" stroke="url(#sh-bevel)" stroke-width="2.4"/>
-                        <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="none" stroke="#000000" stroke-opacity="0.25" stroke-width="5" transform="translate(0 2)" clip-path="url(#sh-inner-clip)"/>
-                        <!-- chrome padlock -->
-                        <g class="h3d-lock">
-                          <path d="M-18-2v-17a18 18 0 0 1 36 0v17" fill="none" stroke="#2A3550" stroke-width="10" stroke-linecap="round" transform="translate(1.5 2)" opacity="0.5"/>
-                          <path d="M-18-2v-17a18 18 0 0 1 36 0v17" fill="none" stroke="url(#sh-lock)" stroke-width="8.5" stroke-linecap="round"/>
-                          <path d="M-14-6v-13a14 14 0 0 1 9-13" fill="none" stroke="#ffffff" stroke-opacity="0.7" stroke-width="1.6" stroke-linecap="round"/>
-                          <rect x="-30" y="-6" width="60" height="48" rx="9" fill="#1B2438" opacity="0.45" transform="translate(2 3)"/>
-                          <rect x="-30" y="-6" width="60" height="48" rx="9" fill="url(#sh-lock)"/>
-                          <rect x="-30" y="-6" width="60" height="48" rx="9" fill="url(#sh-lockshade)"/>
-                          <rect x="-29" y="-5" width="58" height="46" rx="8" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="1"/>
-                          <circle cy="11" r="7" fill="#0B1324"/>
-                          <path d="M-3.4 13h6.8l2.2 15H-5.6Z" fill="#0B1324"/>
-                          <circle cx="-1.6" cy="9.4" r="1.6" fill="#ffffff" opacity="0.6"/>
-                        </g>
-                      </svg>
-                    </div>
-                    <div class="h3d-orbit">
-                  <span class="h3d-node" data-k="CVE" style="--a:0.0deg"><b>CVE</b></span>
-                  <span class="h3d-node" data-k="CWE" style="--a:51.4deg"><b>CWE</b></span>
-                  <span class="h3d-node" data-k="CAPEC" style="--a:102.9deg"><b>CAPEC</b></span>
-                  <span class="h3d-node" data-k="ATTACK" style="--a:154.3deg"><b>ATT&amp;CK</b></span>
-                  <span class="h3d-node" data-k="RAG" style="--a:205.7deg"><b>RAG</b></span>
-                  <span class="h3d-node" data-k="AI" style="--a:257.1deg"><b>AI</b></span>
-                  <span class="h3d-node" data-k="INTEL" style="--a:308.6deg"><b>Threat Intel</b></span>
-                    </div>
-                  </div>
+              <div class="hx">
+                <canvas class="hx-canvas"></canvas>
+                <div class="hx-stage">
+                  <img class="hx-shield" src="assets/hero-shield.jpg" alt="" width="640" height="941" decoding="async" fetchpriority="high">
                 </div>
-                <div class="h3d-floor"></div>
+                <div class="hx-labels">
+                  <span class="hx-label" data-k="CVE"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9V7.5a3 3 0 0 1 6 0V9M7 9h10v6a5 5 0 0 1-10 0V9Zm-3 2h3m10 0h3M4 17h3.5m9 0H20M5 5l2 2.5m12-2.5-2 2.5M12 12v4" /></svg><b>CVE</b></span>
+                  <span class="hx-label" data-k="CWE"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5M14 4l-4 16" /></svg><b>CWE</b></span>
+                  <span class="hx-label" data-k="CAPEC"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg><b>CAPEC</b></span>
+                  <span class="hx-label" data-k="ATTACK"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3Zm0 6.5 4.2 7.5H7.8L12 9.5Z"/></svg><b>ATT&amp;CK</b></span>
+                  <span class="hx-label" data-k="RAG"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="2.2"/><circle cx="18" cy="7" r="2.2"/><circle cx="12" cy="17" r="2.6"/><path d="M8 8.2 10.4 15M16 8.2 13.6 15M8.2 7h7.6"/></svg><b>RAG</b></span>
+                  <span class="hx-label" data-k="AI"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 3v3m6-3v3M9 18v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3"/></svg><b>AI</b></span>
+                  <span class="hx-label" data-k="INTEL"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 3.9 5.5 3.9 9s-1.3 6.5-3.9 9c-2.6-2.5-3.9-5.5-3.9-9S9.4 5.5 12 3Z"/></svg><b>Threat Intel</b></span>
+                </div>
               </div>
             </div>
 
@@ -410,6 +328,6 @@
     </div>
   </div>
   <script src="script.js?v=36"></script>
-  <script src="fx.js?v=5" defer></script>
+  <script src="fx.js?v=7" defer></script>
 </body>
 </html>
