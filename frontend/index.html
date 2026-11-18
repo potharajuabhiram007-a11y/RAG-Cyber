@@ -10,15 +10,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=45">
+  <link rel="stylesheet" href="style.css?v=46">
 </head>
 <body class="entry">
+  <div class="fx-aurora" aria-hidden="true"></div>
   <div class="shell">
     <header class="topbar">
       <a class="brand" href="#/assistant" aria-label="CyberIntelliX home">
         <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
           <path d="M24 3 6 10v12c0 11 7.6 19.8 18 23 10.4-3.2 18-12 18-23V10L24 3Z" fill="currentColor"/>
-          <path d="M24 12 14 16v7c0 6.2 4.2 11.2 10 13 5.8-1.8 10-6.8 10-13v-7l-10-4Z" fill="#030503"/>
+          <path d="M24 12 14 16v7c0 6.2 4.2 11.2 10 13 5.8-1.8 10-6.8 10-13v-7l-10-4Z" fill="#ffffff"/>
           <path d="m21 19 8 4.5-8 4.5v-9Z" fill="currentColor"/>
         </svg>
         <span class="brand-text">CyberIntelli<span class="brand-x">X</span></span>
@@ -90,16 +91,16 @@
               <svg viewBox="0 0 640 560" preserveAspectRatio="xMidYMid meet">
                 <defs>
                   <linearGradient id="lime" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#D9FF9C"/><stop offset="0.45" stop-color="#9BE04F"/><stop offset="1" stop-color="#5A911A"/>
+                    <stop offset="0" stop-color="#93C5FD"/><stop offset="0.45" stop-color="#3B82F6"/><stop offset="1" stop-color="#4338CA"/>
                   </linearGradient>
                   <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#1A2415"/><stop offset="0.55" stop-color="#0A0F09"/><stop offset="1" stop-color="#050805"/>
+                    <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#F1F6FF"/><stop offset="1" stop-color="#E0EAFE"/>
                   </linearGradient>
                   <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+                    <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
                   </linearGradient>
                   <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-                    <stop offset="0" stop-color="#9BE04F" stop-opacity="0.5"/><stop offset="1" stop-color="#9BE04F" stop-opacity="0"/>
+                    <stop offset="0" stop-color="#60A5FA" stop-opacity="0.32"/><stop offset="1" stop-color="#60A5FA" stop-opacity="0"/>
                   </radialGradient>
                 </defs>
                 <circle class="hero-glow" cx="320" cy="280" r="230" fill="url(#glow)"/>
@@ -124,12 +125,12 @@
                 <g transform="translate(320 274)">
                   <g class="hero-shield">
                     <path d="M0-121C27-105 62-97 94-97V-8C94 58 47 105 0 136C-47 105-94 58-94-8V-97C-62-97-27-105 0-121Z" fill="url(#glass)" stroke="url(#lime)" stroke-width="9" stroke-linejoin="round"/>
-                    <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="none" stroke="#9BE04F" stroke-opacity="0.3" stroke-width="1.5"/>
+                    <path d="M0-103C24-90 54-83 78-82V-8C78 46 40 86 0 114C-40 86-78 46-78-8V-82C-54-83-24-90 0-103Z" fill="none" stroke="#3B82F6" stroke-opacity="0.25" stroke-width="1.5"/>
                     <path d="M0-103C24-90 54-83 78-82V-20C40-34-40-34-78-20V-82C-54-83-24-90 0-103Z" fill="url(#shine)"/>
                     <path d="M-19-4v-16a19 19 0 0 1 38 0v16" fill="none" stroke="url(#lime)" stroke-width="9" stroke-linecap="round"/>
                     <rect x="-32" y="-6" width="64" height="50" rx="9" fill="url(#lime)"/>
                     <rect x="-32" y="-6" width="64" height="16" rx="8" fill="#ffffff" fill-opacity="0.28"/>
-                    <circle cy="14" r="6.5" fill="#050805"/><path d="M-3.200 15h6.400l2 15h-10.400Z" fill="#050805"/>
+                    <circle cy="14" r="6.5" fill="#ffffff"/><path d="M-3.200 15h6.400l2 15h-10.400Z" fill="#ffffff"/>
                   </g>
                 </g>
               </svg>
@@ -329,5 +330,6 @@
     </div>
   </div>
   <script src="script.js?v=33"></script>
+  <script src="fx.js?v=2" defer></script>
 </body>
 </html>
