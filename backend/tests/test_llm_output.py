@@ -83,6 +83,57 @@ def test_rate_limited_request_is_retried_smaller(knowledge, monkeypatch):
     assert llm.max_tokens is None                      # override cleared afterwards
 
 
+def sse(*events: dict, done: bool = True) -> bytes:
+    lines = [f"data: {json.dumps(e)}\n\n" for e in events] + (["data: [DONE]\n\n"] if done else [])
+    return "".join(lines).encode()
+
+
+def streaming_client(body: bytes, status: int = 200):
+    sent = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.update(json.loads(request.content))
+        return httpx.Response(status, content=body, headers={"content-type": "text/event-stream"})
+
+    client = LLMClient(make_settings(llm_provider="openai", llm_api_key="k", llm_model="openai/gpt-oss-120b"),
+                       http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    return client, sent
+
+
+def piece(text=None, finish=None, reasoning=None):
+    delta = {}
+    if text is not None:
+        delta["content"] = text
+    if reasoning is not None:
+        delta["reasoning"] = reasoning
+    return {"choices": [{"delta": delta, "finish_reason": finish}]}
+
+
+def test_hosted_answers_stream_piece_by_piece():
+    body = sse(piece(reasoning="thinking..."), piece("CVE‑2026‑44523 is "), piece("critical.\n"),
+               piece("- Fix: upgrade."), piece(finish="stop"))
+    client, sent = streaming_client(body)
+    seen = []
+    answer = client.complete("system", "question", on_delta=seen.append)
+    assert sent["stream"] is True
+    assert seen == ["CVE-2026-44523 is ", "critical.\n", "- Fix: upgrade."]   # no hidden reasoning
+    assert answer == "CVE-2026-44523 is critical.\n- Fix: upgrade."
+
+
+def test_streamed_answer_cut_by_the_cap_is_trimmed():
+    body = sse(piece("Complete sentence.\n"), piece("- half a bul"), piece(finish="length"))
+    client, _ = streaming_client(body)
+    assert client.complete("s", "q", on_delta=lambda _: None) == "Complete sentence."
+
+
+def test_streaming_rate_limit_raises_too_large_for_the_retry():
+    import pytest
+    from backend.rag.generator import LLMRequestTooLarge
+    client, _ = streaming_client(b"", status=429)
+    with pytest.raises(LLMRequestTooLarge):
+        client.complete("s", "q", on_delta=lambda _: None)
+
+
 def test_unicode_hyphens_in_identifiers_become_plain_hyphens():
     assert normalize_hyphens("CVE‑2026‑44523 and CWE‐326") == "CVE-2026-44523 and CWE-326"
     assert normalize_hyphens("a – dash stays") == "a – dash stays"   # punctuation dashes kept

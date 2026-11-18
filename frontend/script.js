@@ -52,6 +52,12 @@
     PAL.accent = cssVar("--accent", PAL.accent);
   }
   refreshPalette();
+  // fx.js switches between the light and dark theme without a reload: re-read the colours
+  // (graphs in answers redraw every frame; reduced-motion pages are redrawn once)
+  document.addEventListener("themechange", () => {
+    refreshPalette();
+    if (reducedMotion.matches) drawStatic();
+  });
 
   /* spring-like ease: overshoots a little, then settles (used when graph nodes pop in) */
   const easeOutBack = (t) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
@@ -1753,6 +1759,8 @@
     return final;
   }
 
+  const LINE_IN_MS = 600;          // length of the .line-in animation in style.css
+
   /* Replace the loading card with the answer as it is being written. */
   function showStreaming(wrapper, preview, piece) {
     preview.text += piece;
@@ -1780,6 +1788,23 @@
       // the final answer, so they are hidden in the preview as well
       renderAnswer(preview.node, preview.text.replace(
         /<\/?(?:question|answer|evidence|confirmed[_-]relationships|relationships[_-]not[_-]found)>/gi, ""));
+      // Lines appear one by one. Every repaint rebuilds the text, so each line remembers
+      // when it first appeared and its entry animation continues from that moment
+      // (a negative delay) instead of restarting; lines arriving in the same frame are
+      // staggered. Finished lines are left alone.
+      if (!reducedMotion.matches) {
+        const now = performance.now();
+        preview.seen = preview.seen || [];
+        let fresh = 0;
+        preview.node.querySelectorAll("p, li, h1, h2, h3, h4, pre, tr").forEach((line, index) => {
+          if (preview.seen[index] === undefined) { preview.seen[index] = now + fresh * 90; fresh += 1; }
+          const elapsed = now - preview.seen[index];
+          if (elapsed < LINE_IN_MS) {
+            line.classList.add("line-in");
+            line.style.animationDelay = `${-elapsed}ms`;
+          }
+        });
+      }
       if (nearBottom) chat.scrollTop = chat.scrollHeight;
     });
   }
@@ -1941,8 +1966,9 @@
   function placeIndicator() {
     const active = navLinks.find((link) => link.dataset.view === currentView);
     if (!active) return;
-    navIndicator.style.transform = `translateX(${active.offsetLeft + 14}px)`;
-    navIndicator.style.width = Math.max(0, active.offsetWidth - 28) + "px";
+    // a pill behind the active link that slides to the next one
+    navIndicator.style.transform = `translateX(${active.offsetLeft}px)`;
+    navIndicator.style.width = active.offsetWidth + "px";
   }
 
   function route() {
@@ -2232,6 +2258,7 @@
       energy = Math.max(energy, amount);
       if (!running) { running = true; requestAnimationFrame(tick); }
     }
+    document.addEventListener("themechange", () => wake(0.15));   // repaint in the new colours
 
     function addNode(info, near) {
       let node = nodes.get(info.id);

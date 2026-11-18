@@ -196,7 +196,8 @@ class LLMClient:
         if provider == "anthropic":
             text = self._anthropic_complete(system, user)
         elif provider == "openai":
-            text = self._openai_complete(system, user)
+            # streamed token by token when someone is watching (the chat page)
+            return self._openai_complete(system, user, on_delta)
         else:
             raise LLMError("No LLM provider is configured")
         if on_delta is not None:
@@ -257,17 +258,20 @@ class LLMClient:
         except ValueError as exc:
             raise LLMError("LLM endpoint returned invalid JSON") from exc
 
-    def _openai_complete(self, system: str, user: str) -> str:
+    def _openai_complete(self, system: str, user: str, on_delta=None) -> str:
         base = (self.settings.llm_base_url or "https://api.openai.com/v1").rstrip("/")
         headers = ({"Authorization": f"Bearer {self.settings.llm_api_key}"}
                    if self.settings.llm_api_key else {})
-        body = self._post_json(f"{base}/chat/completions", {
+        payload = {
             "model": self.settings.llm_model, "temperature": self.temperature,
             # not answer_tokens: that short cap is for the local model, and reasoning
             # models (gpt-oss on Groq) spend part of the cap on hidden reasoning
             "max_tokens": self.max_tokens or self.settings.llm_max_tokens,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-        }, headers)
+        }
+        if on_delta is not None:
+            return self._openai_stream(f"{base}/chat/completions", payload, headers, on_delta)
+        body = self._post_json(f"{base}/chat/completions", payload, headers)
         try:
             choice = body["choices"][0]
             text = choice["message"]["content"]
@@ -302,6 +306,57 @@ class LLMClient:
         if not text.strip():
             raise LLMError("The model returned an empty answer")
         return text.strip()
+
+    def _openai_stream(self, url: str, payload: dict, headers: dict, on_delta) -> str:
+        """OpenAI-compatible streaming (Server-Sent Events): ``data: {json}`` lines, each
+        with the next piece of the answer in choices[0].delta.content, then ``[DONE]``.
+        A reasoning model's hidden reasoning (delta.reasoning) is not shown."""
+        pieces: list[str] = []
+        finish = None
+        try:
+            with self._client().stream("POST", url, json={**payload, "stream": True},
+                                       headers=headers) as response:
+                if response.status_code in (413, 429):
+                    error = LLMRequestTooLarge(f"LLM endpoint answered HTTP {response.status_code}")
+                    try:
+                        error.retry_after = float(response.headers.get("retry-after") or 0)
+                    except ValueError:
+                        error.retry_after = 0.0
+                    raise error
+                if response.status_code != 200:
+                    raise LLMError(f"LLM endpoint answered HTTP {response.status_code}")
+                for line in response.iter_lines():
+                    line = line.strip()
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except ValueError as exc:
+                        raise LLMError("LLM endpoint returned invalid JSON") from exc
+                    if chunk.get("error"):
+                        raise LLMError("LLM endpoint reported an error while streaming")
+                    choices = chunk.get("choices") or []
+                    if not choices:
+                        continue
+                    piece = (choices[0].get("delta") or {}).get("content") or ""
+                    if piece:
+                        piece = normalize_hyphens(piece)
+                        pieces.append(piece)
+                        on_delta(piece)
+                    finish = choices[0].get("finish_reason") or finish
+        except httpx.HTTPError as exc:
+            raise LLMError(f"Could not reach the LLM endpoint ({type(exc).__name__})") from exc
+        text = "".join(pieces).strip()
+        if not text:
+            raise LLMError("The model returned an empty answer")
+        if finish == "length":
+            log.warning("LLM answer reached max_tokens=%d; trimmed to its last complete "
+                        "sentence (raise LLM_MAX_TOKENS)", payload["max_tokens"])
+            text = trim_incomplete(text)
+        return text
 
     def _ollama_stream(self, url: str, payload: dict, on_delta) -> str:
         """Ollama streams one JSON object per line; each carries the next piece of text."""
