@@ -1154,3 +1154,75 @@ html[data-theme="dark"] .brand-text .brand-x { background-image: linear-gradient
   .brand-mark { transition: transform 0.6s var(--ease-spring); }
   .brand:hover .brand-mark { transform: rotate(-8deg) scale(1.08); }
 }
+
+/* =========================================================================
+   v4: hero from the shield image, with 3D orbiting labels (fx.js startOrbit)
+   ========================================================================= */
+.hx { position: relative; width: 100%; height: 100%; min-height: 440px; }
+.hx-stage { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; }
+/* a dark holographic disc behind the image, so it also sits well on the light theme */
+.hx-stage::before {
+  content: ""; position: absolute; width: min(92%, 640px); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, #0A1631 0%, #0A1631 42%, rgba(10, 22, 49, 0.55) 58%, transparent 71%);
+}
+html[data-theme="dark"] .hx-stage::before { background: radial-gradient(circle, rgba(37, 99, 235, 0.22) 0%, rgba(8, 13, 27, 0) 70%); }
+.hx-shield {
+  position: relative; height: 100%; max-height: 660px; width: auto; max-width: 74%; aspect-ratio: 640 / 941; object-fit: contain;
+  -webkit-mask: radial-gradient(ellipse 50% 50% at 50% 50%, #000 56%, rgba(0, 0, 0, 0.6) 72%, transparent 100%);
+  mask: radial-gradient(ellipse 50% 50% at 50% 50%, #000 56%, rgba(0, 0, 0, 0.6) 72%, transparent 100%);
+  user-select: none;
+}
+.hx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+.hx-labels { position: absolute; inset: 0; z-index: auto; pointer-events: none; }
+.hx-label {
+  --tone: #3B82F6;
+  position: absolute; left: 0; top: 0; z-index: 4; display: inline-flex; align-items: center; gap: 9px; white-space: nowrap;
+  padding: 9px 16px 9px 12px; border-radius: 14px; pointer-events: auto; cursor: default; will-change: transform, opacity;
+  font: 700 15px/1 var(--display); letter-spacing: 0.01em; color: #F2F6FF;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tone) 28%, rgba(10, 18, 40, 0.72)), rgba(10, 18, 40, 0.62));
+  border: 1px solid color-mix(in srgb, var(--tone) 60%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 10px 24px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: box-shadow 0.25s, border-color 0.25s, background 0.25s;
+}
+.hx-label svg { width: 20px; height: 20px; fill: none; stroke: var(--tone); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px var(--tone)); }
+.hx-label b { color: color-mix(in srgb, var(--tone) 35%, #FFFFFF); }
+.hx-label.is-hot { border-color: var(--tone);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tone) 22%, transparent), 0 0 34px color-mix(in srgb, var(--tone) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+html:not([data-theme="dark"]) .hx-label {
+  color: #0F172A; background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), color-mix(in srgb, var(--tone) 10%, rgba(255, 255, 255, 0.85)));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--tone) 28%, transparent), inset 0 1px 0 #fff, 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+html:not([data-theme="dark"]) .hx-label b { color: color-mix(in srgb, var(--tone) 70%, #0F172A); }
+.hx-label[data-k="CVE"] { --tone: #F43F5E; } .hx-label[data-k="CWE"] { --tone: #F59E0B; }
+.hx-label[data-k="CAPEC"] { --tone: #A855F7; } .hx-label[data-k="ATTACK"] { --tone: #22D3EE; }
+.hx-label[data-k="RAG"] { --tone: #3B82F6; } .hx-label[data-k="AI"] { --tone: #8B5CF6; } .hx-label[data-k="INTEL"] { --tone: #0EA5E9; }
+html:not([data-theme="dark"]) .hx-label[data-k="ATTACK"] { --tone: #0891B2; }
+html:not([data-theme="dark"]) .hx-label[data-k="INTEL"] { --tone: #0284C7; }
+
+/* fine grid behind everything, soft and theme-aware */
+.fx-aurora::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(37, 99, 235, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px; -webkit-mask: radial-gradient(ellipse at 60% 40%, #000 20%, transparent 75%); mask: radial-gradient(ellipse at 60% 40%, #000 20%, transparent 75%);
+}
+html[data-theme="dark"] .fx-aurora::after {
+  background-image: linear-gradient(rgba(96, 165, 250, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(96, 165, 250, 0.07) 1px, transparent 1px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* the shield stays put; only its light breathes */
+  .hx-shield { animation: shield-light 5s ease-in-out infinite; }
+  @keyframes shield-light { 50% { filter: brightness(1.12) saturate(1.1); } }
+  .hx-stage::before { animation: disc-glow 6s ease-in-out infinite; }
+  @keyframes disc-glow { 50% { transform: scale(1.04); opacity: 0.85; } }
+}
+
+/* phones and tablets: the hero visual sits above the text, smaller */
+@media (max-width: 860px) {
+  body.entry .hero-art { display: block; grid-column: 1; grid-row: 1; height: min(42vh, 330px); align-self: end; margin-top: 8px; }
+  body.entry .hero-art .hx { min-height: 0; }
+  .hx-label { padding: 6px 11px 6px 9px; font-size: 12.5px; gap: 6px; border-radius: 11px; }
+  .hx-label svg { width: 15px; height: 15px; }
+}
