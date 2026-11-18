@@ -134,6 +134,9 @@ class Settings:
     # such as gpt-oss count their hidden reasoning against it, so it must be generous;
     # the small local Ollama model keeps its own short cap (Tuning.answer_tokens).
     llm_max_tokens: int = 2048
+    # Evidence characters sent to a hosted model. Free API plans (Groq) limit the tokens
+    # of one request - prompt plus max_tokens - so the evidence is capped here too.
+    llm_evidence_chars: int = 9000
 
     # --- Embeddings ------------------------------------------------------
     embedding_provider: str = "local"   # local | sentence-transformers | openai | ollama
@@ -273,6 +276,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         llm_base_url=llm_base,
         llm_timeout_seconds=_env_float("LLM_TIMEOUT_SECONDS", 120.0, minimum=1.0),
         llm_max_tokens=_env_int("LLM_MAX_TOKENS", 2048, minimum=256),
+        llm_evidence_chars=_env_int("LLM_EVIDENCE_CHARS", 9000, minimum=1000),
         embedding_provider=emb_provider,
         embedding_api_key=emb_key,
         embedding_model=_env("EMBEDDING_MODEL", _DEFAULT_EMBED_MODELS.get(emb_provider, "")),
