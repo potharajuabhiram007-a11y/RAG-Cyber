@@ -294,6 +294,7 @@
     }
 
     function draw(now) {
+      if (window.__hx3d) { cancelAnimationFrame(frame); return; }      // the Three.js hero took over
       frame = requestAnimationFrame(draw);
       if (!document.body.classList.contains("entry") || !host.offsetParent) return;
       const box = host.getBoundingClientRect();
