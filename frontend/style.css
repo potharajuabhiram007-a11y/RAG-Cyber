@@ -297,7 +297,8 @@ button.tag-open:hover { background: var(--accent-soft); }
 .graph-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; z-index: 2; }
 .gbtn {
   position: relative; overflow: hidden; min-width: 36px; height: 34px; padding: 0 10px; font: 600 12px/1 var(--sans); color: var(--text); cursor: pointer;
-  background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-xs);
+  background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(6px);
   transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast);
 }
 .gbtn:hover { color: var(--accent); border-color: var(--accent-line); }
@@ -474,7 +475,7 @@ body.entry .hero-foot { display: block; grid-column: 1 / -1; grid-row: 5; positi
 .list-pane .toolbar { flex-wrap: wrap; }
 .toolbar .field { flex: 1 1 140px; }
 .hist-list { flex: 1; overflow-y: auto; }
-.hist-day { position: sticky; top: 0; z-index: 1; margin: 0; padding: 8px 16px 7px; font: 600 var(--fs-12)/1.4 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle); background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
+.hist-day { position: sticky; top: 0; z-index: 1; margin: 0; padding: 8px 16px 7px; font: 600 var(--fs-12)/1.4 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle); background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
 .hist-item {
   display: block; width: 100%; text-align: left; font: inherit; color: var(--text); background: transparent; cursor: pointer;
   border: 0; border-bottom: 1px solid var(--border); border-left: 3px solid transparent; padding: 11px 16px 11px 13px;
