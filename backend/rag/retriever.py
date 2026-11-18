@@ -172,6 +172,75 @@ _AMBIGUOUS_ALIASES = frozenset({"can", "man", "pan", "san", "mac", "apt", "dos",
 
 
 # --------------------------------------------------------------------------- #
+# Threat mapping: an incident described in everyday words ("my phone is hacked"),
+# or a question about how things relate that names no identifier ("which weaknesses
+# lead to SQL injection?"). The description is matched by meaning and by name against
+# ATT&CK, CAPEC and CWE; every answer still comes only from records in the graph.
+# --------------------------------------------------------------------------- #
+_SCENARIO_RE = re.compile(
+    r"\b(hack(ed|ing|er)?|compromis\w*|stole|stolen|steal\w*|infect\w*|virus\w*|malware|trojan\w*|"
+    r"ransom\w*|spyware|adware|keylog\w*|phish\w*|smish\w*|scam\w*|fraud\w*|breach\w*|leak\w*|"
+    r"spying|spied|tracked|tracking me|hijack\w*|taken over|takeover|locked out|pop-?ups?|"
+    r"suspicious|unauthori[sz]ed|someone (got|logged|accessed|is)|strange (app|login|activity)|"
+    r"encrypted my|attacked|being attacked|threat\w*|guess\w*|keeps? trying|trying to (log|get|access|break)|"
+    r"broke into|break into|lost access|can'?t log ?in|weird (messages?|emails?|calls?)|impersonat\w*)\b", re.I)
+_MAPPING_RE = re.compile(
+    r"\b(type of|kind of|which|what)\b.{0,40}\b(cves?|cwes?|capecs?|att&ck|weakness(es)?|"
+    r"vulnerabilit\w+|attack(s| patterns?)?|techniques?|threats?)\b"
+    r"|\b(lead(s)? to|led to|cause[sd]?|behind|used (in|for|by)|related to|linked to|"
+    r"associated with|mapped to|exploited (in|by))\b", re.I)
+# everyday wording -> security terms used for the search (search words only)
+_SCENARIO_HINTS = (
+    (re.compile(r"\b(phone|mobile|android|iphone|ios|smartphone|tablet)\b", re.I),
+     "mobile device malware spyware"),
+    (re.compile(r"\b(hack(ed|ing)?|compromis\w*|taken over|takeover|someone (got|logged|accessed))\b", re.I),
+     "unauthorized access account compromise valid accounts"),
+    (re.compile(r"\b(fake (login|site|page|website|email|link|call)|phish\w*|smish\w*|vish\w*|spoof\w*|scam\w*|"
+                r"text message|sms|whatsapp|(message|email|call|link)s? (asking|telling|saying|from)|"
+                r"asking for (my )?(password|details|otp|code|pin|bank|card)|bank details|clicked (a|on a) link)\b", re.I),
+     "phishing spearphishing social engineering lure"),
+    (re.compile(r"\b(passwords?|credentials?|login|logged in|account)\b", re.I),
+     "credential theft account credentials"),
+    (re.compile(r"\b(guess\w*|brute|many (attempts|tries)|keeps? trying|login attempts)\b", re.I),
+     "brute force password guessing"),
+    (re.compile(r"\b(pop-?ups?|ads|adware|slow|browser (redirect|hijack\w*))\b", re.I),
+     "adware malicious software browser hijacking"),
+    (re.compile(r"\b(ransom\w*|encrypted my|files? (are|were) (locked|encrypted))\b", re.I),
+     "ransomware data encrypted for impact"),
+    (re.compile(r"\b(wi-?fi|wireless|router|hotspot)\b", re.I),
+     "wireless network rogue access point weak authentication"),
+    (re.compile(r"\b(virus\w*|malware|infect\w*|trojan\w*|worm)\b", re.I),
+     "malicious software code execution"),
+    (re.compile(r"\b(spy\w*|camera|microphone|track(ed|ing)|location)\b", re.I),
+     "spyware audio capture video capture location tracking"),
+    (re.compile(r"\b(bank\w*|money|card|payment|financial)\b", re.I),
+     "financial theft fraud"),
+    (re.compile(r"\b(keylog\w*|keystrokes?)\b", re.I), "input capture keylogging"),
+    (re.compile(r"\b(leak\w*|breach\w*|exfiltrat\w*|data (was|got) stolen)\b", re.I),
+     "data exfiltration data from local system"),
+    (re.compile(r"\b(website|web site|web app|site) (hacked|defaced|down)\b", re.I),
+     "web application exploitation defacement"),
+    (re.compile(r"\b(ddos|denial of service|website down|server down|flood\w*)\b", re.I),
+     "denial of service network flood"),
+)
+
+
+def scenario_hints(message: str) -> str:
+    return " ".join(hint for pattern, hint in _SCENARIO_HINTS if pattern.search(message))
+
+
+# an incident is described by someone it happened to, not asked about in general
+_PERSONAL_RE = re.compile(
+    r"\b(my|me|our|us|someone|somebody|i'm|i've|"
+    r"i (got|was|have|had|clicked|think|lost|received|downloaded|installed|opened|noticed|see|saw|am|keep|can'?t)|"
+    r"we (got|were|have|had|are|lost)|(got|was|were|been|is|are) (hacked|compromised|infected|stolen|breached))\b", re.I)
+
+
+def is_scenario(message: str) -> bool:
+    return bool(_SCENARIO_RE.search(message) and _PERSONAL_RE.search(message))
+
+
+# --------------------------------------------------------------------------- #
 # Vulnerability questions asked without a CVE identifier
 # --------------------------------------------------------------------------- #
 _CVE_QUESTION_RE = re.compile(
@@ -715,6 +784,17 @@ class Retriever:
         specific = any(" " not in g[0] and g[0] not in known and stem(g[0]) not in known
                        for g in groups)
         impact_and_product = specific and not other_dataset and any(" " in g[0] for g in groups)
+
+        # An incident in everyday words, or "which weaknesses lead to SQL injection?":
+        # map it onto ATT&CK, CAPEC and CWE and follow the graph both ways. A question
+        # about a named product's vulnerabilities keeps the CVE description search.
+        scenario = is_scenario(analysis.message)
+        mapping = bool(_MAPPING_RE.search(analysis.message)) and bool(
+            analysis.intent_labels or _CVE_QUESTION_RE.search(analysis.message)) and not specific
+        if scenario or mapping:
+            mapped = self._threat_mapping(analysis, scenario)
+            if mapped is not None:
+                return mapped
         described_tried = False
         if cve_question or impact_and_product:
             if specific or not (matches and term_coverage >= 0.5):
@@ -879,6 +959,91 @@ class Retriever:
         return result
 
     # -- CWE / CAPEC / ATT&CK / CVE without an identifier ------------------ #
+    # -- threat mapping ------------------------------------------------------ #
+    def _threat_mapping(self, analysis: QueryAnalysis, scenario: bool) -> RetrievalResult | None:
+        """Match a described incident or concept to the closest ATT&CK technique, CAPEC
+        attack pattern and CWE weakness, and return each with its relationships in both
+        directions (down to example CVEs). Nothing is inferred: only graph records."""
+        hints = scenario_hints(analysis.message) if scenario else ""
+        subject = [t for t in analysis.content if t not in _DATASET_WORDS]
+        if not subject and not hints:
+            return None
+        wanted = [l for l in analysis.intent_labels if l != LABEL_CVE]
+        labels = wanted + [l for l in (LABEL_ATTACK, LABEL_CAPEC, LABEL_CWE) if l not in wanted]
+        vector = self.embedder.embed_one(f"{analysis.message} {hints}".strip())
+        candidates: dict[str, dict] = {}
+
+        def add(hit: dict, name_bonus: float = 0.0) -> None:
+            entry = candidates.setdefault(hit["id"], {**hit, "_vec": 0.0, "_name": 0.0})
+            entry["_name"] = max(entry["_name"], name_bonus)
+
+        for text, bonus in ((" ".join(subject), 1.0), (hints, 0.6)):
+            if text.strip():
+                for hit in self.db.name_search(text, labels, k=self.tuning.name_search_k):
+                    name_text = " ".join([hit.get("name") or ""] + list(hit.get("alternate_terms") or []))
+                    coverage = self._text_coverage(subject, name_text) if bonus == 1.0 else 0.5
+                    if coverage >= 0.75 or bonus < 1.0:
+                        add(hit, bonus * coverage)
+        for label in labels:
+            for hit in self._vector_hits(label, vector, max(6, self.tuning.vector_k)):
+                add(hit)
+                candidates[hit["id"]]["_vec"] = max(candidates[hit["id"]]["_vec"], hit["_score"])
+        if not candidates:
+            return None
+        for entry in candidates.values():
+            entry["_rank"] = entry["_vec"] + 0.35 * entry["_name"]
+        ranked = sorted(candidates.values(), key=lambda e: -e["_rank"])
+        usable = [e for e in ranked if e["_vec"] > 0 or e["_name"] >= 0.75]
+        if not usable:
+            return None
+        # The strongest match first. The other entity types then prefer entries the
+        # graph links to it (SQL Injection -> CWE-89, not just a similar-sounding CWE),
+        # and fall back to the closest match by meaning.
+        result = RetrievalResult(STATUS_FOUND, _L[usable[0]["_label"]], True, analysis)
+        first = self.entity_context(usable[0]["_label"], usable[0]["id"])
+        if first is None:
+            return None
+        chosen = [first]
+        for label in [l for l in labels if l != usable[0]["_label"]]:
+            if len(chosen) >= MAX_IDS_WITH_CONTEXT:
+                break
+            linked = [n["id"] for g in first.groups if g.label == label for n in g.nodes]
+            pick = next((e["id"] for e in usable if e["_label"] == label and e["id"] in linked), None)
+            if pick is None and linked:
+                pick = linked[0]
+            if pick is None:
+                pick = next((e["id"] for e in usable if e["_label"] == label), None)
+            if pick is not None and pick not in {c.node["id"] for c in chosen}:
+                context = self.entity_context(label, pick)
+                if context is not None:
+                    chosen.append(context)
+        for context in chosen:
+            result.contexts.append(context)
+            result.identifiers.append(context.node["id"])
+            self._add_context(result, context)
+        best = [{"id": c.node["id"]} for c in chosen]
+        shown = {e["id"] for e in best}
+        for other in [e for e in ranked if e["id"] not in shown][:self.tuning.extra_entries]:
+            result.identifiers.append(other["id"])
+            result.evidence.append(Evidence(
+                kind="entity", source=SOURCE_NAMES[_L[other["_label"]]], identifier=other["id"],
+                title=other.get("name"), text=describe_entity(other["_label"], other),
+                score=other.get("_score"), url=other.get("source_url")))
+        names = ", ".join(f"{c.node['id']} ({c.node.get('name') or c.label})" for c in result.contexts)
+        if scenario:
+            result.note = (
+                "No identifier was given, so the situation described was matched by meaning against "
+                f"MITRE ATT&CK, CAPEC and CWE. The closest entries in the knowledge graph are {names}; "
+                "they are shown with their relationships in both directions, including example CVEs. "
+                "They indicate what kind of attack and weakness may be involved; they are not a "
+                "diagnosis of a specific device.")
+        else:
+            result.note = (
+                f"No identifier was given, so the question was matched to {names} in the knowledge "
+                "graph and their relationships are followed in both directions (forward to attack "
+                "patterns and techniques, backward to weaknesses and example CVEs).")
+        return result
+
     def _entity_search(self, analysis: QueryAnalysis, vector) -> RetrievalResult | None:
         subject = [t for t in analysis.content if t not in _DATASET_WORDS]
         if not subject:

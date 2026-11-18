@@ -275,6 +275,26 @@ def test_unsupported_questions_return_result_not_found(assistant, question):
     assert (response.metrics.precision, response.metrics.f1_score, response.metrics.accuracy) == (None,) * 3
 
 
+def test_described_incident_is_mapped_to_attack_capec_and_cwe(assistant):
+    """No identifier, everyday words: matched by meaning, answered with graph evidence."""
+    response = assistant.ask("I clicked a link in a phishing email and someone stole my password")
+    assert response.result_found and response.answer != RESULT_NOT_FOUND
+    found = set(response.identifiers)
+    assert found & {"T1566", "T1566.001", "CAPEC-98"}, found
+    assert response.category in {"ATTACK", "CAPEC", "CWE"}
+
+
+def test_reverse_question_without_identifier_follows_the_graph(assistant):
+    response = assistant.ask("Which weaknesses lead to SQL injection attacks?")
+    assert response.result_found
+    assert {"CAPEC-66", "CWE-89"} <= set(response.identifiers)
+    assert ("CWE-89", "CWE_CAPEC", "CAPEC-66") in edges(response)
+
+
+def test_definition_questions_stay_definitions(assistant):
+    assert assistant.ask("What is phishing?").category == "FUNDAMENTALS"
+
+
 def test_supported_domain_without_evidence_is_not_found_but_supported(assistant):
     response = assistant.ask("How do I harden a Kubernetes network policy against malware?")
     assert response.answer == RESULT_NOT_FOUND and response.supported and not response.result_found
