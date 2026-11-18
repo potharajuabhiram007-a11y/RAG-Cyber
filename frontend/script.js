@@ -1555,7 +1555,8 @@
     // its sources) only: no empty "--" metric cards and no placeholder hint text.
     const answered = data.result_found && DATASET_CATEGORIES.includes(data.category);
     if (answered) {
-      card.appendChild(metricsSection(data.metrics || {}));
+      // the offline benchmark scores are no longer shown with each answer (they stay on
+      // the backend and in the evaluation report); only the recommended actions are added
       if (data.hint_applicable && data.hint && data.hint !== NO_SOLUTION) card.appendChild(hintSection(data));
     }
     if (animate && !reducedMotion.matches) {
