@@ -1230,7 +1230,8 @@ html[data-theme="dark"] .fx-aurora::after {
 /* =========================================================================
    v5: Three.js hero (hero3d.js). The CSS version above stays as the fallback.
    ========================================================================= */
-.hx-gl { position: absolute; inset: -4% -16% -4% -16%; width: 132%; height: 108%; z-index: 2; display: block; pointer-events: none; }
+.hx-gl { position: absolute; inset: -4% -8% -4% -8%; width: 116%; height: 108%; z-index: 2; display: block; pointer-events: none; }
 .hx.hx-webgl .hx-stage > .hx-shield, .hx.hx-webgl .hx-canvas, .hx.hx-webgl .hx-labels { display: none; }
 /* the dark disc stays behind the 3D scene so the artwork also sits on the light theme */
-.hx.hx-webgl .hx-stage { z-index: 1; }
+/* the glass-shield scene draws everything itself: no photo, no disc */
+.hx.hx-webgl .hx-stage { display: none; }
