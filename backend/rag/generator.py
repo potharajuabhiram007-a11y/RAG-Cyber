@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from datetime import datetime, timezone
 
 import httpx
@@ -161,6 +162,15 @@ class LLMError(RuntimeError):
     """The configured LLM could not produce a usable answer."""
 
 
+LLM_RETRY_WAIT_MAX = 8.0   # seconds a question may wait for a rate-limited hosted model
+
+
+class LLMRequestTooLarge(LLMError):
+    """HTTP 413 / 429: the request is over the plan's token limit (Groq counts the
+    prompt plus max_tokens) or the per-minute budget is used up.  A smaller request
+    may still go through."""
+
+
 class LLMClient:
     """Configurable chat-completion client: anthropic | openai-compatible | ollama."""
 
@@ -168,6 +178,7 @@ class LLMClient:
         self.settings = settings
         self.temperature = 0.1
         self.answer_tokens = OLLAMA_ANSWER_TOKENS
+        self.max_tokens: int | None = None   # per-request override of LLM_MAX_TOKENS
         self._http = http_client
         self._anthropic = None
 
@@ -232,6 +243,13 @@ class LLMClient:
             response = self._client().post(url, json=payload, headers=headers)
         except httpx.HTTPError as exc:
             raise LLMError(f"Could not reach the LLM endpoint ({type(exc).__name__})") from exc
+        if response.status_code in (413, 429):
+            error = LLMRequestTooLarge(f"LLM endpoint answered HTTP {response.status_code}")
+            try:
+                error.retry_after = float(response.headers.get("retry-after") or 0)
+            except ValueError:
+                error.retry_after = 0.0
+            raise error
         if response.status_code != 200:
             raise LLMError(f"LLM endpoint answered HTTP {response.status_code}")
         try:
@@ -247,7 +265,7 @@ class LLMClient:
             "model": self.settings.llm_model, "temperature": self.temperature,
             # not answer_tokens: that short cap is for the local model, and reasoning
             # models (gpt-oss on Groq) spend part of the cap on hidden reasoning
-            "max_tokens": self.settings.llm_max_tokens,
+            "max_tokens": self.max_tokens or self.settings.llm_max_tokens,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         }, headers)
         try:
@@ -629,11 +647,31 @@ class Generator:
         tune = self.tuning
         if hasattr(self.llm, "temperature"):
             self.llm.temperature, self.llm.answer_tokens = tune.temperature, tune.answer_tokens
-        budget = tune.evidence_chars if self.settings.llm_provider == "ollama" else None
+        local = self.settings.llm_provider == "ollama"
+        budget = tune.evidence_chars if local else self.settings.llm_evidence_chars
+
+        def ask(evidence_chars: int) -> str:
+            user_prompt = (build_user_prompt(result, evidence_chars)
+                           + (OLLAMA_BREVITY if local and tune.brief_answers else ""))
+            return (self.llm.complete(SYSTEM_PROMPT, user_prompt) if on_delta is None
+                    else self.llm.complete(SYSTEM_PROMPT, user_prompt, on_delta=on_delta))
+
         try:
-            user_prompt = build_user_prompt(result, budget) + (OLLAMA_BREVITY if budget and tune.brief_answers else "")
-            raw = (self.llm.complete(SYSTEM_PROMPT, user_prompt) if on_delta is None
-                   else self.llm.complete(SYSTEM_PROMPT, user_prompt, on_delta=on_delta))
+            try:
+                raw = ask(budget)
+            except LLMRequestTooLarge as exc:
+                if local or not hasattr(self.llm, "max_tokens"):
+                    raise
+                # over the free plan's per-request limit: half the evidence, smaller cap
+                log.warning("LLM request too large (%s); retrying with less evidence", exc)
+                wait = min(getattr(exc, "retry_after", 0.0) or 0.0, LLM_RETRY_WAIT_MAX)
+                if wait > 0:
+                    time.sleep(wait)         # the per-minute budget refills quickly
+                self.llm.max_tokens = max(512, self.settings.llm_max_tokens // 2)
+                try:
+                    raw = ask(max(1500, budget // 2))
+                finally:
+                    self.llm.max_tokens = None
             answer = normalize_hyphens(_strip_prompt_tags(raw or ""))
             if not answer:
                 raise LLMError("empty answer")
