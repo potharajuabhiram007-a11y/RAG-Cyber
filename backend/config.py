@@ -130,6 +130,10 @@ class Settings:
     llm_model: str = ""
     llm_base_url: str = ""
     llm_timeout_seconds: float = 120.0
+    # Output cap for hosted (anthropic / openai-compatible) models. Reasoning models
+    # such as gpt-oss count their hidden reasoning against it, so it must be generous;
+    # the small local Ollama model keeps its own short cap (Tuning.answer_tokens).
+    llm_max_tokens: int = 2048
 
     # --- Embeddings ------------------------------------------------------
     embedding_provider: str = "local"   # local | sentence-transformers | openai | ollama
@@ -268,6 +272,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         llm_model=_env("LLM_MODEL", _DEFAULT_LLM_MODELS.get(llm_provider, "")),
         llm_base_url=llm_base,
         llm_timeout_seconds=_env_float("LLM_TIMEOUT_SECONDS", 120.0, minimum=1.0),
+        llm_max_tokens=_env_int("LLM_MAX_TOKENS", 2048, minimum=256),
         embedding_provider=emb_provider,
         embedding_api_key=emb_key,
         embedding_model=_env("EMBEDDING_MODEL", _DEFAULT_EMBED_MODELS.get(emb_provider, "")),
