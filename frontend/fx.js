@@ -15,7 +15,7 @@
     canvas.setAttribute("aria-hidden", "true");
     document.body.prepend(canvas);
     const ctx = canvas.getContext("2d");
-    const colors = ["37,99,235", "79,70,229", "14,165,233", "124,58,237"];
+    const colors = ["139,235,0", "85,169,0", "85,169,0", "215,255,117"];
     let width = 0, height = 0, dpr = 1, nodes = [], frame = 0, last = 0;
     const mouse = { x: -1e4, y: -1e4 };
 
@@ -218,7 +218,7 @@
         const x = r.left + r.width / 2 - box.left, y = r.top + r.height / 2 - box.top;
         const color = getComputedStyle(label).color;
         const grad = ctx.createLinearGradient(cx, cy, x, y);
-        grad.addColorStop(0, dark ? "rgba(79,140,255,0.05)" : "rgba(37,99,235,0.04)");
+        grad.addColorStop(0, dark ? "rgba(163,255,0,0.05)" : "rgba(139,235,0,0.04)");
         grad.addColorStop(1, color.replace("rgb(", "rgba(").replace(")", dark ? ",0.55)" : ",0.4)"));
         ctx.strokeStyle = grad; ctx.lineWidth = 1.2;
         ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
