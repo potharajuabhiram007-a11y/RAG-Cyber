@@ -91,6 +91,7 @@ Edit `.env`. Only the Neo4j settings are mandatory:
 | `NVD_SYNC_START_DATE` | optional; limit the first load to CVEs published since this date |
 | `MAX_CVES` | optional; keep only the newest N CVEs, deleting older ones as new ones arrive (for size-limited databases such as AuraDB Free; 0 = keep all) |
 | `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL` | `none`, `anthropic`, `openai` (any OpenAI-compatible API, e.g. LM Studio) or `ollama` |
+| `LLM_MAX_TOKENS` | output cap for hosted models (default 2048; reasoning models need room for their hidden reasoning). A cut-off answer is trimmed to its last complete sentence |
 | `EMBEDDING_PROVIDER`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_BASE_URL` | `sentence-transformers` (default, `all-MiniLM-L6-v2` on the CPU), `local` (feature hashing), `openai` or `ollama` |
 | `UPDATE_INTERVAL_HOURS`, `NVD_UPDATE_INTERVAL_HOURS` | schedule of MITRE and NVD updates |
 | `ADMIN_API_KEY` | required for the manual sync endpoint |

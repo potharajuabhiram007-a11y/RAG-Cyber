@@ -126,6 +126,37 @@ def _strip_prompt_tags(answer: str) -> str:
     return _PROMPT_TAG_RE.sub("", answer).strip()
 
 
+# Some models write identifiers with Unicode hyphens ("CVE‑2026‑44523" with U+2011),
+# which hides them from the identifier checks and from the page's entity links.
+_UNICODE_HYPHENS = str.maketrans({"‐": "-", "‑": "-", "‒": "-", "−": "-"})
+
+
+def normalize_hyphens(answer: str) -> str:
+    return answer.translate(_UNICODE_HYPHENS)
+
+
+_SENTENCE_END_RE = re.compile(r"[.!?:)\]](?:\*\*)?\s*$")
+
+
+def trim_incomplete(text: str) -> str:
+    """An answer cut off by the token limit ends mid-sentence.  Keep everything up to
+    the last complete sentence or list line, so the reader never sees a broken one."""
+    # Only the last line can be unfinished: earlier list lines are complete even
+    # without a full stop.
+    lines = text.rstrip().split("\n")
+    last = lines[-1]
+    if _SENTENCE_END_RE.search(last):
+        return text.rstrip()
+    cut = max(last.rfind(". "), last.rfind("! "), last.rfind("? "))
+    if cut > 0 and not last.lstrip().startswith(("- ", "* ")):
+        lines[-1] = last[:cut + 1]       # keep the finished sentences of a paragraph
+    elif len(lines) > 1:
+        lines.pop()                      # a half-written bullet or single broken sentence
+    else:
+        return text.rstrip()             # nothing complete to fall back to
+    return "\n".join(lines).rstrip()
+
+
 class LLMError(RuntimeError):
     """The configured LLM could not produce a usable answer."""
 
@@ -214,16 +245,24 @@ class LLMClient:
                    if self.settings.llm_api_key else {})
         body = self._post_json(f"{base}/chat/completions", {
             "model": self.settings.llm_model, "temperature": self.temperature,
-            "max_tokens": self.answer_tokens,
+            # not answer_tokens: that short cap is for the local model, and reasoning
+            # models (gpt-oss on Groq) spend part of the cap on hidden reasoning
+            "max_tokens": self.settings.llm_max_tokens,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         }, headers)
         try:
-            text = body["choices"][0]["message"]["content"]
+            choice = body["choices"][0]
+            text = choice["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
             raise LLMError("Unexpected response shape from the LLM endpoint") from exc
         if not text or not str(text).strip():
             raise LLMError("The model returned an empty answer")
-        return str(text).strip()
+        text = str(text).strip()
+        if choice.get("finish_reason") == "length":
+            log.warning("LLM answer reached max_tokens=%d; trimmed to its last complete "
+                        "sentence (raise LLM_MAX_TOKENS)", self.settings.llm_max_tokens)
+            text = trim_incomplete(text)
+        return text
 
     def _ollama_complete(self, system: str, user: str, on_delta=None) -> str:
         base = (self.settings.llm_base_url or "http://localhost:11434").rstrip("/")
@@ -595,7 +634,7 @@ class Generator:
             user_prompt = build_user_prompt(result, budget) + (OLLAMA_BREVITY if budget and tune.brief_answers else "")
             raw = (self.llm.complete(SYSTEM_PROMPT, user_prompt) if on_delta is None
                    else self.llm.complete(SYSTEM_PROMPT, user_prompt, on_delta=on_delta))
-            answer = _strip_prompt_tags(raw or "")
+            answer = normalize_hyphens(_strip_prompt_tags(raw or ""))
             if not answer:
                 raise LLMError("empty answer")
         except LLMError as exc:
