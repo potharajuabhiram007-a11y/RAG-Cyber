@@ -1760,6 +1760,7 @@
   }
 
   const LINE_IN_MS = 600;          // length of the .line-in animation in style.css
+  const TYPE_CPS = 70;             // live typing pace (characters a second) when the model keeps up
 
   /* Replace the loading card with the answer as it is being written. */
   function showStreaming(wrapper, preview, piece) {
@@ -1779,14 +1780,42 @@
       card.appendChild(section);
       wrapper.appendChild(card);
     }
-    if (preview.frame) return;                    // at most one repaint per frame
-    preview.frame = requestAnimationFrame(() => {
-      preview.frame = 0;
+    if (preview.frame) return;                    // the typing loop is already running
+    // Typewriter: the streamed text is revealed character by character at a steady
+    // pace. Only text the model has really sent is shown; when it arrives faster than
+    // it is typed, the pace rises so the screen stays within about half a second.
+    preview.typed = preview.typed || 0;
+    preview.last = performance.now();
+    const typeFrame = (now) => {
+      const dt = Math.min(0.1, (now - preview.last) / 1000);
+      preview.last = now;
+      const pending = preview.text.length - preview.typed;
+      const speed = Math.max(TYPE_CPS, pending * 2.2);          // characters per second
+      preview.typed = reducedMotion.matches ? preview.text.length
+        : Math.min(preview.text.length, preview.typed + Math.max(1, speed * dt));
+      paintPreview(preview);
+      if (preview.typed < preview.text.length) preview.frame = requestAnimationFrame(typeFrame);
+      else {
+        preview.frame = 0;
+        if (preview.drained) { preview.drained(); preview.drained = null; }
+      }
+    };
+    preview.frame = requestAnimationFrame(typeFrame);
+  }
+
+  /* Waits until everything that was streamed has been typed on screen. */
+  function finishTyping(preview) {
+    if (!preview.node || !preview.frame) return Promise.resolve();
+    return new Promise((resolve) => { preview.drained = resolve; });
+  }
+
+  function paintPreview(preview) {
+    {
       const nearBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 140;
       preview.node.replaceChildren();             // renderAnswer appends
       // small models sometimes echo the prompt's tags; the server removes them from
       // the final answer, so they are hidden in the preview as well
-      renderAnswer(preview.node, preview.text.replace(
+      renderAnswer(preview.node, preview.text.slice(0, Math.floor(preview.typed)).replace(
         /<\/?(?:question|answer|evidence|confirmed[_-]relationships|relationships[_-]not[_-]found)>/gi, ""));
       // Lines appear one by one. Every repaint rebuilds the text, so each line remembers
       // when it first appeared and its entry animation continues from that moment
@@ -1806,7 +1835,7 @@
         });
       }
       if (nearBottom) chat.scrollTop = chat.scrollHeight;
-    });
+    }
   }
 
   async function send(text) {
@@ -1834,6 +1863,7 @@
         checkStatus();
       }
       if (data) {
+        await finishTyping(preview);              // let the typewriter reach the end first
         cancelAnimationFrame(preview.frame);
         try {
           // text that was already read while streaming is not animated in a second time
