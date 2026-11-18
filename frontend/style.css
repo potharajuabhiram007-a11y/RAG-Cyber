@@ -1226,3 +1226,11 @@ html[data-theme="dark"] .fx-aurora::after {
   .hx-label { padding: 6px 11px 6px 9px; font-size: 12.5px; gap: 6px; border-radius: 11px; }
   .hx-label svg { width: 15px; height: 15px; }
 }
+
+/* =========================================================================
+   v5: Three.js hero (hero3d.js). The CSS version above stays as the fallback.
+   ========================================================================= */
+.hx-gl { position: absolute; inset: -4% -16% -4% -16%; width: 132%; height: 108%; z-index: 2; display: block; pointer-events: none; }
+.hx.hx-webgl .hx-stage > .hx-shield, .hx.hx-webgl .hx-canvas, .hx.hx-webgl .hx-labels { display: none; }
+/* the dark disc stays behind the 3D scene so the artwork also sits on the light theme */
+.hx.hx-webgl .hx-stage { z-index: 1; }
