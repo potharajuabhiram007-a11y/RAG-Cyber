@@ -35,6 +35,7 @@ const ENTITIES = [                               // spin: seconds per turn on th
   { key: "RAG",    text: "RAG",                 tone: 0x3b82f6, model: "database", spin: 8 },
   { key: "INTEL",  text: "Threat Intelligence", tone: 0x38bdf8, model: "globe",    spin: 12 },
 ];
+const SHOW_ORBIT = false;                        // orbiting labels and rings (off: the reference has none)
 const ORBIT = { radius: 3.6, tilt: 1.18, roll: -0.04, speed: 0.17 };
 const RINGS = [                                   // wide rings crossing at different angles
   { radius: 3.6,  tilt: 1.18, roll: -0.04, speed: 0.30,  color: 0x60a5fa, opacity: 0.6 },
@@ -224,6 +225,18 @@ function seeded(seed) {                                         // the same netw
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+function raysTexture() {                                         // soft light rays radiating from the centre
+  const c = document.createElement("canvas"); c.width = c.height = 512;
+  const g = c.getContext("2d"); g.translate(256, 256);
+  for (let i = 0; i < 90; i += 1) {
+    const a = (i / 90) * Math.PI * 2 + Math.sin(i * 12.9) * 0.03, len = 140 + Math.abs(Math.sin(i * 7.3)) * 110;
+    const gr = g.createLinearGradient(0, 0, Math.cos(a) * len, Math.sin(a) * len);
+    gr.addColorStop(0, "rgba(255,255,255,0.5)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    g.strokeStyle = gr; g.lineWidth = 1 + Math.abs(Math.sin(i * 3.1)) * 2.5;
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * len, Math.sin(a) * len); g.stroke();
+  }
+  return new THREE.CanvasTexture(c);
+}
 function sweepTexture() {                                        // a diagonal band of light that crosses the glass
   const c = document.createElement("canvas"); c.width = 256; c.height = 4;
   const g = c.getContext("2d"), gr = g.createLinearGradient(0, 0, 256, 0);
@@ -240,16 +253,16 @@ function sweepTexture() {                                        // a diagonal b
  * vertex-colour buffers each frame: one draw call for the links, two for the nodes, one for
  * the pulses. */
 function buildNetwork(lite, dot, glow) {
-  const rand = seeded(11), N = lite ? 90 : 180, nodes = [];
+  const rand = seeded(11), N = lite ? 90 : 190, nodes = [];
   while (nodes.length < N) {
-    const side = rand() < 0.5 ? -1 : 1, d = Math.pow(rand(), 0.85);
-    const x = side * (1.8 + d * 5.2);
-    nodes.push({ p: new THREE.Vector3(x, 0.15 + (rand() * 2 - 1) * (0.6 + d * 1.3), -0.4 - rand() * 2.4),
-      phase: rand() * 6.28, big: rand() < 0.16, k: 0, fade: 1 - THREE.MathUtils.smoothstep(Math.abs(x), 4.8, 7) });
+    const side = rand() < 0.5 ? -1 : 1, d = Math.pow(rand(), 0.9);
+    const x = side * (1.25 + d * 5.3);
+    nodes.push({ p: new THREE.Vector3(x, 0.25 + (rand() * 2 - 1) * (1.45 - d * 0.55), -0.25 - rand() * 1.1),
+      phase: rand() * 6.28, big: rand() < 0.14, k: 0, fade: 1 - THREE.MathUtils.smoothstep(Math.abs(x), 5.3, 6.7) });
   }
   const edges = [], seen = new Set(), adj = nodes.map(() => []);
   nodes.forEach((a, i) => {
-    nodes.map((b, j) => [j, a.p.distanceTo(b.p)]).filter(([j, d]) => j !== i && d < 1.7)
+    nodes.map((b, j) => [j, a.p.distanceTo(b.p)]).filter(([j, d]) => j !== i && d < 1.55)
       .sort((u, v) => u[1] - v[1]).slice(0, 3)
       .forEach(([j]) => {
         const key = i < j ? i + "-" + j : j + "-" + i;
@@ -275,7 +288,7 @@ function buildNetwork(lite, dot, glow) {
     pts.renderOrder = 2; group.add(pts);
     return { geo, list };
   };
-  const layers = [layer(nodes.filter((n) => !n.big), 0.17), layer(nodes.filter((n) => n.big), 0.46)];
+  const layers = [layer(nodes.filter((n) => !n.big), 0.2), layer(nodes.filter((n) => n.big), 0.55)];
 
   // bright pulses travelling node to node along the links
   const P = lite ? 22 : 46, pulseGeo = new THREE.BufferGeometry();
@@ -306,13 +319,13 @@ function buildNetwork(lite, dot, glow) {
     attribute.setXYZ(index, c.r, c.g, c.b);
   };
   function update(t, dt, dark) {
-    hi.setHex(dark ? 0x7dd3fc : 0x1d4ed8);
+    hi.setHex(dark ? 0xa5e8ff : 0x1d4ed8);
     lineMat.opacity = dark ? 0.9 : 0.55;
     for (const n of nodes) {
       const wave = 0.5 + 0.5 * Math.sin(t * 2.0 - Math.abs(n.p.x) * 1.3);          // waves running outward
       const beat = 0.5 + 0.5 * Math.sin(t * 2.1 + n.phase);                          // ~3 s pulse
       const flash = Math.pow(Math.max(0, Math.sin(t * 0.45 + n.phase * 5)), 40);     // occasional brightening
-      n.k = n.fade * Math.min(1, 0.32 + 0.3 * beat + 0.45 * wave ** 3 + flash);
+      n.k = n.fade * Math.min(1, 0.5 + 0.25 * beat + 0.45 * wave ** 3 + flash);
     }
     for (const l of layers) { l.list.forEach((n, i) => paint(l.geo.attributes.color, i, n.k, dark)); l.geo.attributes.color.needsUpdate = true; }
     edges.forEach(([i, j], e) => { paint(lineGeo.attributes.color, e * 2, nodes[i].k * 0.85, dark); paint(lineGeo.attributes.color, e * 2 + 1, nodes[j].k * 0.85, dark); });
@@ -323,7 +336,7 @@ function buildNetwork(lite, dot, glow) {
       if (p.s >= 1 && !hop(p, p.to)) spawn(p);
       v.copy(nodes[p.from].p).lerp(nodes[p.to].p, Math.min(p.s, 1));
       pulseGeo.attributes.position.setXYZ(i, v.x, v.y, v.z);
-      const k = 1 - THREE.MathUtils.smoothstep(Math.abs(v.x), 4.8, 7);
+      const k = 1 - THREE.MathUtils.smoothstep(Math.abs(v.x), 5.3, 6.7);
       if (dark) c.setHex(tip).multiplyScalar(k); else c.copy(lo).lerp(hi.setHex(tip), k);
       pulseGeo.attributes.color.setXYZ(i, c.r, c.g, c.b);
     });
@@ -398,14 +411,20 @@ async function start() {
   }
   const halo = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0x2563eb, transparent: true, opacity: 0.6, depthWrite: false })));
   halo.scale.set(8, 8, 1); halo.position.z = -1; halo.renderOrder = 1; shieldFloat.add(halo);
+  const rays = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: raysTexture(), color: 0x7cc4ff, transparent: true, opacity: 0.7, depthWrite: false })));
+  rays.scale.set(9.5, 9.5, 1); rays.position.z = -1.1; rays.renderOrder = 1; shieldFloat.add(rays);
   // a light pool under the shield
   const pool = new THREE.Mesh(new THREE.CircleGeometry(1.6, 48), glow(new THREE.MeshBasicMaterial({ map: dot, color: 0x3b82f6, transparent: true, opacity: 0.7, depthWrite: false })));
-  pool.rotation.x = -Math.PI / 2; pool.position.y = -3.6; pool.scale.set(1.9, 1, 1); pool.renderOrder = 2; world.add(pool);
+  pool.rotation.x = -Math.PI / 2; pool.position.y = -3.25; pool.scale.set(1.9, 1, 1); pool.renderOrder = 2; world.add(pool);
   // a bright horizon line with a soft glow under the shield
   const horizon = new THREE.Mesh(new THREE.PlaneGeometry(13, 0.035), glow(new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.9, depthWrite: false })));
-  horizon.position.set(0, -3.55, -0.5); horizon.renderOrder = 2; world.add(horizon);
+  horizon.position.set(0, -3.2, -0.5); horizon.renderOrder = 2; world.add(horizon);
   const horizonGlow = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0x2563eb, transparent: true, opacity: 0.55, depthWrite: false })));
-  horizonGlow.scale.set(12, 1.4, 1); horizonGlow.position.set(0, -3.55, -0.6); horizonGlow.renderOrder = 1; world.add(horizonGlow);
+  horizonGlow.scale.set(12, 1.4, 1); horizonGlow.position.set(0, -3.2, -0.6); horizonGlow.renderOrder = 1; world.add(horizonGlow);
+  const hotspot = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0xe0f2fe, transparent: true, opacity: 1, depthWrite: false })));
+  hotspot.scale.set(3.2, 0.7, 1); hotspot.position.set(0, -3.2, -0.4); hotspot.renderOrder = 3; world.add(hotspot);
+  const beam = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0x3b82f6, transparent: true, opacity: 0.6, depthWrite: false })));
+  beam.scale.set(0.9, 2.4, 1); beam.position.set(0, -3.2, -0.45); beam.renderOrder = 3; world.add(beam);
 
   /* --- the living network behind the shield (its own group, for deeper parallax) --- */
   const net = buildNetwork(lite, dot, glow); world.add(net.group);
@@ -419,7 +438,7 @@ async function start() {
   const BURST_EVERY = 5;
 
   /* --- rings with particles running along them --- */
-  const rings = RINGS.map((spec) => {
+  const rings = (SHOW_ORBIT ? RINGS : []).map((spec) => {
     const g = new THREE.Group(); g.rotation.set(spec.tilt, 0, spec.roll); world.add(g);
     const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(ringPoints(spec.radius)),
       glow(new THREE.LineBasicMaterial({ color: spec.color, transparent: true, opacity: spec.opacity, depthWrite: false })));
@@ -434,7 +453,7 @@ async function start() {
   /* --- the six entities on the orbit --- */
   const orbitGroup = new THREE.Group(); orbitGroup.rotation.set(ORBIT.tilt, 0, ORBIT.roll); world.add(orbitGroup);
   const orbit = new THREE.Group(); orbitGroup.add(orbit);
-  const entities = ENTITIES.map((spec, index) => {
+  const entities = (SHOW_ORBIT ? ENTITIES : []).map((spec, index) => {
     const anchor = new THREE.Group();                              // rides the orbit
     const angle = (index / ENTITIES.length) * Math.PI * 2;
     anchor.position.set(Math.cos(angle) * ORBIT.radius, Math.sin(angle) * ORBIT.radius, 0);
@@ -485,7 +504,8 @@ async function start() {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     const f = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
-    camera.userData.distance = Math.max(8.4 / 2 / f, (2 * (ORBIT.radius + 1.6)) / 2 / (f * camera.aspect));
+    const wings = camera.aspect < 1 ? 4.3 : 6.4;
+    camera.userData.distance = Math.max(7.6 / 2 / f, wings / (f * camera.aspect));
     camera.updateProjectionMatrix();
   }
   new ResizeObserver(resize).observe(renderer.domElement);
@@ -514,7 +534,7 @@ async function start() {
     // scene tilt and camera: eased so they never jump
     ease.lerp(pointer, 1 - Math.pow(0.02, dt || 0.016));
     camera.position.set(ease.x * 0.7, 0.55 - ease.y * 0.35, camera.userData.distance || 13);
-    camera.lookAt(0, -0.1, 0);
+    camera.lookAt(0, -0.2, 0);
     world.rotation.y = ease.x * 0.28;
     world.rotation.x = ease.y * 0.14;
 
@@ -524,8 +544,8 @@ async function start() {
     sweep.offset.x = 1 - ((t % 6.5) / 1.8) * 2;                     // a reflection crosses the glass every 6.5 s
     for (const m of edgeMats) m.opacity = 0.78 + 0.22 * Math.sin(t * 2.2);   // the rim pulses
     const b = (t % BURST_EVERY) / BURST_EVERY, fadeOut = (1 - b) ** 2;
-    burst.scale.setScalar(1.6 + b * 3.4); burst.material.opacity = fadeOut * (dark ? 0.5 : 0.3);
-    ripple.scale.setScalar(0.6 + b * 6.5); ripple.material.opacity = fadeOut * (dark ? 0.6 : 0.3);
+    burst.visible = false; rays.material.rotation = t * 0.03; rays.material.opacity = (dark ? 0.55 : 0.2) * (1 + 0.6 * (1 - b) ** 6);
+    ripple.visible = false; hotspot.material.opacity = dark ? 0.85 + 0.15 * Math.sin(t * 2.4) : 0.35; beam.material.opacity = dark ? 0.5 : 0.15;
     halo.material.opacity = (halo.userData.base || 0.6) * (1 + 0.7 * (1 - b) ** 8);
     net.group.position.set(-ease.x * 0.45, ease.y * 0.2, 0);         // deeper layer: more parallax
     net.update(t, reduce.matches ? 0 : dt, dark);
