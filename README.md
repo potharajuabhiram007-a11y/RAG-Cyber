@@ -94,7 +94,7 @@ Edit `.env`. Only the Neo4j settings are mandatory:
 | `LLM_MAX_TOKENS` | output cap for hosted models (default 2048; reasoning models need room for their hidden reasoning). A cut-off answer is trimmed to its last complete sentence |
 | `LLM_EVIDENCE_CHARS` | evidence characters sent to a hosted model (default 9000). If the API refuses the request as too large or rate-limited (HTTP 413 / 429), it is retried once with half the evidence |
 | `EMBEDDING_PROVIDER`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_BASE_URL` | `sentence-transformers` (default, `all-MiniLM-L6-v2` on the CPU), `local` (feature hashing), `openai` or `ollama` |
-| `UPDATE_INTERVAL_HOURS`, `NVD_UPDATE_INTERVAL_HOURS` | schedule of MITRE and NVD updates |
+| `UPDATE_INTERVAL_HOURS`, `NVD_UPDATE_INTERVAL_HOURS` | how often CWE, CAPEC and ATT&CK (default 2160 h, about 3 months) and CVE / NVD (default 24 h) are refreshed |
 | `ADMIN_API_KEY` | required for the manual sync endpoint |
 | `LOG_LEVEL` | `INFO`, `DEBUG`, ... |
 
@@ -320,14 +320,21 @@ neither network access nor Neo4j.
 
 Updates run inside the backend process (APScheduler) and never block requests:
 
-* MITRE CWE, CAPEC, ATT&CK and the reference documents every `UPDATE_INTERVAL_HOURS` (default 24);
-* NVD incremental updates every `NVD_UPDATE_INTERVAL_HOURS` (default 2), using
-  `lastModStartDate` / `lastModEndDate` with a 15-minute overlap.
+* CVE (NVD) incremental updates every `NVD_UPDATE_INTERVAL_HOURS` (default 24, daily), using
+  `lastModStartDate` / `lastModEndDate` with a 15-minute overlap; the local reference
+  documents are re-checked on the same daily schedule;
+* MITRE CWE, CAPEC and ATT&CK every `UPDATE_INTERVAL_HOURS` (default 2160, about every 3 months).
+
+The schedule is based on each source's last completed run, which is stored in Neo4j:
+once an hour the scheduler runs whatever is due. Restarts (for example Render's free
+plan going to sleep) therefore neither reset the clock nor trigger a full refresh;
+on start-up only sources that are due, or have never been loaded, are synchronised.
+`/api/sync/status` shows each source's interval and when it is next due.
 
 A source is never synchronised twice at once, each source has its own checkpoint,
 and a checkpoint only advances after the data has been written. A failed run
 leaves existing data untouched, is reported in `/api/sync/status` and is retried
-at the next interval. Set `SCHEDULER_ENABLED=false` to disable it and use
+after 6 hours. Set `SCHEDULER_ENABLED=false` to disable it and use
 `python -m backend.manage sync all` from cron / Task Scheduler instead.
 
 ### Adding reference documents

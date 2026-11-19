@@ -148,8 +148,8 @@ class Settings:
     embed_cves: bool = True
 
     # --- Scheduling ------------------------------------------------------
-    update_interval_hours: int = 24     # MITRE sources
-    nvd_update_interval_hours: int = 2
+    update_interval_hours: int = 2160   # CWE, CAPEC, ATT&CK: about every 3 months (90 days)
+    nvd_update_interval_hours: int = 24 # CVE (NVD) and the reference documents: daily
     scheduler_enabled: bool = True
     run_initial_sync: bool = True
 
@@ -253,7 +253,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
             "EMBEDDING_PROVIDER=openai needs EMBEDDING_API_KEY (or EMBEDDING_BASE_URL "
             "for a local OpenAI-compatible server).")
 
-    mitre_hours = _env_int("UPDATE_INTERVAL_HOURS", 24, minimum=1)
+    mitre_hours = _env_int("UPDATE_INTERVAL_HOURS", 2160, minimum=1)
     attack_urls = tuple(_env_list("ATTACK_STIX_URLS", ",".join(Settings.attack_stix_urls)))
     return Settings(
         neo4j_uri=_env("NEO4J_URI"),
@@ -285,8 +285,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         embedding_runtime=emb_runtime,
         embed_cves=_env_bool("EMBED_CVES", True),
         update_interval_hours=mitre_hours,
-        nvd_update_interval_hours=_env_int("NVD_UPDATE_INTERVAL_HOURS", min(2, mitre_hours),
-                                           minimum=1),
+        nvd_update_interval_hours=_env_int("NVD_UPDATE_INTERVAL_HOURS", 24, minimum=1),
         scheduler_enabled=_env_bool("SCHEDULER_ENABLED", True),
         run_initial_sync=_env_bool("RUN_INITIAL_SYNC", True),
         admin_api_key=_env("ADMIN_API_KEY"),
