@@ -59,10 +59,10 @@ services:
         value: /opt/render/project/src/.hf-cache
       - key: OMP_NUM_THREADS      # the free instance has a fraction of one CPU
         value: "1"
-      - key: UPDATE_INTERVAL_HOURS
+      - key: UPDATE_INTERVAL_HOURS        # CWE, CAPEC, ATT&CK: about every 3 months
+        value: "2160"
+      - key: NVD_UPDATE_INTERVAL_HOURS    # CVE (NVD): every 24 hours
         value: "24"
-      - key: NVD_UPDATE_INTERVAL_HOURS
-        value: "2"
       - key: SCHEDULER_ENABLED
         value: "true"
       - key: RUN_INITIAL_SYNC     # catch up on missed updates each time the service wakes

@@ -137,6 +137,50 @@ def test_sync_manager_prevents_overlapping_jobs(knowledge):
     assert expand_sources(["nvd", "mitre"]) == ["cwe", "capec", "attack", "nvd"]
 
 
+def test_default_schedule_is_cve_daily_and_mitre_quarterly():
+    from backend.config import Settings
+    defaults = Settings(neo4j_uri="bolt://x", neo4j_username="u", neo4j_password="p")
+    assert defaults.nvd_update_interval_hours == 24            # CVE every 24 hours
+    assert defaults.update_interval_hours == 2160              # CWE / CAPEC / ATT&CK every ~3 months
+
+
+def test_sources_are_due_by_their_own_interval(knowledge):
+    from datetime import datetime, timedelta, timezone
+    from dataclasses import replace
+    settings = replace(knowledge.settings, update_interval_hours=2160, nvd_update_interval_hours=24)
+    manager = SyncManager(knowledge.db, knowledge.embedder, settings, updaters={})
+    now = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    stamp = lambda hours: (now - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    db = knowledge.db
+    db.sync_states.clear()
+    # never run: everything is due (first load)
+    assert manager.due_sources(now) == ["foundation", "cwe", "capec", "attack", "nvd"]
+    # CVE synced 25 h ago -> due; MITRE synced 30 days ago -> not due yet
+    db.save_sync_state("nvd", status="success", last_success_at=stamp(25), last_checked_at=stamp(25))
+    db.save_sync_state("foundation", status="success", last_success_at=stamp(2))
+    for source in ("cwe", "capec", "attack"):
+        db.save_sync_state(source, status="success", last_success_at=stamp(24 * 30))
+    assert manager.due_sources(now) == ["nvd"]
+    # an unchanged MITRE file only moves last_checked_at; that still counts as a completed run
+    db.save_sync_state("cwe", last_success_at=stamp(24 * 200), last_checked_at=stamp(24 * 10))
+    assert "cwe" not in manager.due_sources(now)
+    # after about 3 months the MITRE sources are due again
+    db.save_sync_state("capec", last_success_at=stamp(2161))
+    assert manager.due_sources(now) == ["capec", "nvd"]
+    # a source that just failed waits 6 hours before it is retried
+    db.save_sync_state("nvd", status="failed", last_failure_at=stamp(1))
+    assert "nvd" not in manager.due_sources(now)
+    db.save_sync_state("nvd", last_failure_at=stamp(7))
+    assert "nvd" in manager.due_sources(now)
+    # an unfinished first NVD load always continues
+    db.save_sync_state("nvd", status="success", last_success_at=stamp(1), full_sync_next_index=4000)
+    assert "nvd" in manager.due_sources(now)
+    # status shows each source's interval and when it is next due
+    rows = {row["source"]: row for row in manager.status()["sources"]}
+    assert rows["nvd"]["update_interval_hours"] == 24 and rows["attack"]["update_interval_hours"] == 2160
+    assert rows["attack"]["next_scheduled_run"] == (now - timedelta(hours=24 * 30) + timedelta(hours=2160)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
 def test_missing_configuration_gives_a_clear_error(monkeypatch):
     for name in ("NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"):
         monkeypatch.setenv(name, "")
