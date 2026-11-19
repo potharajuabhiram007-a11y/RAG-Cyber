@@ -2041,15 +2041,10 @@
     }
   }
   window.addEventListener("hashchange", () => {
-    const next = (location.hash.match(/^#\/([a-z]+)/) || [])[1];
-    const changing = next && VIEW_META[next] && next !== currentView;
-    if (changing && document.startViewTransition && !reducedMotion.matches) {
-      document.documentElement.classList.add("vt");
-      const transition = document.startViewTransition(route);
-      transition.ready.catch(() => {});                     // a skipped or aborted transition is not an error: the view still switches
-      transition.updateCallbackDone.catch(() => {});
-      transition.finished.catch(() => {}).then(() => document.documentElement.classList.remove("vt"));
-    } else route();
+    // Switch at once; the new view fades and rises in (.view.enter). The View Transitions
+    // API was dropped here: snapshotting the page (3D canvas included) delayed the switch
+    // and crossfaded two whole pages over each other.
+    route();
   });
   window.addEventListener("resize", placeIndicator);
 
