@@ -139,6 +139,31 @@ const circuitTexture = () => canvasTex((g) => {                   // PCB-style t
     for (let p = -w / 2 + 6; p < w / 2 - 2; p += 8) { g.fillRect(cx + p, cy - h / 2 - 7, 2, 7); g.fillRect(cx + p, cy + h / 2, 2, 7); }
   }
 });
+const ENTITIES = [                                                 // the knowledge graph's own entity types
+  { key: "CVE", label: "CVE", tone: "#ef4444" },
+  { key: "CWE", label: "CWE", tone: "#f59e0b" },
+  { key: "CAPEC", label: "CAPEC", tone: "#8b5cf6" },
+  { key: "ATTACK", label: "ATT&CK", tone: "#22d3ee" },
+  { key: "INTEL", label: "Threat Intel", tone: "#38bdf8" },
+  { key: "RAG", label: "RAG", tone: "#3b82f6" },
+];
+function entityLabel(e, dark) {                                    // a glowing node with its name beside it
+  const k = 2, font = `700 ${30 * k}px "Space Grotesk", "Inter", system-ui, sans-serif`;
+  const meas = document.createElement("canvas").getContext("2d"); meas.font = font;
+  const r = 20 * k, pad = 16 * k, gap = 14 * k, w = Math.ceil(pad + r * 2 + gap + meas.measureText(e.label).width + pad), h = 84 * k;
+  const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d");
+  const cx = pad + r, cy = h / 2;
+  const halo = g.createRadialGradient(cx, cy, 0, cx, cy, r * 2); halo.addColorStop(0, e.tone + "aa"); halo.addColorStop(1, e.tone + "00");
+  g.fillStyle = halo; g.fillRect(0, 0, cx + r * 2, h);
+  g.beginPath(); g.arc(cx, cy, r * 0.62, 0, Math.PI * 2); g.fillStyle = e.tone; g.fill();
+  g.beginPath(); g.arc(cx, cy, r * 0.28, 0, Math.PI * 2); g.fillStyle = "#ffffff"; g.fill();
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.lineWidth = 2.5 * k; g.strokeStyle = e.tone; g.stroke();
+  g.font = font; g.textBaseline = "middle";
+  g.shadowColor = dark ? "rgba(8,13,27,0.9)" : "rgba(255,255,255,0.9)"; g.shadowBlur = 10 * k;
+  g.fillStyle = dark ? "#e8f1ff" : "#0f172a"; g.fillText(e.label, cx + r + gap, cy + k);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return { tex: t, aspect: w / h, dotX: cx / w };
+}
 function glowDot() {
   const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
   const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -249,7 +274,6 @@ function buildNetwork(lite, nodeMat, lineMat, pulseMat) {
   const LAYERS = [
     { z: [-0.45, -0.9], n: lite ? 44 : 84, bright: 1.0, soft: 0.0, size: 0.11, link: 0.9 },
     { z: [-1.4, -2.1], n: lite ? 32 : 66, bright: 0.62, soft: 0.55, size: 0.14, link: 0.55 },
-    { z: [-2.7, -3.5], n: lite ? 22 : 50, bright: 0.36, soft: 1.0, size: 0.18, link: 0.32 },
   ];
   const nodes = [];
   // hubs on the shield's sides, so the network plugs into it
@@ -396,21 +420,8 @@ async function start() {
   const nodeUniforms = () => ({ uTime: { value: 0 }, uScale: { value: 1000 }, uDrift: { value: 0 }, uCore: { value: new THREE.Color() }, uGlow: { value: new THREE.Color() } });
   const nodeMat = shaderMat(NODE_VS, NODE_FS, nodeUniforms());
   const pulseMat = shaderMat(NODE_VS, NODE_FS, nodeUniforms());
-  const dustMat = shaderMat(NODE_VS, NODE_FS, nodeUniforms()); dustMat.uniforms.uDrift.value = 1;
   const lineMat = shaderMat(LINE_VS, LINE_FS, { uTime: { value: 0 }, uA: { value: new THREE.Color() }, uB: { value: new THREE.Color() }, uGain: { value: 1 } });
   const net = buildNetwork(lite, nodeMat, lineMat, pulseMat); world.add(net.group);
-
-  /* --- floating particles --- */
-  {
-    const rand = seeded(23), n = lite ? 90 : 220, g = new THREE.BufferGeometry();
-    const pos = new Float32Array(n * 3), size = new Float32Array(n), phase = new Float32Array(n), bright = new Float32Array(n), soft = new Float32Array(n);
-    for (let i = 0; i < n; i += 1) {
-      pos.set([(rand() * 2 - 1) * 7, -3.4 + rand() * 7.2, -3.5 + rand() * 5], i * 3);
-      size[i] = 0.05 + rand() * 0.07; phase[i] = rand() * 6.28; bright[i] = 0.15 + rand() * 0.3; soft[i] = rand();
-    }
-    for (const [k, a, s] of [["position", pos, 3], ["aSize", size, 1], ["aPhase", phase, 1], ["aBright", bright, 1], ["aSoft", soft, 1]]) g.setAttribute(k, new THREE.BufferAttribute(a, s));
-    const dust = new THREE.Points(g, dustMat); dust.renderOrder = 4; dust.frustumCulled = false; world.add(dust);
-  }
 
   /* --- the shield --- */
   const shieldFloat = new THREE.Group(); world.add(shieldFloat);
@@ -466,42 +477,32 @@ async function start() {
     }
   }
 
-  // graph nodes orbiting the shield on tilted paths, at different speeds and directions
-  const orbiters = [];
-  for (const spec of [
-    { r: 3.5, tilt: 1.2, roll: 0.22, speed: 0.07, n: 9, color: 0x67e8f9 },
-    { r: 4.3, tilt: 1.32, roll: -0.3, speed: -0.045, n: 11, color: 0x60a5fa },
-    { r: 5.1, tilt: 1.05, roll: 0.08, speed: 0.03, n: 8, color: 0x3b82f6 },
-  ]) {
-    const holder = new THREE.Group(); holder.rotation.set(spec.tilt, 0, spec.roll); shieldFloat.add(holder);
-    const spin = new THREE.Group(); holder.add(spin);
-    const pts = [], rand = seeded(spec.n * 13);
-    for (let i = 0; i < spec.n; i += 1) {
-      const a = (i / spec.n) * Math.PI * 2 + rand() * 0.4, rr = spec.r * (0.92 + rand() * 0.16);
-      pts.push(new THREE.Vector3(Math.cos(a) * rr, Math.sin(a) * rr, (rand() - 0.5) * 0.4));
+  /* --- the key entities, orbiting slowly on a wide ellipse and linked like the real graph --- */
+  const ORBIT = { rx: 6.3, ry: 1.25, y: -0.2, speed: 0.045 };
+  const entityGroup = new THREE.Group(); shieldFloat.add(entityGroup);
+  const entities = ENTITIES.map((spec, i) => {
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false }));
+    sprite.renderOrder = 30; entityGroup.add(sprite);
+    return { spec, sprite, base: (i / ENTITIES.length) * Math.PI * 2, pos: new THREE.Vector3() };
+  });
+  function paintEntities() {
+    const dark = isDark();
+    for (const e of entities) {
+      const { tex, aspect, dotX } = entityLabel(e.spec, dark);
+      if (e.sprite.material.map) e.sprite.material.map.dispose();
+      e.sprite.material.map = tex; e.sprite.material.needsUpdate = true;
+      e.sprite.center.set(dotX, 0.5); e.h = 0.95; e.aspect = aspect;
     }
-    // links between neighbours on the orbit, as gentle arcs
-    const seg = [];
-    for (let i = 0; i < spec.n; i += 1) {
-      const a = pts[i], b = pts[(i + 1) % spec.n], mid = a.clone().add(b).multiplyScalar(0.5);
-      mid.multiplyScalar(1.06);
-      const curve = new THREE.QuadraticBezierCurve3(a, mid, b).getPoints(12);
-      for (let j = 0; j < curve.length - 1; j += 1) seg.push(curve[j], curve[j + 1]);
-    }
-    const lg = new THREE.BufferGeometry().setFromPoints(seg);
-    const lineMatO = glow(new THREE.LineBasicMaterial({ color: spec.color, transparent: true, opacity: 0.35, depthWrite: false }));
-    const lines = new THREE.LineSegments(lg, lineMatO); lines.renderOrder = 8; spin.add(lines);
-    const g = new THREE.BufferGeometry().setFromPoints(pts);
-    const n = pts.length, size = new Float32Array(n), phase = new Float32Array(n), bright = new Float32Array(n), soft = new Float32Array(n);
-    for (let i = 0; i < n; i += 1) { size[i] = i % 3 === 0 ? 0.3 : 0.17; phase[i] = rand() * 6.28; bright[i] = 1.1; soft[i] = 0; }
-    g.setAttribute("aSize", new THREE.BufferAttribute(size, 1)); g.setAttribute("aPhase", new THREE.BufferAttribute(phase, 1));
-    g.setAttribute("aBright", new THREE.BufferAttribute(bright, 1)); g.setAttribute("aSoft", new THREE.BufferAttribute(soft, 1));
-    const nodes = new THREE.Points(g, nodeMat); nodes.renderOrder = 9; nodes.frustumCulled = false; spin.add(nodes);
-    // a spark that runs round each orbit
-    const spark = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0xcffafe, transparent: true, opacity: 0.9, depthWrite: false })));
-    spark.scale.set(0.3, 0.3, 1); spark.renderOrder = 9; spin.add(spark);
-    orbiters.push({ spec, spin, lineMat: lineMatO, spark, pts });
   }
+  // links: each entity to the next (CVE-CWE-CAPEC-ATT&CK-Threat Intel-RAG-CVE) and a spoke into the shield
+  const linkGeo = new THREE.BufferGeometry();
+  linkGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(entities.length * 4 * 3), 3));
+  const linkMat = glow(new THREE.LineBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.5, depthWrite: false }));
+  const links = new THREE.LineSegments(linkGeo, linkMat); links.renderOrder = 7; links.frustumCulled = false; entityGroup.add(links);
+  const sparks = entities.map(() => {
+    const sp = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0xcffafe, transparent: true, opacity: 0.9, depthWrite: false })));
+    sp.scale.set(0.32, 0.32, 1); sp.renderOrder = 8; entityGroup.add(sp); return sp;
+  });
 
   /* --- energy rings around the shield, and on the floor --- */
   const rings = [];
@@ -514,9 +515,8 @@ async function start() {
     return line;
   };
   const r1 = ringLine(2.85, 0x7dd3fc, 0.11, 0.9); r1.rotation.set(1.42, 0, 0.08); r1.position.y = -0.5; shieldFloat.add(r1);
-  const r2 = ringLine(3.2, 0x3b82f6, -0.08, 0.7); r2.rotation.set(1.3, 0.1, -0.2); r2.position.y = 0.2; shieldFloat.add(r2);
   const FLOOR = -3.25;
-  for (const [r, c, s, o] of [[1.3, 0x93c5fd, 0.16, 0.9], [2.2, 0x60a5fa, -0.1, 0.65], [3.2, 0x3b82f6, 0.07, 0.45]]) {
+  for (const [r, c, s, o] of [[1.4, 0x93c5fd, 0.16, 0.8], [2.6, 0x3b82f6, -0.08, 0.4]]) {
     const l = ringLine(r, c, s, o); l.rotation.x = -Math.PI / 2; l.position.y = FLOOR; l.renderOrder = 1; world.add(l);
   }
 
@@ -543,7 +543,6 @@ async function start() {
     renderer.domElement.classList.toggle("hx-gl--bloom", bloomOn);
     nodeMat.uniforms.uCore.value.setHex(dark ? 0xe0fbff : 0x1e40af); nodeMat.uniforms.uGlow.value.setHex(dark ? 0x2563eb : 0x60a5fa);
     pulseMat.uniforms.uCore.value.setHex(dark ? 0xffffff : 0x1d4ed8); pulseMat.uniforms.uGlow.value.setHex(dark ? 0x22d3ee : 0x38bdf8);
-    dustMat.uniforms.uCore.value.setHex(dark ? 0xbfdbfe : 0x3b82f6); dustMat.uniforms.uGlow.value.setHex(dark ? 0x1d4ed8 : 0x93c5fd);
     lineMat.uniforms.uA.value.setHex(dark ? 0x1d4ed8 : 0x93c5fd); lineMat.uniforms.uB.value.setHex(dark ? 0x67e8f9 : 0x1d4ed8);
     lineMat.uniforms.uGain.value = dark ? 1.9 : 0.9;
     raysBase = dark ? 0.42 : 0.2;
@@ -561,7 +560,9 @@ async function start() {
     renderer.toneMappingExposure = dark ? 0.92 : 1.0;
   }
   applyTheme();
-  document.addEventListener("themechange", () => setTimeout(applyTheme, 30));
+  paintEntities();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(paintEntities);
+  document.addEventListener("themechange", () => setTimeout(() => { applyTheme(); paintEntities(); }, 30));
 
   /* --- bloom (dark theme, larger screens) --- */
   const composer = new EffectComposer(renderer);
@@ -577,11 +578,11 @@ async function start() {
     composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h);
     camera.aspect = w / h;
     const f = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
-    const wings = camera.aspect < 1 ? 4.6 : 6.0;
+    const wings = camera.aspect < 1 ? 5.2 : 7.4;
     camera.userData.distance = Math.max(10.2 / 2 / f, wings / (f * camera.aspect));
     camera.updateProjectionMatrix();
     const scale = (h * renderer.getPixelRatio()) / (2 * f);
-    for (const m of [nodeMat, pulseMat, dustMat]) m.uniforms.uScale.value = scale;
+    for (const m of [nodeMat, pulseMat]) m.uniforms.uScale.value = scale;
   }
   new ResizeObserver(resize).observe(renderer.domElement);
   resize();
@@ -599,11 +600,12 @@ async function start() {
   let onScreen = true, frameId = 0, last = 0;
   new IntersectionObserver((list) => { onScreen = list[0].isIntersecting; }).observe(host);
   const clock = new THREE.Clock();
-  const timed = [raysMat, nodeMat, pulseMat, dustMat, lineMat, circuitMat, ...rings.map((r) => r.mat)];
+  const timed = [raysMat, nodeMat, pulseMat, lineMat, circuitMat, ...rings.map((r) => r.mat)];
 
   function render() {
     frameId = requestAnimationFrame(render);
     if (!onScreen || !document.body.classList.contains("entry") || !host.offsetParent) return;
+    if (document.documentElement.classList.contains("vt")) return;   // hold still while the page switches
     const t = reduce.matches ? 2.0 : clock.getElapsedTime();
     const dt = Math.min(0.05, Math.max(0, t - last)); last = t;      // delta time: same speed at any frame rate
     const dark = isDark();
@@ -637,18 +639,34 @@ async function start() {
       const u = ((t * k.speed + k.offset) % 1 + 1) % 1, pt = outline[Math.floor(u * (outline.length - 1))];
       k.c.position.copy(pt); k.c.material.opacity = (dark ? 0.95 : 0.6) * (0.7 + 0.3 * hover);
     }
-    for (const o of orbiters) {                                      // nodes orbiting the shield
-      o.spin.rotation.z = t * o.spec.speed;
-      const u = (t * 0.12 * Math.sign(o.spec.speed) % 1 + 1) % 1, i = Math.floor(u * o.pts.length);
-      o.spark.position.lerpVectors(o.pts[i], o.pts[(i + 1) % o.pts.length], (u * o.pts.length) % 1);
-      o.lineMat.opacity = (dark ? 0.35 : 0.3) * (0.8 + 0.4 * breathe);
-    }
+    // entities: orbit, depth (behind the shield = dimmer, smaller), fade while passing behind the text
+    const lp = linkGeo.attributes.position;
+    entities.forEach((e, i) => {
+      const a = e.base + t * ORBIT.speed;
+      e.pos.set(Math.cos(a) * ORBIT.rx, ORBIT.y + Math.sin(a) * ORBIT.ry * 0.35 + Math.sin(t * 0.7 + i) * 0.08, Math.sin(a) * ORBIT.ry * 2.2);
+      e.sprite.position.copy(e.pos);
+      const front = e.pos.z > 0, sideways = THREE.MathUtils.smoothstep(Math.abs(e.pos.x), 1.6, 3.8);
+      const s = (front ? 1 : 0.8) * (1 + 0.12 * hover);
+      e.sprite.scale.set(e.h * e.aspect * s, e.h * s, 1);
+      e.sprite.material.opacity = (front ? 1 : 0.55) * (0.25 + 0.75 * sideways);
+      e.sprite.renderOrder = front ? 30 : 2;
+    });
+    entities.forEach((e, i) => {
+      const n = entities[(i + 1) % entities.length];
+      lp.setXYZ(i * 4, e.pos.x, e.pos.y, e.pos.z); lp.setXYZ(i * 4 + 1, n.pos.x, n.pos.y, n.pos.z);
+      lp.setXYZ(i * 4 + 2, e.pos.x, e.pos.y, e.pos.z); lp.setXYZ(i * 4 + 3, e.pos.x * 0.32, e.pos.y * 0.5 + 0.2, e.pos.z * 0.2);
+      const u = (t * 0.35 + i / entities.length) % 1;               // a pulse running along each relation
+      sparks[i].position.lerpVectors(e.pos, n.pos, u);
+      sparks[i].material.opacity = (dark ? 0.9 : 0.55) * Math.sin(u * Math.PI);
+    });
+    lp.needsUpdate = true;
+    linkMat.opacity = (dark ? 0.42 : 0.35) * (0.8 + 0.3 * breathe);
     borderHalo.opacity = (dark ? 0.16 : 0.1) * (1 + 1.2 * flare);
     glint.material.opacity = (dark ? 0.8 : 0.3) * Math.pow(Math.max(0, Math.sin(t * 0.9)), 30);
     glint.position.y = 2.1 + Math.sin(t * 0.45) * 0.3;
     rimA.position.set(Math.cos(t * 0.5) * 3.6, 1.6, -1.8 + Math.sin(t * 0.5) * 1.5);
     rimB.position.set(Math.cos(t * 0.5 + Math.PI) * 3.6, -0.8, -1.8 + Math.sin(t * 0.5 + Math.PI) * 1.5);
-    r1.rotation.z = t * 0.05; r2.rotation.z = -t * 0.04;             // the rings turn
+    r1.rotation.z = t * 0.05;                                        // the ring turns
     net.update(reduce.matches ? 0 : dt);
 
     if (bloomOn) composer.render(); else renderer.render(scene, camera);
@@ -656,9 +674,11 @@ async function start() {
   }
   document.addEventListener("visibilitychange", () => { cancelAnimationFrame(frameId); if (!document.hidden) frameId = requestAnimationFrame(render); });
 
+  try { await renderer.compileAsync(scene, camera); } catch (error) { /* older browsers compile on first draw */ }
   window.__hx3d = true;
   host.classList.add("hx-webgl");
   frameId = requestAnimationFrame(render);
+  requestAnimationFrame(() => requestAnimationFrame(() => renderer.domElement.classList.add("ready")));
 }
 
 start().catch((error) => console.warn("3D hero unavailable, using the fallback:", error));
