@@ -204,132 +204,6 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * 5b. Hero: the shield image stays fixed; seven labels orbit it in 3D.
-   * Each label has its own orbit (radius, tilt, elevation, speed, phase). Positions
-   * are computed in 3D and projected with perspective every frame, so labels behind
-   * the shield shrink, dim and pass behind the image; light lines with travelling
-   * particles connect each label to the shield's lock.
-   * ------------------------------------------------------------------ */
-  const ORBITS = {
-    CVE:    { r: 0.58, elev: 18, tilt: -8,  speed: 0.15, phase: 0.0 },
-    CWE:    { r: 0.50, elev: 24, tilt: 10,  speed: 0.20, phase: 1.1 },
-    CAPEC:  { r: 0.64, elev: 14, tilt: 15,  speed: 0.12, phase: 2.2 },
-    ATTACK: { r: 0.55, elev: 28, tilt: -16, speed: 0.17, phase: 3.1 },
-    RAG:    { r: 0.48, elev: 20, tilt: 20,  speed: 0.22, phase: 4.0 },
-    AI:     { r: 0.62, elev: 16, tilt: -2,  speed: 0.13, phase: 4.9 },
-    INTEL:  { r: 0.53, elev: 26, tilt: -24, speed: 0.18, phase: 5.8 },
-  };
-  function startOrbit() {
-    const host = document.querySelector(".hx");
-    if (!host) return;
-    const canvas = host.querySelector(".hx-canvas"), ctx = canvas.getContext("2d");
-    const img = host.querySelector(".hx-shield");
-    const labels = [...host.querySelectorAll(".hx-label")].map((el) => ({
-      el, key: el.dataset.k, orbit: ORBITS[el.dataset.k] || ORBITS.CVE, sparks: [], tone: "#3B82F6",
-      bob: Math.random() * Math.PI * 2,
-    }));
-    const pointer = { x: 0, y: 0 };
-    let hover = null, frame = 0, start = performance.now(), width = 0, height = 0, dpr = 1;
-    const readTones = () => labels.forEach((l) => { l.tone = getComputedStyle(l.el).getPropertyValue("--tone").trim() || "#3B82F6"; });
-    readTones();
-    document.addEventListener("themechange", () => setTimeout(readTones, 60));
-    labels.forEach((l) => {
-      l.el.addEventListener("pointerenter", () => { hover = l.key; l.el.classList.add("is-hot"); });
-      l.el.addEventListener("pointerleave", () => { if (hover === l.key) hover = null; l.el.classList.remove("is-hot"); });
-    });
-    window.addEventListener("pointermove", (e) => {
-      pointer.x = e.clientX / window.innerWidth - 0.5; pointer.y = e.clientY / window.innerHeight - 0.5;
-    }, { passive: true });
-
-    const rgba = (hex, alpha) => {
-      const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex);
-      return m ? `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${alpha})` : `rgba(59,130,246,${alpha})`;
-    };
-
-    function project(o, angle, R, cx, cy) {
-      const yaw = pointer.x * 0.35, e = (o.elev + pointer.y * 8) * Math.PI / 180, tau = o.tilt * Math.PI / 180;
-      const a = angle + yaw;
-      const x = R * Math.cos(a), zc = R * Math.sin(a);
-      const y1 = -zc * Math.sin(e), z1 = zc * Math.cos(e);                 // tilt the orbit towards the viewer
-      const x2 = x * Math.cos(tau) - y1 * Math.sin(tau), y2 = x * Math.sin(tau) + y1 * Math.cos(tau);
-      const D = Math.max(width, 400) * 1.8, f = D / (D - z1);             // perspective
-      return { x: cx + x2 * f, y: cy + y2 * f, z: z1 / R, f };
-    }
-
-    function draw(now) {
-      if (window.__hx3d) { cancelAnimationFrame(frame); return; }      // the Three.js hero took over
-      frame = requestAnimationFrame(draw);
-      if (!document.body.classList.contains("entry") || !host.offsetParent) return;
-      const box = host.getBoundingClientRect();
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      if (Math.round(box.width * dpr) !== canvas.width || Math.round(box.height * dpr) !== canvas.height) {
-        canvas.width = Math.round(box.width * dpr); canvas.height = Math.round(box.height * dpr);
-      }
-      width = box.width; height = box.height;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-      const shot = img.getBoundingClientRect();
-      const cx = shot.left - box.left + shot.width * 0.555, cy = shot.top - box.top + shot.height * 0.45;
-      const R = Math.min(width * 0.9, height * 1.05);
-      const t = reduce.matches ? 0 : (now - start) / 1000;
-      const dark = document.documentElement.getAttribute("data-theme") === "dark";
-
-      // orbit paths, faint, brighter for the hovered label
-      for (const l of labels) {
-        ctx.beginPath();
-        for (let s = 0; s <= 64; s += 1) {
-          const p = project(l.orbit, (s / 64) * Math.PI * 2, R * l.orbit.r, cx, cy);
-          if (s === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
-        }
-        ctx.strokeStyle = rgba(l.tone, hover === l.key ? 0.4 : (dark ? 0.1 : 0.14));
-        ctx.lineWidth = hover === l.key ? 1.4 : 1;
-        ctx.stroke();
-      }
-
-      for (const l of labels) {
-        const o = l.orbit, angle = o.phase + t * o.speed;
-        const p = project(o, angle, R * o.r, cx, cy);
-        const bob = reduce.matches ? 0 : Math.sin(t * 1.6 + l.bob) * 5;
-        const depth = (p.z + 1) / 2;                                       // 0 far ... 1 near
-        const scale = (0.72 + 0.38 * depth) * (hover === l.key ? 1.12 : 1);
-        l.el.style.transform = `translate(${p.x.toFixed(1)}px, ${(p.y + bob).toFixed(1)}px) translate(-50%, -50%) scale(${scale.toFixed(3)})`;
-        l.el.style.opacity = (0.45 + 0.55 * depth).toFixed(2);
-        l.el.style.zIndex = p.z > -0.05 ? "4" : "1";                       // behind the shield or in front
-
-        // connecting line: fades out over the shield so the image stays clean
-        const dim = hover && hover !== l.key ? 0.35 : 1;
-        const grad = ctx.createLinearGradient(cx, cy, p.x, p.y + bob);
-        grad.addColorStop(0, rgba(l.tone, 0));
-        grad.addColorStop(0.35, rgba(l.tone, 0.12 * dim));
-        grad.addColorStop(1, rgba(l.tone, (hover === l.key ? 0.95 : 0.55) * dim * (0.5 + 0.5 * depth)));
-        ctx.strokeStyle = grad; ctx.lineWidth = hover === l.key ? 2.2 : 1.2;
-        if (p.z <= -0.05) ctx.setLineDash([3, 5]); else ctx.setLineDash([]);
-        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(p.x, p.y + bob); ctx.stroke();
-        ctx.setLineDash([]);
-
-        // light particles travelling from the shield to the label
-        if (!reduce.matches && Math.random() < (hover === l.key ? 0.22 : 0.05)) l.sparks.push({ k: 0, v: 0.008 + Math.random() * 0.01 });
-        for (const s of l.sparks) {
-          s.k += s.v;
-          const k = s.k, x = cx + (p.x - cx) * k, y = cy + (p.y + bob - cy) * k;
-          ctx.fillStyle = rgba(l.tone, Math.min(1, 1.4 - k) * dim);
-          ctx.shadowColor = l.tone; ctx.shadowBlur = 10;
-          ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
-        }
-        ctx.shadowBlur = 0;
-        l.sparks = l.sparks.filter((s) => s.k < 1);
-      }
-      if (reduce.matches) cancelAnimationFrame(frame);                    // one still frame
-    }
-    document.addEventListener("visibilitychange", () => {
-      cancelAnimationFrame(frame);
-      if (!document.hidden) frame = requestAnimationFrame(draw);
-    });
-    if (img.complete) frame = requestAnimationFrame(draw);
-    else img.addEventListener("load", () => { frame = requestAnimationFrame(draw); }, { once: true });
-  }
-
-  /* ------------------------------------------------------------------ *
    * 6. Light / dark theme (the head script applies the saved one before paint).
    * ------------------------------------------------------------------ */
   const THEME_KEY = "ragcyber.theme";
@@ -357,7 +231,7 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * 7. Search boxes type example questions while they are empty.
+   * 7. The graph search types example entities while it is empty.
    * ------------------------------------------------------------------ */
   function typingPlaceholder(field, examples, prefix) {
     if (!field) return;
@@ -412,7 +286,6 @@
     syncThemeButton();
     const themeButton = document.getElementById("theme-toggle");
     if (themeButton) themeButton.addEventListener("click", toggleTheme);
-    startOrbit();          // also draws one still frame when motion is reduced
     window.addEventListener("load", remeasureComposer);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasureComposer);
     window.addEventListener("resize", remeasureComposer);
@@ -420,9 +293,6 @@
     if (reduce.matches) return;
 
     startBackground();
-    typingPlaceholder(document.getElementById("input"), [
-      "Explain CVE-2026-44523", "Which CVEs are linked to T1110?", "What is SQL injection?",
-      "How do I mitigate CWE-79?", "Show the attack chain for CAPEC-66"], "Ask: ");
     typingPlaceholder(document.getElementById("kg-search"), ["CVE-2026-44523", "CWE-79", "CAPEC-66", "T1110 Brute Force"], "Find ");
 
     revealer = new IntersectionObserver((entries) => {

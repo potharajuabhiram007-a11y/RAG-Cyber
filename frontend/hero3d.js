@@ -10,7 +10,7 @@
  * Behind it, a three-layer knowledge-graph network with curved links (custom shaders: nodes pulse
  * independently, light runs outward along the links, far layers are softer for depth of field),
  * pulses travelling along the links, volumetric light rays, energy rings, floating particles,
- * a floor glow with a lens-flare streak. Dark theme adds real bloom post-processing.
+ * a floor glow. Dark theme adds real bloom post-processing.
  *
  * Everything animates on delta time, pauses off-screen / in hidden tabs, and holds still for
  * prefers-reduced-motion. Phones get fewer nodes and no bloom. No WebGL: the CSS hero stays.
@@ -19,6 +19,7 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
@@ -139,31 +140,6 @@ const circuitTexture = () => canvasTex((g) => {                   // PCB-style t
     for (let p = -w / 2 + 6; p < w / 2 - 2; p += 8) { g.fillRect(cx + p, cy - h / 2 - 7, 2, 7); g.fillRect(cx + p, cy + h / 2, 2, 7); }
   }
 });
-const ENTITIES = [                                                 // the knowledge graph's own entity types
-  { key: "CVE", label: "CVE", tone: "#ef4444" },
-  { key: "CWE", label: "CWE", tone: "#f59e0b" },
-  { key: "CAPEC", label: "CAPEC", tone: "#8b5cf6" },
-  { key: "ATTACK", label: "ATT&CK", tone: "#22d3ee" },
-  { key: "INTEL", label: "Threat Intel", tone: "#38bdf8" },
-  { key: "RAG", label: "RAG", tone: "#3b82f6" },
-];
-function entityLabel(e, dark) {                                    // a glowing node with its name beside it
-  const k = 2, font = `700 ${30 * k}px "Space Grotesk", "Inter", system-ui, sans-serif`;
-  const meas = document.createElement("canvas").getContext("2d"); meas.font = font;
-  const r = 20 * k, pad = 16 * k, gap = 14 * k, w = Math.ceil(pad + r * 2 + gap + meas.measureText(e.label).width + pad), h = 84 * k;
-  const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d");
-  const cx = pad + r, cy = h / 2;
-  const halo = g.createRadialGradient(cx, cy, 0, cx, cy, r * 2); halo.addColorStop(0, e.tone + "aa"); halo.addColorStop(1, e.tone + "00");
-  g.fillStyle = halo; g.fillRect(0, 0, cx + r * 2, h);
-  g.beginPath(); g.arc(cx, cy, r * 0.62, 0, Math.PI * 2); g.fillStyle = e.tone; g.fill();
-  g.beginPath(); g.arc(cx, cy, r * 0.28, 0, Math.PI * 2); g.fillStyle = "#ffffff"; g.fill();
-  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.lineWidth = 2.5 * k; g.strokeStyle = e.tone; g.stroke();
-  g.font = font; g.textBaseline = "middle";
-  g.shadowColor = dark ? "rgba(8,13,27,0.9)" : "rgba(255,255,255,0.9)"; g.shadowBlur = 10 * k;
-  g.fillStyle = dark ? "#e8f1ff" : "#0f172a"; g.fillText(e.label, cx + r + gap, cy + k);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
-  return { tex: t, aspect: w / h, dotX: cx / w };
-}
 function glowDot() {
   const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
   const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -189,7 +165,7 @@ const CIRCUIT_FS = `
     if (texture2D(uMask, vUv).g < 0.5) discard;
     float c = texture2D(uCircuit, vUv).g;
     float r = length((vUv - vec2(0.5, 0.1)) * vec2(1.0, 1.3));
-    float wave = pow(0.5 + 0.5 * sin(r * 24.0 - uTime * 3.0), 6.0);           // energy rising through the traces
+    float wave = pow(max(0.0, 0.5 + 0.5 * sin(r * 24.0 - uTime * 3.0)), 6.0);           // energy rising through the traces
     float flick = 0.85 + 0.15 * sin(uTime * 7.0 + vUv.y * 40.0);
     float v = c * (0.28 + 0.9 * wave) * flick * uStrength;
     gl_FragColor = vec4(mix(uA, uB, wave), clamp(v, 0.0, 1.0));
@@ -199,8 +175,8 @@ const FX_FS = `
   varying vec2 vUv; varying vec3 vN; varying vec3 vV;
   void main() {
     if (texture2D(uMask, vUv).g < 0.5) discard;
-    float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.2);            // fresnel rim light
-    float band = exp(-pow((vUv.x * 0.75 + vUv.y * 0.65 - uSweep) * 11.0, 2.0));  // a reflection sweeping across
+    float f = pow(max(0.0, 1.0 - abs(dot(normalize(vN), normalize(vV)))), 2.2);  // fresnel rim light
+    float bd = (vUv.x * 0.75 + vUv.y * 0.65 - uSweep) * 11.0, band = exp(-bd * bd);  // a reflection sweeping across
     float top = smoothstep(0.55, 1.0, vUv.y) * 0.12;                             // sky reflection near the top
     vec3 col = uRim * f * 1.4 + vec3(0.85, 0.95, 1.0) * (band * 0.55 + top);
     float a = clamp((f * 1.4 + band * 0.55 + top) * uStrength, 0.0, 1.0);
@@ -209,9 +185,9 @@ const FX_FS = `
 const RAYS_FS = `
   uniform float uTime, uStrength; varying vec2 vUv;
   void main() {
-    vec2 p = vUv - 0.5; float r = length(p) * 2.0, a = atan(p.y, p.x);
-    float rays = pow(0.5 + 0.5 * sin(a * 34.0 + sin(a * 5.0 + uTime * 0.25) * 2.5 + uTime * 0.12), 7.0) * 0.7
-               + pow(0.5 + 0.5 * sin(a * 11.0 - uTime * 0.18), 12.0) * 0.6;
+    vec2 p = vUv - 0.5; float r = length(p) * 2.0, a = atan(p.y, p.x + 1e-5);
+    float rays = pow(max(0.0, 0.5 + 0.5 * sin(a * 34.0 + sin(a * 5.0 + uTime * 0.25) * 2.5 + uTime * 0.12)), 7.0) * 0.7
+               + pow(max(0.0, 0.5 + 0.5 * sin(a * 11.0 - uTime * 0.18)), 12.0) * 0.6;
     float fall = smoothstep(1.0, 0.08, r);
     float core = exp(-r * r * 16.0);
     vec3 col = mix(vec3(0.08, 0.3, 1.0), vec3(0.35, 0.75, 1.0), smoothstep(0.55, 0.0, r));
@@ -223,7 +199,7 @@ const LINE_VS = `
   void main() {
     vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv;
     float ax = abs(position.x);
-    vW = pow(0.5 + 0.5 * sin(ax * 1.25 - uTime * 1.5), 5.0);                    // light running outward
+    vW = pow(max(0.0, 0.5 + 0.5 * sin(ax * 1.25 - uTime * 1.5)), 5.0);                    // light running outward
     vI = aBright * (1.0 - smoothstep(5.0, 6.9, ax)) * (0.3 + 0.95 * vW);
   }`;
 const LINE_FS = `
@@ -243,7 +219,7 @@ const NODE_VS = `
     vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;
     float ax = abs(p.x);
     float beat = 0.5 + 0.5 * sin(uTime * (1.6 + fract(aPhase * 7.13) * 1.5) + aPhase);   // 2-4 s, independent
-    float wave = pow(0.5 + 0.5 * sin(ax * 1.25 - uTime * 1.5), 5.0);
+    float wave = pow(max(0.0, 0.5 + 0.5 * sin(ax * 1.25 - uTime * 1.5)), 5.0);
     vI = aBright * fadeY * (1.0 - smoothstep(5.2, 7.0, ax)) * (0.75 + 0.35 * beat + 0.6 * wave);
     vSoft = aSoft;
     gl_PointSize = aSize * uScale * (0.85 + 0.3 * beat) / -mv.z;
@@ -265,6 +241,18 @@ const RING_VS = `
 const RING_FS = `uniform vec3 uColor; uniform float uOpacity; varying float vI;
   void main() { gl_FragColor = vec4(uColor, clamp(vI * uOpacity, 0.0, 1.0)); }`;
 const PASS_VS = `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+
+// One invalid (NaN / infinite) pixel would be smeared over the whole picture by the bloom blur
+// and flash it black for a frame: such pixels become the background colour, highlights are capped.
+const GUARD = {
+  uniforms: { tDiffuse: { value: null } }, vertexShader: PASS_VS,
+  fragmentShader: `
+  uniform sampler2D tDiffuse; varying vec2 vUv;
+  void main() {
+    vec4 c = texture2D(tDiffuse, vUv);
+    bool ok = all(greaterThan(c, vec4(-1.0))) && all(lessThan(c, vec4(6.0e4)));      // false for NaN too
+    gl_FragColor = ok ? vec4(clamp(c.rgb, 0.0, 8.0), 1.0) : vec4(0.0024, 0.0040, 0.0110, 1.0);
+  }` };
 
 /* ------------------------------------------------------------------ */
 /* network: three depth layers, curved links, travelling pulses        */
@@ -477,33 +465,6 @@ async function start() {
     }
   }
 
-  /* --- the key entities, orbiting slowly on a wide ellipse and linked like the real graph --- */
-  const ORBIT = { rx: 6.3, ry: 1.25, y: -0.2, speed: 0.045 };
-  const entityGroup = new THREE.Group(); shieldFloat.add(entityGroup);
-  const entities = ENTITIES.map((spec, i) => {
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false }));
-    sprite.renderOrder = 30; entityGroup.add(sprite);
-    return { spec, sprite, base: (i / ENTITIES.length) * Math.PI * 2, pos: new THREE.Vector3() };
-  });
-  function paintEntities() {
-    const dark = isDark();
-    for (const e of entities) {
-      const { tex, aspect, dotX } = entityLabel(e.spec, dark);
-      if (e.sprite.material.map) e.sprite.material.map.dispose();
-      e.sprite.material.map = tex; e.sprite.material.needsUpdate = true;
-      e.sprite.center.set(dotX, 0.5); e.h = 0.95; e.aspect = aspect;
-    }
-  }
-  // links: each entity to the next (CVE-CWE-CAPEC-ATT&CK-Threat Intel-RAG-CVE) and a spoke into the shield
-  const linkGeo = new THREE.BufferGeometry();
-  linkGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(entities.length * 4 * 3), 3));
-  const linkMat = glow(new THREE.LineBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.5, depthWrite: false }));
-  const links = new THREE.LineSegments(linkGeo, linkMat); links.renderOrder = 7; links.frustumCulled = false; entityGroup.add(links);
-  const sparks = entities.map(() => {
-    const sp = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color: 0xcffafe, transparent: true, opacity: 0.9, depthWrite: false })));
-    sp.scale.set(0.32, 0.32, 1); sp.renderOrder = 8; entityGroup.add(sp); return sp;
-  });
-
   /* --- energy rings around the shield, and on the floor --- */
   const rings = [];
   const ringLine = (radius, color, speed, opacity) => {
@@ -520,17 +481,14 @@ async function start() {
     const l = ringLine(r, c, s, o); l.rotation.x = -Math.PI / 2; l.position.y = FLOOR; l.renderOrder = 1; world.add(l);
   }
 
-  /* --- floor: horizon line, light pool, hotspot and a lens-flare streak --- */
+  /* --- floor: light pool and hotspot --- */
   const sprite = (color, opacity, sx, sy, x, y, z, order) => {
     const s = new THREE.Sprite(glow(new THREE.SpriteMaterial({ map: dot, color, transparent: true, opacity, depthWrite: false })));
     s.scale.set(sx, sy, 1); s.position.set(x, y, z); s.renderOrder = order; world.add(s); return s;
   };
-  const horizon = new THREE.Mesh(new THREE.PlaneGeometry(14, 0.03), glow(new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.85, depthWrite: false })));
-  horizon.position.set(0, FLOOR, -0.6); horizon.renderOrder = 1; world.add(horizon);
   const horizonGlow = sprite(0x2563eb, 0.5, 13, 1.3, 0, FLOOR, -0.7, 0);
   const pool = sprite(0x3b82f6, 0.6, 6, 1.1, 0, FLOOR - 0.05, -0.2, 1);
   const hotspot = sprite(0xe0f2fe, 1, 2.6, 0.55, 0, FLOOR, 0.1, 9);
-  const streak = sprite(0x7dd3fc, 0.7, 11, 0.09, 0, FLOOR, 0.15, 9);
   const reflect = sprite(0x3b82f6, 0.35, 1.6, 3.2, 0, FLOOR - 1.1, -0.1, 1);             // the shield's glow mirrored on the floor
   const glint = sprite(0xffffff, 0.0, 2.4, 0.07, 0, 0, 0.6, 10); shieldFloat.add(glint);  // a flare across the rim now and then
 
@@ -552,21 +510,19 @@ async function start() {
     plateMat.emissiveIntensity = dark ? 0.22 : 0.1;
     metalMat.emissiveIntensity = dark ? 0.3 : 0.08;
     halo.material.opacity = dark ? 0.28 : 0.12;
-    horizon.material.color.setHex(dark ? 0x93c5fd : 0x3b82f6); horizon.material.opacity = dark ? 0.85 : 0.45;
     horizonGlow.material.opacity = dark ? 0.5 : 0.12; pool.material.opacity = dark ? 0.6 : 0.2;
-    hotspot.material.opacity = dark ? 0.75 : 0.35; streak.material.opacity = dark ? 0.7 : 0.25; reflect.material.opacity = dark ? 0.35 : 0.1;
+    hotspot.material.opacity = dark ? 0.75 : 0.35; reflect.material.opacity = dark ? 0.35 : 0.1;
     rimA.intensity = dark ? 16 : 6; rimB.intensity = dark ? 16 : 6;
     for (const r of rings) r.mat.uniforms.uOpacity.value = r.base * (dark ? 1 : 0.6);
     renderer.toneMappingExposure = dark ? 0.92 : 1.0;
   }
   applyTheme();
-  paintEntities();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(paintEntities);
-  document.addEventListener("themechange", () => setTimeout(() => { applyTheme(); paintEntities(); }, 30));
+  document.addEventListener("themechange", () => setTimeout(applyTheme, 30));
 
   /* --- bloom (dark theme, larger screens) --- */
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera, null, new THREE.Color(0x080d1b), 1));       // the page's dark background
+  composer.addPass(new ShaderPass(GUARD));
   composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.35, 0.68));
   composer.addPass(new OutputPass());
 
@@ -584,7 +540,8 @@ async function start() {
     const scale = (h * renderer.getPixelRatio()) / (2 * f);
     for (const m of [nodeMat, pulseMat]) m.uniforms.uScale.value = scale;
   }
-  new ResizeObserver(resize).observe(renderer.domElement);
+  const draw = () => { if (bloomOn) composer.render(); else renderer.render(scene, camera); };
+  new ResizeObserver(() => { resize(); if (window.__hx3d) draw(); }).observe(renderer.domElement);   // resizing clears the canvas
   resize();
 
   /* --- mouse parallax --- */
@@ -625,7 +582,7 @@ async function start() {
 
     for (const m of timed) m.uniforms.uTime.value = t;
     fxMat.uniforms.uSweep.value = -0.5 + ((t % 7) / 2.4) * 2.6;      // a reflection crosses the glass every 7 s
-    const flare = (1 - (t % 6) / 6) ** 6;                            // an energy flare every 6 s
+    const flare = Math.sin((t % 6) / 6 * Math.PI) ** 6;                            // an energy flare every 6 s
     raysMat.uniforms.uStrength.value = raysBase * (0.9 + 0.5 * flare + 0.5 * hover);
     // hover: is the pointer over the shield? (its projected box)
     shieldFloat.getWorldPosition(centre).project(camera);
@@ -639,28 +596,6 @@ async function start() {
       const u = ((t * k.speed + k.offset) % 1 + 1) % 1, pt = outline[Math.floor(u * (outline.length - 1))];
       k.c.position.copy(pt); k.c.material.opacity = (dark ? 0.95 : 0.6) * (0.7 + 0.3 * hover);
     }
-    // entities: orbit, depth (behind the shield = dimmer, smaller), fade while passing behind the text
-    const lp = linkGeo.attributes.position;
-    entities.forEach((e, i) => {
-      const a = e.base + t * ORBIT.speed;
-      e.pos.set(Math.cos(a) * ORBIT.rx, ORBIT.y + Math.sin(a) * ORBIT.ry * 0.35 + Math.sin(t * 0.7 + i) * 0.08, Math.sin(a) * ORBIT.ry * 2.2);
-      e.sprite.position.copy(e.pos);
-      const front = e.pos.z > 0, sideways = THREE.MathUtils.smoothstep(Math.abs(e.pos.x), 1.6, 3.8);
-      const s = (front ? 1 : 0.8) * (1 + 0.12 * hover);
-      e.sprite.scale.set(e.h * e.aspect * s, e.h * s, 1);
-      e.sprite.material.opacity = (front ? 1 : 0.55) * (0.25 + 0.75 * sideways);
-      e.sprite.renderOrder = front ? 30 : 2;
-    });
-    entities.forEach((e, i) => {
-      const n = entities[(i + 1) % entities.length];
-      lp.setXYZ(i * 4, e.pos.x, e.pos.y, e.pos.z); lp.setXYZ(i * 4 + 1, n.pos.x, n.pos.y, n.pos.z);
-      lp.setXYZ(i * 4 + 2, e.pos.x, e.pos.y, e.pos.z); lp.setXYZ(i * 4 + 3, e.pos.x * 0.32, e.pos.y * 0.5 + 0.2, e.pos.z * 0.2);
-      const u = (t * 0.35 + i / entities.length) % 1;               // a pulse running along each relation
-      sparks[i].position.lerpVectors(e.pos, n.pos, u);
-      sparks[i].material.opacity = (dark ? 0.9 : 0.55) * Math.sin(u * Math.PI);
-    });
-    lp.needsUpdate = true;
-    linkMat.opacity = (dark ? 0.42 : 0.35) * (0.8 + 0.3 * breathe);
     borderHalo.opacity = (dark ? 0.16 : 0.1) * (1 + 1.2 * flare);
     glint.material.opacity = (dark ? 0.8 : 0.3) * Math.pow(Math.max(0, Math.sin(t * 0.9)), 30);
     glint.position.y = 2.1 + Math.sin(t * 0.45) * 0.3;
@@ -669,7 +604,7 @@ async function start() {
     r1.rotation.z = t * 0.05;                                        // the ring turns
     net.update(reduce.matches ? 0 : dt);
 
-    if (bloomOn) composer.render(); else renderer.render(scene, camera);
+    draw();
     if (reduce.matches) cancelAnimationFrame(frameId);
   }
   document.addEventListener("visibilitychange", () => { cancelAnimationFrame(frameId); if (!document.hidden) frameId = requestAnimationFrame(render); });
