@@ -1014,7 +1014,9 @@ class Retriever:
                 q.named_miss = True
                 return None
         if q.defined and not analysis.strong_intent:
-            return self._fundamentals_result(analysis, q.matches, None)
+            result = self._fundamentals_result(analysis, q.matches, None)
+            self._follow_term(result, q.matches)
+            return result
         if q.cve_question and not q.described_tried:
             described = self._cve_description_search(analysis, min_groups=1)
             if described is not None:
@@ -1221,6 +1223,32 @@ class Retriever:
                 seen.add(section["id"])
                 result.evidence.append(_foundation_evidence("document", section, score=None))
         return result
+
+    def _follow_term(self, result: RetrievalResult, matches) -> None:
+        """A question about one term only ("what is SQL injection"): after the definition, the
+        weakness, attack pattern or technique of exactly that name with its relationships."""
+        def key(text: str) -> tuple[str, ...]:
+            return tuple(stem(t) for t in phrase_tokens(text))
+
+        asked = tuple(stem(t) for t in result.analysis.content if t not in _DATASET_WORDS)
+        names: dict[tuple[str, ...], str] = {}
+        for kind, row, _ in matches:
+            aliases = {key(a): a for a in row.get("aliases") or []} if kind == "term" else {}
+            if asked and asked in aliases:
+                names.update(aliases)
+        order, best = (LABEL_CWE, LABEL_CAPEC, LABEL_ATTACK), None
+        for name in names.values():
+            for hit in self.db.name_search(name, list(order), k=12):
+                # a sub-technique is one narrow use of the term ("SSH": T1021.004 only)
+                if hit["_label"] == LABEL_ATTACK and "." in hit["id"]:
+                    continue
+                if any(key(n) in names for n in [hit.get("name") or "", *(hit.get("alternate_terms") or [])]):
+                    rank = (order.index(hit["_label"]), hit["id"])
+                    best = min(best, rank) if best else rank
+        context = self.entity_context(order[best[0]], best[1]) if best else None
+        if context is not None:
+            result.identifiers, result.contexts = [best[1]], [context]
+            self._add_context(result, context)
 
     def _fundamentals_semantic(self, analysis: QueryAnalysis, vector) -> RetrievalResult | None:
         accepted: list[Evidence] = []

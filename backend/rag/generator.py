@@ -648,7 +648,7 @@ def reverse_summary(context: EntityContext, limit: int = 6) -> str:
 
 def build_hint(result: RetrievalResult) -> tuple[str, bool]:
     """Evidence-based defensive hint for the four datasets; fixed text otherwise."""
-    if result.category not in DATASET_CATEGORIES:
+    if result.category not in DATASET_CATEGORIES and not result.contexts:
         return NO_SOLUTION_HINT, False
     if not result.found or not result.mitigations:
         return NO_VERIFIED_MITIGATION, True

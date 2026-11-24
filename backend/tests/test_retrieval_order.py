@@ -136,3 +136,21 @@ def test_a_streamed_not_found_is_held_back():
         send(piece)
     assert "".join(sent) == "Response: yes ok"
     assert _hold_not_found(None) is None
+
+
+@pytest.mark.parametrize("question", ["SQL injectin", "What is SQL injection?"])
+def test_a_term_is_followed_to_the_weakness_of_its_name(retriever, question, monkeypatch):
+    row = {"id": "term:sqli", "term": "SQL Injection (SQLi)", "definition": "Malicious SQL in an input field.",
+           "aliases": ["sqli", "sql injection"]}
+    lexicon = retriever._get_lexicon()
+    monkeypatch.setitem(lexicon.entries, ("sql", "injection"), [("term", row)])
+    result = retriever.retrieve(question)
+    assert result.method == "graph" and result.tried == ["graph"]
+    assert result.evidence[0].kind == "term"
+    assert result.contexts and result.contexts[0].label == "CWE" and result.relationships
+    assert result.identifiers == ["CWE-89"]
+
+
+def test_several_terms_are_not_followed(retriever):
+    result = retriever.retrieve("What is the difference between TCP and UDP?")
+    assert result.found and not result.contexts
