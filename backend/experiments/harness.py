@@ -110,6 +110,7 @@ def load_cases(path: Path, split: str | None, limit: int | None = None) -> list[
 
 def build_assistant(db, embedder, settings, tuning: Tuning, use_llm: bool) -> Assistant:
     settings = settings if use_llm else dataclasses.replace(settings, llm_provider="none", llm_model="")
+    settings = dataclasses.replace(settings, nvd_live_lookup=False)     # measure the stored data only
     return Assistant(Retriever(db, embedder, settings, tuning), Generator(settings, tuning=tuning))
 
 

@@ -94,6 +94,7 @@ Edit `.env`. Only the Neo4j settings are mandatory:
 | `LLM_MAX_TOKENS` | output cap for hosted models (default 2048; reasoning models need room for their hidden reasoning). A cut-off answer is trimmed to its last complete sentence |
 | `LLM_EVIDENCE_CHARS` | evidence characters sent to a hosted model (default 9000). If the API refuses the request as too large or rate-limited (HTTP 413 / 429), it is retried once with half the evidence |
 | `EMBEDDING_PROVIDER`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_BASE_URL` | `sentence-transformers` (default, `BAAI/bge-small-en-v1.5` on the CPU), `local` (feature hashing), `openai` or `ollama` |
+| `NVD_LIVE_LOOKUP` | retrieval order is graph, then semantic (vectors), then other sources; this allows the last step to read CVEs the graph does not hold live from the NVD (default `true`; only the CVE id or the product words are sent) |
 | `UPDATE_INTERVAL_HOURS`, `NVD_UPDATE_INTERVAL_HOURS` | how often CWE, CAPEC and ATT&CK (default 2160 h, about 3 months) and CVE / NVD (default 24 h) are refreshed |
 | `ADMIN_API_KEY` | required for the manual sync endpoint |
 | `LOG_LEVEL` | `INFO`, `DEBUG`, ... |

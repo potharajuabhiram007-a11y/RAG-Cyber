@@ -1534,6 +1534,12 @@
                         llm_knowledge: "General knowledge (not verified in the knowledge graph)" };
         if (modes[data.generation_mode]) tags.appendChild(el("span", "tag tag-mode" + (data.generation_mode === "llm_knowledge" ? " tag-warn" : ""), modes[data.generation_mode]));
       }
+      const methods = { graph: "Graph retrieval", semantic: "Semantic retrieval", other: "Other sources" };
+      if (data.result_found && methods[data.retrieval_method]) {
+        const tag = el("span", "tag tag-mode", methods[data.retrieval_method]);
+        tag.title = "Steps tried: " + (data.retrieval_steps || []).map((s) => methods[s] || s).join(", then ");
+        tags.appendChild(tag);
+      }
       if (data.corrections && data.corrections.length) {
         tags.appendChild(el("span", "tag tag-spelling",
           "Interpreted: " + data.corrections.slice(0, 5).map(([a, b]) => a + " → " + b).join(", ")));
@@ -1546,7 +1552,7 @@
         tags.appendChild(tag);
       }
       const first = (data.identifiers || []).find((id) => ID_RE.test(id));
-      if (first && data.result_found) {
+      if (first && data.result_found && (data.retrieval_method !== "other" || (data.related_entities || []).length)) {   // a live NVD record is not in the graph
         const open = el("button", "tag tag-open", "Open in Knowledge Graph");
         open.type = "button";
         open.dataset.graph = first;

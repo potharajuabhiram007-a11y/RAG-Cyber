@@ -102,6 +102,8 @@ class ChatResponse(BaseModel):
     hint_applicable: bool
     retrieval_status: str
     generation_mode: str = "none"         # none | template | extractive | llm | llm_knowledge | extractive_fallback
+    retrieval_method: str = "none"        # graph | semantic | other (live NVD, keyword text, model knowledge) | none
+    retrieval_steps: list[str] = Field(default_factory=list)    # steps tried, in order
     confidence: Optional[Confidence] = None     # None: nothing to rate
     corrections: list[list[str]] = Field(default_factory=list)   # [typed, understood as]
     timestamp: str

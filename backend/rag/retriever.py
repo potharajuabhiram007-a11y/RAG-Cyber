@@ -11,6 +11,15 @@ Decision order (the final decision is made here, *before* any generation):
 4. evidence validation     - a candidate is only accepted when the question's
    content words are actually covered by the retrieved evidence.
 
+The sources are asked strictly in this order, and a later one only when the earlier ones
+have no answer:
+
+* ``graph``    - identifiers, record names, glossary terms, words of CVE descriptions and the
+                 relationships of what was found; no embedding is computed;
+* ``semantic`` - vector similarity over the embeddings of names and descriptions;
+* ``other``    - loosely matching text, the live NVD, then (in the generator) the language
+                 model's own knowledge.
+
 Outcomes: ``found`` (answer from evidence), ``not_found`` (supported domain but
 insufficient evidence), ``unsupported`` (outside the domain) or ``general``.
 The last three never reach the LLM.
@@ -35,6 +44,7 @@ from backend.database import (
     REL_CAPEC_ATTACK, REL_CAPEC_CHILD, REL_CVE_CWE, REL_CWE_CAPEC, REL_CWE_CHILD,
     REL_SUBTECHNIQUE_OF, Hop,
 )
+from backend.rag.external import NVDLookup
 from backend.rag.spelling import SpellCorrector
 from backend.rag.tuning import DEFAULT_TUNING, Tuning
 from backend.updater.data_processor import EmbeddingClient, clean_text, phrase_tokens
@@ -43,6 +53,7 @@ log = logging.getLogger(__name__)
 
 STATUS_FOUND, STATUS_NOT_FOUND = "found", "not_found"
 STATUS_UNSUPPORTED, STATUS_GENERAL = "unsupported", "general"
+GRAPH, SEMANTIC, OTHER = STEPS = ("graph", "semantic", "other")
 
 # --------------------------------------------------------------------------- #
 # Identifier recognition
@@ -423,6 +434,34 @@ class QueryAnalysis:
 
 
 @dataclass
+class Question:
+    """What the retrieval steps need to know about one question."""
+    analysis: QueryAnalysis
+    matches: list                   # glossary terms and sections named in the question
+    term_coverage: float
+    domain_hits: list[str]
+    groups: list[list[str]]         # search terms for CVE descriptions
+    other_dataset: bool
+    cve_question: bool
+    specific: bool                  # names something the glossary does not know (a product)
+    impact_and_product: bool
+    scenario: bool
+    mapping: bool
+    prevention: bool
+    described_tried: bool = False
+    named_miss: bool = False        # a named product's vulnerability that the graph does not describe
+    _vector: list = field(default_factory=list)
+
+    @property
+    def defined(self) -> bool:
+        return bool(self.matches) and self.term_coverage >= 0.5
+
+    @property
+    def mapped(self) -> bool:
+        return self.scenario or self.mapping or self.prevention
+
+
+@dataclass
 class RetrievalResult:
     status: str
     category: str
@@ -440,6 +479,8 @@ class RetrievalResult:
     corrections: list[tuple[str, str]] = field(default_factory=list)   # (typed, understood as)
     features: dict = field(default_factory=dict)                       # for the confidence score
     note: str = ""                  # how the evidence was selected, shown above the answer
+    method: str = "none"            # graph | semantic | other: the step that found the evidence
+    tried: list[str] = field(default_factory=list)          # steps tried, in order
     skip_llm: bool = False          # a failed lookup of something specific: never ask a model
 
     @property
@@ -566,6 +607,7 @@ class Retriever:
     def __init__(self, db, embedder: EmbeddingClient, settings: Settings,
                  tuning: Tuning = DEFAULT_TUNING):
         self.db, self.embedder, self.settings, self.tuning = db, embedder, settings, tuning
+        self.nvd = NVDLookup(settings)
         self._lexicon: Lexicon | None = None
         self._lexicon_version = ""
         self._lexicon_checked = 0.0
@@ -619,10 +661,11 @@ class Retriever:
                 log.warning("Spelling correction is unavailable (%s)", type(exc).__name__)
             return self._spell
 
-    def retrieve(self, message: str) -> RetrievalResult:
+    def retrieve(self, message: str, after: str | None = None) -> RetrievalResult:
+        """``after``: only the steps that follow this one ("graph" or "semantic")."""
         speller = self._speller()
         corrected, changes = speller.correct(message) if speller else (message, [])
-        result = self._retrieve(corrected)
+        result = self._retrieve(corrected, after)
         if changes:
             result.corrections = changes
             result.note = (("Spelling interpreted: "
@@ -648,7 +691,7 @@ class Retriever:
             except Exception as exc:
                 log.warning("Similarity could not be measured (%s)", type(exc).__name__)
         result.features = {
-            "exact_id": 1.0 if (analysis.identifiers and not any("was not found" in m for m in result.missing))
+            "exact_id": 1.0 if (analysis.identifiers and not (top.kind != "live" and any("was not found" in m for m in result.missing)))
             or result.statistics is not None or find_nickname(analysis.message) else 0.0,
             "similarity": similarity,
             "coverage": self._text_coverage(words, f"{title} {top.text}"),
@@ -656,7 +699,7 @@ class Retriever:
             "corrected_share": min(1.0, len(result.corrections) / max(1, len(analysis.content))),
         }
 
-    def _retrieve(self, message: str) -> RetrievalResult:
+    def _retrieve(self, message: str, after: str | None = None) -> RetrievalResult:
         analysis = self.analyze(message)
         if analysis.identifiers:
             return self._retrieve_by_identifier(analysis)
@@ -668,8 +711,10 @@ class Retriever:
             return RetrievalResult(STATUS_UNSUPPORTED, CATEGORY_UNSUPPORTED, False, analysis,
                                    reason="no recognisable subject")
         if analysis.is_count and analysis.intent_labels:
-            return self._retrieve_statistics(analysis)
-        return self._retrieve_semantic(analysis)
+            result = self._retrieve_statistics(analysis)
+            result.method, result.tried = GRAPH, [GRAPH]
+            return result
+        return self._search(analysis, after)
 
     # ------------------------------------------------------------------ #
     # 1. Identifier lookup + graph traversal
@@ -707,17 +752,60 @@ class Retriever:
                 absent.append(identifier)
             else:
                 result.contexts.append(context)
+        result.tried = [GRAPH]
+        live = self._live_cves(result, absent) if absent else []
+        if not result.contexts and live:
+            result.status, result.method, result.category = STATUS_FOUND, OTHER, CATEGORY_CVE
+            self._check_live(result, live, absent)
+            return result
         if not result.contexts:
             result.reason = "identifier(s) not present in the knowledge graph: " + ", ".join(absent)
             return result
         result.status = STATUS_FOUND
+        result.method = GRAPH
         result.category = _L[result.contexts[0].label]
-        for identifier in absent:
-            result.missing.append(f"{identifier} was not found in the knowledge graph.")
         for context in result.contexts:
             self._add_context(result, context)
+        self._check_live(result, live, absent)
         self._check_pairs(result)
         return result
+
+    def _live_cves(self, result: RetrievalResult, absent: list[str]) -> list[dict]:
+        """CVEs the graph does not hold, read from the NVD. (Meaning says nothing about an
+        identifier, so the vector search is not used for one.)"""
+        rows = []
+        for identifier in [i for i in absent if i.startswith("CVE-")][:MAX_IDS_WITH_CONTEXT]:
+            if self.nvd.enabled and OTHER not in result.tried:
+                result.tried.append(OTHER)
+            row, answered = self.nvd.cve(identifier)
+            if row:
+                rows.append(row)
+            elif answered:
+                result.missing.append(f"The NVD has no record of {identifier} either.")
+        return rows
+
+    def _check_live(self, result: RetrievalResult, live: list[dict], absent: list[str]) -> None:
+        for identifier in absent:
+            result.missing.append(f"{identifier} was not found in the knowledge graph.")
+        for row in live:
+            self._add_live(result, row)
+        if live:
+            result.note = (", ".join(r["id"] for r in live) + ": not in the knowledge graph; "
+                           "the record was read live from the NVD.").strip()
+
+    def _add_live(self, result: RetrievalResult, row: dict, weaknesses: int = 2) -> None:
+        rejected = " (REJECTED by the NVD)" if row.get("vuln_status") == "Rejected" else ""
+        result.evidence.append(Evidence(
+            kind="live", source="NVD (live lookup, not in the knowledge graph)", identifier=row["id"],
+            title=row["id"] + rejected, text=describe_entity(LABEL_CVE, row), url=row["source_url"]))
+        self._collect_mitigations(result, LABEL_CVE, row, limit=2)
+        for cwe in row["related_cwe_ids"][:weaknesses]:
+            node = self.db.get_node(LABEL_CWE, cwe)
+            if node:
+                result.evidence.append(Evidence(
+                    kind="entity", source=SOURCE_NAMES[CATEGORY_CWE], identifier=cwe, title=node.get("name"),
+                    text=describe_entity(LABEL_CWE, node), url=node.get("source_url")))
+                self._collect_mitigations(result, LABEL_CWE, node, limit=3)
 
     def _add_context(self, result: RetrievalResult, context: EntityContext) -> None:
         node, label = context.node, context.label
@@ -841,135 +929,167 @@ class Retriever:
                         type(exc).__name__)
             return None
 
-    def _retrieve_semantic(self, analysis: QueryAnalysis) -> RetrievalResult:
-        tokens, content = analysis.tokens, analysis.content
-        upper_words = {w.lower() for w in re.findall(r"\b(?=\w*[A-Z]\w*[A-Z])[A-Za-z0-9&]+\b", analysis.message)}
+    def _question(self, analysis: QueryAnalysis) -> Question:
+        tokens, content, message = analysis.tokens, analysis.content, analysis.message
+        upper_words = {w.lower() for w in re.findall(r"\b(?=\w*[A-Z]\w*[A-Z])[A-Za-z0-9&]+\b", message)}
         matches, covered = self._get_lexicon().match(tokens, upper_words, content)
-        content_positions = [i for i, t in enumerate(tokens) if t in content]
-        term_coverage = (sum(1 for i in content_positions if i in covered) / len(content_positions)
-                         if content_positions else 0.0)
+        positions = [i for i, t in enumerate(tokens) if t in content]
+        coverage = sum(1 for i in positions if i in covered) / len(positions) if positions else 0.0
         domain_hits = [t for i, t in enumerate(tokens)
                        if t in content and (i in covered or t in DOMAIN_VOCABULARY
                                             or stem(t) in DOMAIN_VOCABULARY)]
-        vector_cache: list = []
+        # A word the glossary does not know (usually a product name) next to a
+        # vulnerability word or an impact ("buffer overflow in Apache Tomcat") means the
+        # question is about specific records, not about the concept itself.
+        other_dataset = any(label != LABEL_CVE for label in analysis.intent_labels)
+        cve_question = bool(_CVE_QUESTION_RE.search(message)) and not other_dataset
+        groups = cve_search_terms(message)[0]
+        known = {tokens[i] for i in covered} | DOMAIN_VOCABULARY
+        specific = any(" " not in g[0] and g[0] not in known and stem(g[0]) not in known for g in groups)
+        # An incident in everyday words, or "which weaknesses lead to SQL injection?":
+        # mapped onto ATT&CK, CAPEC and CWE and followed both ways. A question
+        # about a named product's vulnerabilities keeps the CVE description search.
+        mapping = bool(_MAPPING_RE.search(message)) and bool(
+            analysis.intent_labels or _CVE_QUESTION_RE.search(message)) and not specific
+        # "what is SQL injection and how do I prevent it": the weakness with its
+        # mitigations, after the glossary definition
+        prevention = (bool(_PREVENT_RE.search(message)) and not specific
+                      and bool(matches) and coverage >= 0.5)
+        return Question(
+            analysis=analysis, matches=matches, term_coverage=coverage, domain_hits=domain_hits,
+            groups=groups, other_dataset=other_dataset, cve_question=cve_question, specific=specific,
+            impact_and_product=specific and not other_dataset and any(" " in g[0] for g in groups),
+            scenario=is_scenario(message), mapping=mapping, prevention=prevention)
 
-        def vector() -> list[float] | None:
-            """The query embedding, computed only when a vector search needs it."""
-            if not vector_cache:
-                vector_cache.append(self._query_vector(analysis))
-            return vector_cache[0]
+    def _vector(self, q: Question) -> list[float] | None:
+        """The query embedding, computed only when the semantic step is reached."""
+        if not q._vector:
+            q._vector.append(self._query_vector(q.analysis))
+        return q._vector[0]
 
+    def _search(self, analysis: QueryAnalysis, after: str | None = None) -> RetrievalResult:
+        """Graph first, then semantic, then other sources; the first answer is used."""
+        q, tried = self._question(analysis), []
+        for step, find in zip(STEPS, (self._step_graph, self._step_semantic, self._step_other)):
+            if after and STEPS.index(step) <= STEPS.index(after):
+                continue
+            tried.append(step)
+            result = find(q)
+            if result is not None:
+                result.method, result.tried = step, tried
+                return result
+        if q.named_miss:
+            return RetrievalResult(STATUS_NOT_FOUND, CATEGORY_CVE, True, analysis, skip_llm=True, tried=tried,
+                                   reason="no CVE description matches the described vulnerability")
+        if q.domain_hits or analysis.intent_labels:
+            category = _L[analysis.intent_labels[0]] if analysis.intent_labels else CATEGORY_FUNDAMENTALS
+            return RetrievalResult(STATUS_NOT_FOUND, category, True, analysis, tried=tried,
+                                   skip_llm=bool(analysis.intent_labels),
+                                   reason="cybersecurity question without sufficient evidence")
+        return RetrievalResult(STATUS_UNSUPPORTED, CATEGORY_UNSUPPORTED, False, analysis, tried=tried,
+                               reason="outside the supported knowledge categories")
+
+    # -- step 1: the graph ------------------------------------------------- #
+    def _step_graph(self, q: Question) -> RetrievalResult | None:
+        analysis = q.analysis
         nickname = find_nickname(analysis.message)
         if nickname:
             named = self._cve_by_nickname(analysis, *nickname)
             if named is not None:
                 return named
-
         concept = self._concept_search(analysis)
         if concept is not None:
             return concept
-
-        # "the vulnerability that lets a remote attacker crash Windows NT": a CVE is
-        # being described rather than named, so the CVE descriptions are searched.
-        # A word the glossary does not know (usually a product name) next to a
-        # vulnerability word or an impact ("buffer overflow in Apache Tomcat") means the
-        # question is about specific records, not about the concept itself.
-        other_dataset = any(label != LABEL_CVE for label in analysis.intent_labels)
-        cve_question = bool(_CVE_QUESTION_RE.search(analysis.message)) and not other_dataset
-        groups = cve_search_terms(analysis.message)[0]
-        known = {tokens[i] for i in covered} | DOMAIN_VOCABULARY
-        specific = any(" " not in g[0] and g[0] not in known and stem(g[0]) not in known
-                       for g in groups)
-        impact_and_product = specific and not other_dataset and any(" " in g[0] for g in groups)
-
-        # An incident in everyday words, or "which weaknesses lead to SQL injection?":
-        # map it onto ATT&CK, CAPEC and CWE and follow the graph both ways. A question
-        # about a named product's vulnerabilities keeps the CVE description search.
-        scenario = is_scenario(analysis.message)
-        mapping = bool(_MAPPING_RE.search(analysis.message)) and bool(
-            analysis.intent_labels or _CVE_QUESTION_RE.search(analysis.message)) and not specific
-        # "what is SQL injection and how do I prevent it": the weakness with its
-        # mitigations, after the glossary definition
-        prevention = bool(_PREVENT_RE.search(analysis.message)) and not specific and (
-            bool(matches) and term_coverage >= 0.5)
-        if scenario or mapping or prevention:
-            mapped = self._threat_mapping(analysis, scenario)
-            if mapped is not None:
-                if prevention and matches and term_coverage >= 0.5:
-                    definition = self._fundamentals_result(analysis, matches, None).evidence[:2]
-                    mapped.evidence[1:1] = definition
-                    if definition:
-                        mapped.note = (f"{definition[0].text} (Source: {definition[0].source}) " + mapped.note)
-                return mapped
-        described_tried = False
-        if cve_question or impact_and_product:
-            if specific or not (matches and term_coverage >= 0.5):
-                described_tried = True
-                described = self._cve_description_search(
-                    analysis, min_groups=1 if cve_question else 2)
-                if described is None and cve_question and specific:
-                    # A vulnerability in a named product was asked for and no record
-                    # describes it: defining the general terms instead would mislead.
-                    by_meaning = self._semantic_fallback(analysis, vector(), (LABEL_CVE,), named=True)
-                    if by_meaning is not None:
-                        return by_meaning
-                    return RetrievalResult(
-                        STATUS_NOT_FOUND, CATEGORY_CVE, True, analysis, skip_llm=True,
-                        reason="no CVE description matches the described vulnerability")
-                if described is not None:
-                    return described
-
-        if matches and term_coverage >= 0.5 and not analysis.strong_intent:
-            return self._fundamentals_result(analysis, matches, None)
-
-        if cve_question and not described_tried:
+        if q.mapped:
+            # a definition would not answer these: without a named record, meaning decides
+            return self._mapped(q, None)
+        if (q.cve_question or q.impact_and_product) and (q.specific or not q.defined):
+            q.described_tried = True
+            described = self._cve_description_search(analysis, min_groups=1 if q.cve_question else 2)
+            if described is not None:
+                return described
+            if q.cve_question and q.specific:
+                # A vulnerability in a named product was asked for and no record
+                # describes it: defining the general terms instead would mislead.
+                q.named_miss = True
+                return None
+        if q.defined and not analysis.strong_intent:
+            return self._fundamentals_result(analysis, q.matches, None)
+        if q.cve_question and not q.described_tried:
             described = self._cve_description_search(analysis, min_groups=1)
             if described is not None:
                 return described
+        if analysis.intent_labels or not q.matches:
+            return self._entity_search(analysis, None)
+        return None
 
-        if analysis.intent_labels or not matches:
-            entity = self._entity_search(analysis, vector())
+    def _mapped(self, q: Question, vector) -> RetrievalResult | None:
+        mapped = self._threat_mapping(q.analysis, q.scenario, vector)
+        if mapped is not None and q.prevention:
+            definition = self._fundamentals_result(q.analysis, q.matches, None).evidence[:2]
+            mapped.evidence[1:1] = definition
+            if definition:
+                mapped.note = f"{definition[0].text} (Source: {definition[0].source}) " + mapped.note
+        return mapped
+
+    # -- step 2: vector similarity ----------------------------------------- #
+    def _step_semantic(self, q: Question) -> RetrievalResult | None:
+        analysis = q.analysis
+        vector = self._vector(q)
+        if not vector:
+            return None
+        if q.named_miss:
+            return self._semantic_fallback(analysis, vector, (LABEL_CVE,), named=True)
+        if q.mapped:
+            mapped = self._mapped(q, vector)
+            if mapped is not None:
+                return mapped
+        if analysis.intent_labels or not q.matches:
+            entity = self._entity_search(analysis, vector)
             if entity is not None:
                 return entity
-
-        if matches and term_coverage >= 0.5:
-            return self._fundamentals_result(analysis, matches, None)
-
-        semantic = self._fundamentals_semantic(analysis, vector())
+        semantic = self._fundamentals_semantic(analysis, vector)
         if semantic is not None:
             return semantic
-
         # a question in everyday words about no product: a technique, weakness or term by
         # meaning fits better than a CVE that happens to contain the same words
-        if not cve_question and not other_dataset and not impact_and_product and domain_hits:
+        if not q.cve_question and not q.other_dataset and not q.impact_and_product and q.domain_hits:
             by_meaning = self._semantic_fallback(
-                analysis, vector(), (LABEL_ATTACK, LABEL_CAPEC, LABEL_CWE, LABEL_TERM), named=False)
+                analysis, vector, (LABEL_ATTACK, LABEL_CAPEC, LABEL_CWE, LABEL_TERM), named=False)
             if by_meaning is not None:
                 return by_meaning
+        labels = ([l for l in analysis.intent_labels if l != LABEL_CVE] if q.other_dataset
+                  else (LABEL_CVE,) if q.cve_question else
+                  (LABEL_CWE, LABEL_CAPEC, LABEL_ATTACK, LABEL_TERM, LABEL_DOC, LABEL_TACTIC,
+                   LABEL_MITIGATION) + ((LABEL_CVE,) if q.domain_hits else ()))
+        return self._semantic_fallback(analysis, vector, labels, named=False, strict=not q.domain_hits)
 
-        if (not described_tried and not cve_question and not other_dataset
-                and (domain_hits or analysis.intent_labels)):
+    # -- step 3: other sources --------------------------------------------- #
+    def _step_other(self, q: Question) -> RetrievalResult | None:
+        analysis = q.analysis
+        if q.defined and not q.named_miss:       # a definition, although a dataset was asked for
+            return self._fundamentals_result(analysis, q.matches, None)
+        if (not q.described_tried and not q.cve_question and not q.other_dataset
+                and (q.domain_hits or analysis.intent_labels)):
             described = self._cve_description_search(analysis, min_groups=2)
             if described is not None:
                 return described
+        if q.named_miss or (q.cve_question and q.specific):
+            return self._live_search(q)
+        return None
 
-        # Nothing matched by words: the closest records by meaning, over every vector index.
-        labels = ([l for l in analysis.intent_labels if l != LABEL_CVE] if other_dataset
-                  else (LABEL_CVE,) if cve_question else
-                  (LABEL_CWE, LABEL_CAPEC, LABEL_ATTACK, LABEL_TERM, LABEL_DOC, LABEL_TACTIC,
-                   LABEL_MITIGATION) + ((LABEL_CVE,) if domain_hits else ()))
-        by_meaning = self._semantic_fallback(analysis, vector(), labels, named=False,
-                                             strict=not domain_hits)
-        if by_meaning is not None:
-            return by_meaning
-
-        if domain_hits or analysis.intent_labels:
-            category = _L[analysis.intent_labels[0]] if analysis.intent_labels else CATEGORY_FUNDAMENTALS
-            return RetrievalResult(STATUS_NOT_FOUND, category, True, analysis,
-                                   skip_llm=bool(analysis.intent_labels),
-                                   reason="cybersecurity question without sufficient evidence")
-        return RetrievalResult(STATUS_UNSUPPORTED, CATEGORY_UNSUPPORTED, False, analysis,
-                               reason="outside the supported knowledge categories")
+    def _live_search(self, q: Question) -> RetrievalResult | None:
+        rows, total = self.nvd.search([g[0] for g in q.groups][:6])
+        if not rows:
+            return None
+        result = RetrievalResult(STATUS_FOUND, CATEGORY_CVE, True, q.analysis,
+                                 identifiers=[r["id"] for r in rows])
+        for row in rows:
+            self._add_live(result, row, weaknesses=0)
+        result.note = (f"Nothing in the knowledge graph matched, so the NVD was searched live: {total:,} "
+                       f"record{'s' if total != 1 else ''} matched"
+                       + (f"; the newest {len(rows)} are shown." if total > len(rows) else "."))
+        return result
 
     # -- vector search over several indexes ------------------------------- #
     def _semantic_fallback(self, analysis: QueryAnalysis, vector, labels, named: bool,
@@ -1199,17 +1319,21 @@ class Retriever:
 
     # -- CWE / CAPEC / ATT&CK / CVE without an identifier ------------------ #
     # -- threat mapping ------------------------------------------------------ #
-    def _threat_mapping(self, analysis: QueryAnalysis, scenario: bool) -> RetrievalResult | None:
+    def _threat_mapping(self, analysis: QueryAnalysis, scenario: bool, vector) -> RetrievalResult | None:
         """Match a described incident or concept to the closest ATT&CK technique, CAPEC
         attack pattern and CWE weakness, and return each with its relationships in both
-        directions (down to example CVEs). Nothing is inferred: only graph records."""
+        directions (down to example CVEs). Nothing is inferred: only graph records.
+        Without ``vector`` (graph step) a record counts only when the question names it."""
         hints = scenario_hints(analysis.message) if scenario else ""
         subject = [t for t in analysis.content if t not in _DATASET_WORDS]
         if not subject and not hints:
             return None
         wanted = [l for l in analysis.intent_labels if l != LABEL_CVE]
         labels = wanted + [l for l in (LABEL_ATTACK, LABEL_CAPEC, LABEL_CWE) if l not in wanted]
-        vector = self.embedder.embed_query(f"{analysis.message} {hints}".strip())
+        semantic = bool(vector)
+        if semantic and hints:
+            vector = self.embedder.embed_query(f"{analysis.message} {hints}".strip())
+        asked = {stem(t) for t in analysis.tokens}
         candidates: dict[str, dict] = {}
 
         def add(hit: dict, name_bonus: float = 0.0) -> None:
@@ -1218,7 +1342,13 @@ class Retriever:
 
         for text, bonus in ((" ".join(subject), 1.0), (hints, 0.6)):
             if text.strip():
-                for hit in self.db.name_search(text, labels, k=self.tuning.name_search_k):
+                for hit in self.db.name_search(text, labels, k=self.tuning.name_search_k * (1 if semantic else 3)):
+                    if not semantic:
+                        named = (_named_share(hit, asked, subject) if bonus == 1.0
+                                 else _named_phrase(hit, phrase_tokens(hints)))
+                        if named:
+                            add(hit, named)
+                        continue
                     name_text = " ".join([hit.get("name") or ""] + list(hit.get("alternate_terms") or []))
                     coverage = self._text_coverage(subject, name_text) if bonus == 1.0 else 0.5
                     if coverage >= 0.75 or bonus < 1.0:
@@ -1232,7 +1362,7 @@ class Retriever:
         for entry in candidates.values():
             entry["_rank"] = entry["_vec"] + 0.35 * entry["_name"]
         ranked = sorted(candidates.values(), key=lambda e: -e["_rank"])
-        usable = [e for e in ranked if e["_vec"] > 0 or e["_name"] >= 0.75]
+        usable = ranked if not semantic else [e for e in ranked if e["_vec"] > 0 or e["_name"] >= 0.75]
         if not usable:
             return None
         # The strongest match first. The other entity types then prefer entries the
@@ -1271,7 +1401,8 @@ class Retriever:
         names = ", ".join(f"{c.node['id']} ({c.node.get('name') or c.label})" for c in result.contexts)
         if scenario:
             result.note = (
-                "No identifier was given, so the situation described was matched by meaning against "
+                "No identifier was given, so the situation described was matched "
+                f"{'by meaning' if semantic else 'by name'} against "
                 f"MITRE ATT&CK, CAPEC and CWE. The closest entries in the knowledge graph are {names}; "
                 "they are shown with their relationships in both directions, including example CVEs. "
                 "They indicate what kind of attack and weakness may be involved; they are not a "
@@ -1335,6 +1466,36 @@ class Retriever:
 # --------------------------------------------------------------------------- #
 # Evidence text builders (embeddings are never included)
 # --------------------------------------------------------------------------- #
+def _named_share(hit: dict, asked: set[str], subject: Sequence[str]) -> float:
+    """How fully the question names this record (0 = it does not): every word of one of its
+    names must be in the question, and a one-word name must be a good part of the subject."""
+    name = hit.get("name") or ""
+    best = 0.0
+    wanted = {stem(t) for t in subject}
+    for alias in [name, *re.findall(r"\('([^']+)'\)", name), *(hit.get("alternate_terms") or [])]:
+        words = {stem(t) for t in content_tokens(phrase_tokens(alias))}
+        if not words or not words <= asked or not words & wanted:
+            continue
+        share = len(words & wanted) / len(wanted)
+        if len(words) >= 2 or share >= 0.5:
+            best = max(best, share)
+    return best
+
+
+def _named_phrase(hit: dict, hint_tokens: Sequence[str]) -> float:
+    """The security wording behind an everyday description contains this record's name as a
+    phrase: the earlier it comes, the closer the description (at most 0.6)."""
+    hint = [stem(t) for t in hint_tokens]
+    best = 0.0
+    for alias in [hit.get("name") or "", *(hit.get("alternate_terms") or [])]:
+        words = [stem(t) for t in phrase_tokens(alias)]
+        for start in range(len(hint) - len(words) + 1) if words else ():
+            if hint[start:start + len(words)] == words:
+                best = max(best, 0.6 - 0.02 * start)
+                break
+    return max(best, 0.0)
+
+
 def _foundation_evidence(kind: str, row: dict, score: float | None) -> Evidence:
     if kind == "term":
         text = f"{row.get('term')}: {row.get('definition')}"

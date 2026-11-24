@@ -111,6 +111,7 @@ class Settings:
     nvd_api_key: str = field(default="", repr=False)
     nvd_api_url: str = "https://services.nvd.nist.gov/rest/json/cves/2.0"
     nvd_results_per_page: int = 2000
+    nvd_live_lookup: bool = False        # ask the NVD live when graph and vectors have nothing
     nvd_overlap_minutes: int = 15
     nvd_window_days: int = 120          # NVD rejects ranges longer than 120 days
     nvd_sync_start_date: str = ""       # optional ISO date: limit the initial load
@@ -267,6 +268,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         nvd_api_key=_env("NVD_API_KEY"),
         nvd_api_url=_env("NVD_API_URL", Settings.nvd_api_url),
         nvd_results_per_page=min(_env_int("NVD_RESULTS_PER_PAGE", 2000, minimum=1), 2000),
+        nvd_live_lookup=_env_bool("NVD_LIVE_LOOKUP", True),
         nvd_overlap_minutes=_env_int("NVD_OVERLAP_MINUTES", 15, minimum=0),
         nvd_window_days=min(_env_int("NVD_WINDOW_DAYS", 120, minimum=1), 120),
         nvd_sync_start_date=_env("NVD_SYNC_START_DATE"),

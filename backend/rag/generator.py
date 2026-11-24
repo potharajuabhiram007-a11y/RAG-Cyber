@@ -36,7 +36,7 @@ from backend.models import (
 from backend.rag.confidence import label_of, retrieval_confidence
 from backend.rag.tuning import DEFAULT_TUNING, Tuning
 from backend.rag.retriever import (
-    STATUS_GENERAL, STATUS_UNSUPPORTED, EntityContext,
+    STATUS_GENERAL, STATUS_UNSUPPORTED, STEPS, EntityContext,
     RetrievalResult, Retriever, cve_line, describe_entity, extract_identifiers, reverse_gap,
     content_tokens, reverse_upstream, stem,
 )
@@ -103,6 +103,8 @@ facts taken from the evidence, and say "general knowledge, not verified in the k
 for what you add yourself.
 - The application only serves cybersecurity, networking and closely related computing topics. If \
 the question is about something else, reply with exactly: RESULT NOT FOUND
+- Sources have an order of priority: knowledge graph records first, then records found by \
+meaning, then live NVD records, and your own knowledge only for what these do not answer.
 - Answer the question directly in your first sentence. Do not describe the prompt, do not write \
 XML tags, and do not repeat the same point twice.
 - Write short paragraphs and use "- " bullet lines for lists. Do not add a closing offer; the \
@@ -702,8 +704,8 @@ class Generator:
         if self.llm is None:
             return (extractive_answer(result), "extractive") if grounded else (RESULT_NOT_FOUND, "none")
         if not grounded and (result.identifiers or result.skip_llm):
-            # The question names identifiers and none of them is in the graph, which
-            # mirrors the official catalogues: anything a model said about them would
+            # The question names identifiers and none of them is in the graph or
+            # at the NVD: anything a model said about them would
             # be invented.
             return RESULT_NOT_FOUND, "none"
         tune = self.tuning
@@ -805,6 +807,28 @@ def answer_confidence(result: RetrievalResult, answer: str, mode: str) -> Confid
     return Confidence(score=score, label=label_of(score), basis="; ".join(parts) + ".")
 
 
+def _hold_not_found(on_delta):
+    """Keep back the first characters of a streamed answer while they may still spell
+    RESULT NOT FOUND: another retrieval step may follow and write the real answer."""
+    if on_delta is None:
+        return None
+    held: list[str] | None = []
+
+    def send(text: str) -> None:
+        nonlocal held
+        if held is None:
+            on_delta(text)
+            return
+        held.append(text)
+        start = "".join(held).lstrip("`*. ").upper()
+        if len(start) > len(RESULT_NOT_FOUND) + 3 or not (
+                RESULT_NOT_FOUND.startswith(start) or start.startswith(RESULT_NOT_FOUND)):
+            text, held = "".join(held), None
+            on_delta(text)
+
+    return send
+
+
 class Assistant:
     """The complete chat pipeline used by the API and by the evaluation module."""
 
@@ -812,10 +836,26 @@ class Assistant:
         self.retriever, self.generator, self.evaluation = retriever, generator, evaluation
 
     def ask(self, message: str, on_delta=None, history_ids=None) -> ChatResponse:
-        result = self.retriever.retrieve(_with_context(message, history_ids))
-        answer, mode = self.generator.generate(
-            result, lambda label, identifier: self.retriever.db.get_node(label, identifier) is not None,
-            on_delta)
+        question = _with_context(message, history_ids)
+        result = self.retriever.retrieve(question)
+
+        def generate(candidate):
+            return self.generator.generate(
+                candidate, lambda label, identifier: self.retriever.db.get_node(label, identifier) is not None,
+                _hold_not_found(on_delta))
+
+        answer, mode = generate(result)
+        # The model judged the evidence insufficient: the next retrieval step gets its turn.
+        while (answer == RESULT_NOT_FOUND and mode == "llm" and result.found
+               and result.method in STEPS[:-1] and not result.analysis.identifiers
+               and result.statistics is None):
+            tried, following = result.tried, self.retriever.retrieve(question, after=result.method)
+            following.tried = tried + following.tried
+            if not following.found:
+                result.tried = following.tried
+                break
+            result = following
+            answer, mode = generate(result)
         # The LLM answered a question the graph had no evidence for.
         knowledge_only = mode == "llm_knowledge"
         if answer == RESULT_NOT_FOUND and result.found:
@@ -850,6 +890,8 @@ class Assistant:
             hint_applicable=hint_applicable,
             retrieval_status=result.status,
             generation_mode=mode,
+            retrieval_method="other" if knowledge_only else result.method if found else "none",
+            retrieval_steps=result.tried + (["other"] if knowledge_only and "other" not in result.tried else []),
             confidence=answer_confidence(result, answer, mode),
             corrections=[list(c) for c in result.corrections],
             timestamp=datetime.now(timezone.utc).isoformat(timespec="seconds"),
