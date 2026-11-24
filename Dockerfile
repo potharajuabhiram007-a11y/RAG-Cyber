@@ -17,7 +17,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     HF_HOME=/app/.hf-cache \
     # sentence-transformer model, run with ONNX Runtime (no PyTorch)
     EMBEDDING_PROVIDER=sentence-transformers \
-    EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2 \
+    EMBEDDING_MODEL=BAAI/bge-small-en-v1.5 \
     EMBEDDING_RUNTIME=onnx \
     # the default port; Render and Hugging Face set PORT themselves
     PORT=8000
@@ -35,7 +35,7 @@ RUN pip install -r backend/requirements.txt
 COPY backend/__init__.py backend/__init__.py
 COPY backend/updater/__init__.py backend/updater/st_onnx.py backend/updater/
 RUN python -c "from backend.updater.st_onnx import OnnxSentenceEncoder; \
-OnnxSentenceEncoder('sentence-transformers/all-MiniLM-L6-v2')"
+OnnxSentenceEncoder('BAAI/bge-small-en-v1.5')"
 ENV HF_HUB_OFFLINE=1
 
 COPY backend backend

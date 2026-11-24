@@ -13,9 +13,13 @@ from __future__ import annotations
 import logging
 import re
 
-from backend.database import LABEL_ATTACK, REL_CAPEC_ATTACK, REL_SUBTECHNIQUE_OF
+from backend.curation import build_attack_entities
+from backend.database import (
+    LABEL_ATTACK, LABEL_MITIGATION, LABEL_TACTIC, REL_CAPEC_ATTACK, REL_HAS_TACTIC, REL_MITIGATES,
+    REL_SUBTECHNIQUE_OF,
+)
 from backend.updater.data_processor import (
-    ATTACK_ID_RE, SnapshotUpdater, clean_text, dedupe, load_stix_bundle, normalize_capec_id,
+    ATTACK_ID_RE, EMBEDDING_TEXT, SnapshotUpdater, attach_embeddings, clean_text, dedupe, load_stix_bundle, normalize_capec_id,
     stix_external_ids,
 )
 
@@ -139,4 +143,14 @@ class AttackUpdater(SnapshotUpdater):
         return list(self.settings.attack_stix_urls)
 
     def parse(self, payloads: list[bytes]) -> tuple[list[dict], dict]:
-        return parse_attack_bundles(payloads)
+        rows, meta = parse_attack_bundles(payloads)
+        self._extra = build_attack_entities(rows) if self.settings.curate else None
+        return rows, meta
+
+    def after_write(self) -> None:
+        if not self._extra:
+            return
+        for label, rows in zip((LABEL_TACTIC, LABEL_MITIGATION), self._extra):
+            attach_embeddings(self.db, self.embedder, label, rows, EMBEDDING_TEXT[label])
+            self.db.upsert_nodes(label, rows)
+        self.db.rebuild_relationships((REL_HAS_TACTIC, REL_MITIGATES), "attack:after")

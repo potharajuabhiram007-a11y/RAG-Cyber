@@ -146,6 +146,7 @@ class Settings:
     embedding_dimensions: int = 256     # only used by the local provider
     embedding_runtime: str = "onnx"     # sentence-transformers only: onnx | torch
     embed_cves: bool = True
+    curate: bool = False                # load_settings() turns this on (CURATE_GRAPH)
 
     # --- Scheduling ------------------------------------------------------
     update_interval_hours: int = 2160   # CWE, CAPEC, ATT&CK: about every 3 months (90 days)
@@ -177,7 +178,10 @@ class Settings:
         # The local hashing embedder is lexical, so genuine matches score lower
         # than with a neural model; both floors are deliberately conservative
         # because evidence validation also requires lexical agreement.
-        return 0.56 if self.embedding_provider == "local" else 0.66
+        if self.embedding_provider == "local":
+            return 0.56
+        # bge scores unrelated texts higher than MiniLM does, so its floor is higher
+        return 0.78 if "bge-" in self.embedding_model.lower() else 0.66
 
     @property
     def llm_enabled(self) -> bool:
@@ -206,7 +210,7 @@ class Settings:
 
 _DEFAULT_LLM_MODELS = {"anthropic": "claude-opus-5-5", "openai": "gpt-4o-mini", "ollama": "llama3"}
 _DEFAULT_EMBED_MODELS = {"openai": "text-embedding-3-small", "ollama": "nomic-embed-text",
-                         "sentence-transformers": "sentence-transformers/all-MiniLM-L6-v2"}
+                         "sentence-transformers": "BAAI/bge-small-en-v1.5"}
 EMBEDDING_PROVIDERS = ("sentence-transformers", "local", "openai", "ollama")
 
 
@@ -284,6 +288,7 @@ def load_settings(require_neo4j: bool = True) -> Settings:
         embedding_dimensions=_env_int("EMBEDDING_DIMENSIONS", 256, minimum=32),
         embedding_runtime=emb_runtime,
         embed_cves=_env_bool("EMBED_CVES", True),
+        curate=_env_bool("CURATE_GRAPH", True),
         update_interval_hours=mitre_hours,
         nvd_update_interval_hours=_env_int("NVD_UPDATE_INTERVAL_HOURS", 24, minimum=1),
         scheduler_enabled=_env_bool("SCHEDULER_ENABLED", True),

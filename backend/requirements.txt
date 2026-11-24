@@ -13,6 +13,9 @@ onnxruntime>=1.18
 tokenizers>=0.19
 huggingface_hub>=0.23
 numpy>=1.26
+# Spelling correction of questions
+rapidfuzz>=3.9
+pyspellchecker>=0.8
 # Optional, only for EMBEDDING_RUNTIME=torch (about twice the memory):
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu
 #   pip install sentence-transformers

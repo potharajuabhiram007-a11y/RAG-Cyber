@@ -79,6 +79,12 @@ class EvidenceItem(BaseModel):
     page_number: Optional[int] = None
 
 
+class Confidence(BaseModel):
+    score: float                          # 0..1, see backend/rag/confidence.py
+    label: str                            # high | medium | low
+    basis: str
+
+
 class ChatResponse(BaseModel):
     answer: str
     category: str
@@ -96,6 +102,8 @@ class ChatResponse(BaseModel):
     hint_applicable: bool
     retrieval_status: str
     generation_mode: str = "none"         # none | template | extractive | llm | llm_knowledge | extractive_fallback
+    confidence: Optional[Confidence] = None     # None: nothing to rate
+    corrections: list[list[str]] = Field(default_factory=list)   # [typed, understood as]
     timestamp: str
 
 

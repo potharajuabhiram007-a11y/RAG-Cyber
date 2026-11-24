@@ -383,7 +383,7 @@ def test_llm_answers_from_general_knowledge_when_the_graph_has_nothing(knowledge
     bot = llm_assistant(knowledge, llm)
     # an identifier that is not in the graph is never handed to the model
     assert bot.ask("Explain CVE-2099-99999").answer == RESULT_NOT_FOUND and llm.calls == []
-    response = bot.ask("How does a firewall protect a network?")
+    response = bot.ask("How does a firewall harden a network perimeter?")
     assert response.generation_mode == "llm_knowledge" and response.result_found
     assert response.retrieval_status == "not_found"
     assert response.sources == [] and response.evidence == [] and response.identifiers == []

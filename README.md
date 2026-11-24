@@ -93,7 +93,7 @@ Edit `.env`. Only the Neo4j settings are mandatory:
 | `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL` | `none`, `anthropic`, `openai` (any OpenAI-compatible API, e.g. LM Studio) or `ollama` |
 | `LLM_MAX_TOKENS` | output cap for hosted models (default 2048; reasoning models need room for their hidden reasoning). A cut-off answer is trimmed to its last complete sentence |
 | `LLM_EVIDENCE_CHARS` | evidence characters sent to a hosted model (default 9000). If the API refuses the request as too large or rate-limited (HTTP 413 / 429), it is retried once with half the evidence |
-| `EMBEDDING_PROVIDER`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_BASE_URL` | `sentence-transformers` (default, `all-MiniLM-L6-v2` on the CPU), `local` (feature hashing), `openai` or `ollama` |
+| `EMBEDDING_PROVIDER`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_BASE_URL` | `sentence-transformers` (default, `BAAI/bge-small-en-v1.5` on the CPU), `local` (feature hashing), `openai` or `ollama` |
 | `UPDATE_INTERVAL_HOURS`, `NVD_UPDATE_INTERVAL_HOURS` | how often CWE, CAPEC and ATT&CK (default 2160 h, about 3 months) and CVE / NVD (default 24 h) are refreshed |
 | `ADMIN_API_KEY` | required for the manual sync endpoint |
 | `LOG_LEVEL` | `INFO`, `DEBUG`, ... |
@@ -101,7 +101,7 @@ Edit `.env`. Only the Neo4j settings are mandatory:
 **Local development without any API key:** leave `LLM_PROVIDER=none`. Answers are
 then assembled deterministically from the retrieved evidence (the UI labels them
 "Extractive answer"). Embeddings come from the Sentence-Transformers model
-`all-MiniLM-L6-v2` (384 dimensions), which runs on the CPU with ONNX Runtime and
+`BAAI/bge-small-en-v1.5` (384 dimensions), which runs on the CPU with ONNX Runtime and
 needs no key; it is downloaded (about 90 MB) from Hugging Face on first use. `EMBEDDING_PROVIDER=local` switches to the
 older built-in feature-hashing embedder, which needs no download but matches words
 rather than meaning. After changing the provider or model run
@@ -383,3 +383,19 @@ vector index on `embedding`).
 | `SUBTECHNIQUE_OF` | `(sub-technique)->(technique)` | ATT&CK `subtechnique-of` relationships |
 
 Edges are created only from these cross references, never from text similarity.
+
+## Curated graph, spelling tolerance and confidence
+
+* **Limits.** Under 200,000 nodes and 400,000 relationships at all times: `NODE_LIMIT` / `REL_LIMIT`
+  in `backend/curation.py` are checked before every write, and updates delete the oldest CVEs first.
+* **What is kept.** `backend/curation.py` refuses rejected, disputed, unscored, CVSS-v2-only records and
+  records without a description, weakness, affected product, reference or date; then the newest
+  `MAX_CVES` (150,000) remain. 16 famous CVEs are exempt from the age and weakness rules.
+  `CURATE_GRAPH=false` turns the rules off for updates.
+* **Schema.** CVE, CWE, CAPEC, ATTACK, CyberTerm, CyberDocument, Product, Vendor, Tactic, Mitigation, each with
+  an embedding and its own vector index. New relationships: AFFECTS, MADE_BY, HAS_TACTIC, MITIGATES.
+  Product and Vendor nodes (5 or more CVEs) are created by a rebuild; updates link CVEs to existing ones.
+* **Rebuild.** `python -m backend.rebuild_graph plan|embed|load <export-folder>`.
+* **Spelling.** `backend/rag/spelling.py`; every change is shown with the answer.
+* **Confidence.** `backend/rag/confidence.py`, fitted and tested by `python -m backend.experiments.calibrate`
+  (results in `backend/data/experiments/curated_graph_report.json`).

@@ -28,8 +28,8 @@ def test_defaults_keep_the_original_behaviour_values():
     assert (t.name_search_k, t.vector_k, t.vector_min_score, t.cve_pool_k, t.cve_result_k, t.extra_entries) == \
            (8, 5, None, 40, 6, 3)
     assert (t.entity_full_cov, t.fundamentals_coverage, t.rank_mode, t.max_hops) == (0.75, 0.6, "lexicographic", 3)
-    assert (t.temperature, t.answer_tokens, t.evidence_chars) == (0.1, 420, 6000)
-    assert t.brief_answers and t.verified_facts and t.flag_unverified
+    assert (t.temperature, t.answer_tokens, t.evidence_chars) == (0.1, 900, 6000)
+    assert not t.brief_answers and t.verified_facts and t.flag_unverified
 
 
 def test_replace_validates_names_and_round_trips_through_a_file(tmp_path):

@@ -72,6 +72,29 @@ class InMemoryGraph:
                     self.edges[REL_CVE_CWE][(row["id"], cwe_id)] = {"source": "NVD"}
         return written
 
+    def size(self) -> tuple[int, int]:
+        return (sum(len(n) for n in self.nodes.values()) + len(self.sync_states),
+                sum(len(e) for e in self.edges.values()))
+
+    def make_room(self, nodes: int, rels: int) -> int:
+        return 0
+
+    def delete_cves(self, ids) -> int:
+        for i in ids:
+            self.nodes["CVE"].pop(i, None)
+        self.edges[REL_CVE_CWE] = {k: v for k, v in self.edges[REL_CVE_CWE].items()
+                                   if k[0] in self.nodes["CVE"]}
+        return len(ids)
+
+    def all_ids(self, label: str) -> set[str]:
+        return set(self.nodes[label])
+
+    def link_cves_to_products(self) -> None:
+        for cve_id, node in self.nodes["CVE"].items():
+            for pid in node.get("product_ids") or []:
+                if pid in self.nodes["Product"]:
+                    self.edges["AFFECTS"].setdefault((cve_id, pid), {})
+
     def link_cves_to_cwes(self) -> None:
         for cve_id, node in self.nodes["CVE"].items():
             for cwe_id in node.get("related_cwe_ids") or []:
@@ -169,6 +192,15 @@ class InMemoryGraph:
 
     def list_document_sections(self) -> list[dict]:
         return [strip_embedding(n) for n in self.nodes["CyberDocument"].values()]
+
+    def vocabulary(self) -> list[dict]:
+        return [{"label": label, "id": i, "name": n.get("name") or n.get("term") or n.get("section"),
+                 "other": n.get("alternate_terms"), "vendor": n.get("vendor"), "cves": 0,
+                 "text": n.get("description") or n.get("definition") or n.get("content")}
+                for label, nodes in self.nodes.items() if label != "CVE" for i, n in nodes.items()]
+
+    def linked(self, label, node_id, hops, limit: int = 12) -> dict:
+        return self.traverse(label, node_id, hops, limit=limit)
 
     def foundation_version(self) -> str:
         return f"{len(self.nodes['CyberTerm'])}:{len(self.nodes['CyberDocument'])}"

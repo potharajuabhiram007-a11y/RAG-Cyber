@@ -16,7 +16,7 @@ import json
 import sys
 
 from backend.config import ConfigurationError, configure_logging, load_settings
-from backend.database import NODE_LABELS, REL_CVE_CWE, REL_TYPES, Neo4jDatabase
+from backend.database import NODE_LABELS, REL_AFFECTS, REL_CVE_CWE, REL_TYPES, Neo4jDatabase
 from backend.evaluation import DATASET_PATH, EvaluationStore, run_evaluation
 from backend.rag.generator import Assistant, Generator
 from backend.rag.retriever import Retriever
@@ -82,8 +82,24 @@ def target_settings(settings, env_file: str):
                    neo4j_database=values.get("NEO4J_DATABASE") or "neo4j")
 
 
+def with_retries(work, attempts: int = 8):
+    """Run a repeat-safe (MERGE) step again after a dropped connection."""
+    import time
+    from neo4j.exceptions import DriverError
+    from backend.database import DatabaseUnavailable
+
+    for attempt in range(1, attempts + 1):
+        try:
+            return work()
+        except (DatabaseUnavailable, DriverError, OSError) as exc:
+            if attempt == attempts:
+                raise
+            print(f"  connection problem ({type(exc).__name__}), retry {attempt}", flush=True)
+            time.sleep(min(60, 5 * attempt))
+
+
 def copy_to(source: Neo4jDatabase, target: Neo4jDatabase, dimensions: int, max_cves: int,
-            batch: int = 250) -> dict:
+            batch: int = 250, resume: bool = False) -> dict:
     """Copy the graph to another (e.g. AuraDB Free) database, embeddings included.
 
     Only the newest ``max_cves`` CVEs are copied (0 = all).  Relationships are rebuilt
@@ -96,18 +112,23 @@ def copy_to(source: Neo4jDatabase, target: Neo4jDatabase, dimensions: int, max_c
     copied = {}
     for label in [l for l in NODE_LABELS if l != "CVE"] + ["CVE"]:   # CWEs before CVE links
         after, done = "", 0
+        if resume:         # records are written in id order: continue after the last one
+            stored = with_retries(lambda: target.all_ids(label))
+            after, done = max(stored, default=""), len(stored)
         while True:
             rows = source.export_nodes(label, after, batch,
                                        published_from=floor if label == "CVE" else None)
             if not rows:
                 break
-            target.upsert_nodes(label, rows, batch_size=batch)
+            with_retries(lambda: target.upsert_nodes(label, rows, batch_size=batch))
             after, done = rows[-1]["id"], done + len(rows)
             print(f"  {label}: {done} copied", end="\r", flush=True)
         print(f"  {label}: {done} copied          ")
         copied[label] = done
-    rebuilt = target.rebuild_relationships([r for r in REL_TYPES if r != REL_CVE_CWE], "copy")
-    target.link_cves_to_cwes()
+    rebuilt = with_retries(lambda: target.rebuild_relationships(
+        [r for r in REL_TYPES if r not in (REL_CVE_CWE, REL_AFFECTS)], "copy"))
+    with_retries(target.link_cves_to_cwes)
+    with_retries(target.link_cves_to_products)
     removed = target.prune_cves(max_cves) if max_cves else 0   # ties at the floor date
     for state in source.all_sync_states():
         state = dict(state)

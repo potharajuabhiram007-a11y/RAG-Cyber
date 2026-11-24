@@ -1534,6 +1534,17 @@
                         llm_knowledge: "General knowledge (not verified in the knowledge graph)" };
         if (modes[data.generation_mode]) tags.appendChild(el("span", "tag tag-mode" + (data.generation_mode === "llm_knowledge" ? " tag-warn" : ""), modes[data.generation_mode]));
       }
+      if (data.corrections && data.corrections.length) {
+        tags.appendChild(el("span", "tag tag-spelling",
+          "Interpreted: " + data.corrections.slice(0, 5).map(([a, b]) => a + " → " + b).join(", ")));
+      }
+      if (data.confidence) {
+        const c = data.confidence;
+        const tag = el("span", "tag tag-confidence conf-" + c.label,
+          `Confidence ${Math.round(c.score * 100)}% (${c.label})`);
+        tag.title = c.basis;
+        tags.appendChild(tag);
+      }
       const first = (data.identifiers || []).find((id) => ID_RE.test(id));
       if (first && data.result_found) {
         const open = el("button", "tag tag-open", "Open in Knowledge Graph");
@@ -2204,6 +2215,8 @@
     CWE_CAPEC: ["Weakness is exploited by", "CWE → CAPEC"], CAPEC_CHILD: ["Attack pattern is a child of", "CAPEC → CAPEC"],
     CAN_PRECEDE: ["Attack pattern can precede", "CAPEC → CAPEC"], CAPEC_ATTACK: ["Attack pattern maps to technique", "CAPEC → ATT&CK"],
     SUBTECHNIQUE_OF: ["Sub-technique of", "ATT&CK → ATT&CK"],
+    AFFECTS: ["Vulnerability affects product", "CVE → Product"], MADE_BY: ["Product is made by", "Product → Vendor"],
+    HAS_TACTIC: ["Technique serves tactic", "ATT&CK → Tactic"], MITIGATES: ["Mitigation applies to", "Mitigation → ATT&CK"],
   };
   function renderRelTable(relationships) {
     const body = document.getElementById("rel-table");

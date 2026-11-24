@@ -25,6 +25,7 @@ from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, Neo4jError, ServiceUnavailable, SessionExpired
 
 from backend.config import Settings
+from backend.curation import NODE_LIMIT, REL_LIMIT
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +34,10 @@ log = logging.getLogger(__name__)
 # --------------------------------------------------------------------------- #
 LABEL_CVE, LABEL_CWE, LABEL_CAPEC, LABEL_ATTACK = "CVE", "CWE", "CAPEC", "ATTACK"
 LABEL_TERM, LABEL_DOC = "CyberTerm", "CyberDocument"
-NODE_LABELS = (LABEL_CVE, LABEL_CWE, LABEL_CAPEC, LABEL_ATTACK, LABEL_TERM, LABEL_DOC)
+LABEL_PRODUCT, LABEL_VENDOR = "Product", "Vendor"
+LABEL_TACTIC, LABEL_MITIGATION = "Tactic", "Mitigation"
+NODE_LABELS = (LABEL_CVE, LABEL_CWE, LABEL_CAPEC, LABEL_ATTACK, LABEL_TERM, LABEL_DOC,
+               LABEL_PRODUCT, LABEL_VENDOR, LABEL_TACTIC, LABEL_MITIGATION)
 GRAPH_LABELS = (LABEL_CVE, LABEL_CWE, LABEL_CAPEC, LABEL_ATTACK)
 
 REL_CVE_CWE = "CVE_CWE"                 # (CVE)-[:CVE_CWE]->(CWE)
@@ -43,8 +47,13 @@ REL_CAPEC_CHILD = "CAPEC_CHILD"         # (child CAPEC)-[:CAPEC_CHILD]->(parent 
 REL_CAN_PRECEDE = "CAN_PRECEDE"         # (earlier CAPEC)-[:CAN_PRECEDE]->(later CAPEC)
 REL_CAPEC_ATTACK = "CAPEC_ATTACK"       # (CAPEC)-[:CAPEC_ATTACK]->(ATTACK)
 REL_SUBTECHNIQUE_OF = "SUBTECHNIQUE_OF" # (sub-technique)-[:SUBTECHNIQUE_OF]->(technique)
+REL_AFFECTS = "AFFECTS"                 # (CVE)-[:AFFECTS]->(Product)
+REL_MADE_BY = "MADE_BY"                 # (Product)-[:MADE_BY]->(Vendor)
+REL_HAS_TACTIC = "HAS_TACTIC"           # (ATTACK)-[:HAS_TACTIC]->(Tactic)
+REL_MITIGATES = "MITIGATES"             # (Mitigation)-[:MITIGATES]->(ATTACK)
 REL_TYPES = (REL_CVE_CWE, REL_CWE_CHILD, REL_CWE_CAPEC, REL_CAPEC_CHILD,
-             REL_CAN_PRECEDE, REL_CAPEC_ATTACK, REL_SUBTECHNIQUE_OF)
+             REL_CAN_PRECEDE, REL_CAPEC_ATTACK, REL_SUBTECHNIQUE_OF,
+             REL_AFFECTS, REL_MADE_BY, REL_HAS_TACTIC, REL_MITIGATES)
 
 # End-point labels of every relationship type: rel -> (start label, end label).
 REL_ENDPOINTS = {
@@ -55,6 +64,10 @@ REL_ENDPOINTS = {
     REL_CAN_PRECEDE: (LABEL_CAPEC, LABEL_CAPEC),
     REL_CAPEC_ATTACK: (LABEL_CAPEC, LABEL_ATTACK),
     REL_SUBTECHNIQUE_OF: (LABEL_ATTACK, LABEL_ATTACK),
+    REL_AFFECTS: (LABEL_CVE, LABEL_PRODUCT),
+    REL_MADE_BY: (LABEL_PRODUCT, LABEL_VENDOR),
+    REL_HAS_TACTIC: (LABEL_ATTACK, LABEL_TACTIC),
+    REL_MITIGATES: (LABEL_MITIGATION, LABEL_ATTACK),
 }
 
 # How each MITRE relationship type is derived from identifier lists that the
@@ -71,6 +84,10 @@ REL_RULES: dict[str, tuple[tuple[str, str, str, bool], ...]] = {
     REL_CAPEC_ATTACK: ((LABEL_CAPEC, "attack_ids", LABEL_ATTACK, True),
                        (LABEL_ATTACK, "capec_ids", LABEL_CAPEC, False)),
     REL_SUBTECHNIQUE_OF: ((LABEL_ATTACK, "parent_ids", LABEL_ATTACK, True),),
+    REL_AFFECTS: ((LABEL_CVE, "product_ids", LABEL_PRODUCT, True),),
+    REL_MADE_BY: ((LABEL_PRODUCT, "vendor_ids", LABEL_VENDOR, True),),
+    REL_HAS_TACTIC: ((LABEL_ATTACK, "tactic_ids", LABEL_TACTIC, True),),
+    REL_MITIGATES: ((LABEL_ATTACK, "mitigation_ids", LABEL_MITIGATION, False),),
 }
 
 VECTOR_INDEXES = {label: f"{label.lower()}_embedding" for label in NODE_LABELS}
@@ -99,6 +116,10 @@ def label_for_id(identifier: str) -> str | None:
 
 class DatabaseUnavailable(RuntimeError):
     """Neo4j cannot be reached or rejected the credentials."""
+
+
+class GraphLimitExceeded(RuntimeError):
+    """A write would take the graph to its node or relationship limit."""
 
 
 class SchemaMismatch(RuntimeError):
@@ -288,6 +309,7 @@ class Neo4jDatabase:
         record keeps its embedding); a key set to ``None`` removes the property.
         """
         _check_label(label)
+        self._check_room(label, rows)
         query = (f"UNWIND $rows AS row MERGE (n:{label} {{id: row.id}}) "
                  "SET n += row RETURN count(n) AS written")
         total = 0
@@ -295,6 +317,46 @@ class Neo4jDatabase:
             payload = [dict(r) for r in batch]
             total += self._write(lambda tx, p=payload: tx.run(query, rows=p).single()["written"])
         return total
+
+    # ------------------------------------------------------------------ #
+    # Size limits (NODE_LIMIT / REL_LIMIT)
+    # ------------------------------------------------------------------ #
+    def size(self) -> tuple[int, int]:
+        """(nodes, relationships) from Neo4j's count store: constant time."""
+        return (self._read("MATCH (n) RETURN count(n) AS c")[0]["c"],
+                self._read("MATCH ()-[r]->() RETURN count(r) AS c")[0]["c"])
+
+    def _check_room(self, label: str, rows: Sequence[dict], rels: int = 0) -> None:
+        """Refuse (before writing anything) a write that could pass a limit."""
+        nodes, edges = self.size()
+        if nodes + len(rows) > NODE_LIMIT:      # only then count what is really new
+            stored = self.get_property_map(label, [r["id"] for r in rows], "content_hash")
+            if nodes + sum(1 for r in rows if r["id"] not in stored) > NODE_LIMIT:
+                raise GraphLimitExceeded(f"{label}: would exceed {NODE_LIMIT:,} nodes")
+        if rels and edges + rels > REL_LIMIT:
+            raise GraphLimitExceeded(f"{label}: would exceed {REL_LIMIT:,} relationships")
+
+    def make_room(self, nodes: int, rels: int) -> int:
+        """Delete the oldest CVEs until ``nodes`` and ``rels`` more fit."""
+        removed = 0
+        while True:
+            have_nodes, have_rels = self.size()
+            if have_nodes + nodes <= NODE_LIMIT and have_rels + rels <= REL_LIMIT:
+                return removed
+            count = self.cve_count()
+            if not count:
+                raise GraphLimitExceeded("no CVE left to remove")
+            over = max(have_nodes + nodes - NODE_LIMIT, (have_rels + rels - REL_LIMIT) // 2, 200)
+            removed += self.prune_cves(max(1, count - over))
+
+    def delete_cves(self, ids: Sequence[str]) -> int:
+        return self._write(lambda tx: tx.run(
+            "MATCH (c:CVE) WHERE c.id IN $ids WITH c, c.id AS id DETACH DELETE c "
+            "RETURN count(id) AS c", ids=list(ids)).single()["c"])
+
+    def all_ids(self, label: str) -> set[str]:
+        _check_label(label)
+        return {r["id"] for r in self._read(f"MATCH (n:{label}) RETURN n.id AS id")}
 
     def upsert_cves(self, rows: Sequence[dict], batch_size: int = 500) -> int:
         """Upsert CVE nodes and their CVE_CWE edges atomically per batch.
@@ -310,15 +372,25 @@ class Neo4jDatabase:
                   "UNWIND coalesce(row.related_cwe_ids, []) AS wid "
                   "MATCH (w:CWE {id: wid}) MERGE (n)-[r:CVE_CWE]->(w) "
                   "SET r.source = 'NVD', r.updated_at = $now")
+        prune_p = ("UNWIND $rows AS row MATCH (n:CVE {id: row.id})-[r:AFFECTS]->(p:Product) "
+                   "WHERE NOT p.id IN coalesce(row.product_ids, []) DELETE r")
+        link_p = ("UNWIND $rows AS row MATCH (n:CVE {id: row.id}) "
+                  "UNWIND coalesce(row.product_ids, []) AS pid "
+                  "MATCH (p:Product {id: pid}) MERGE (n)-[r:AFFECTS]->(p) "
+                  "SET r.source = 'NVD CPE'")
         total = 0
         now = utc_now_iso()
         for batch in chunked(list(rows), batch_size):
             payload = [dict(r) for r in batch]
+            self._check_room(LABEL_CVE, payload, sum(
+                len(r.get("related_cwe_ids") or []) + len(r.get("product_ids") or []) for r in payload))
 
             def work(tx, p=payload):
                 written = tx.run(node_q, rows=p).single()["written"]
                 tx.run(prune_q, rows=p).consume()
                 tx.run(link_q, rows=p, now=now).consume()
+                tx.run(prune_p, rows=p).consume()
+                tx.run(link_p, rows=p).consume()
                 return written
 
             total += self._write(work)
@@ -353,6 +425,14 @@ class Neo4jDatabase:
         except (AuthError, ServiceUnavailable, SessionExpired, OSError) as exc:
             raise self._wrap(exc) from exc
 
+    def link_cves_to_products(self) -> None:
+        query = ("MATCH (c:CVE) WHERE size(coalesce(c.product_ids, [])) > 0 "
+                 "CALL (c) { UNWIND c.product_ids AS pid MATCH (p:Product {id: pid}) "
+                 "MERGE (c)-[r:AFFECTS]->(p) ON CREATE SET r.source = 'NVD CPE' } "
+                 "IN TRANSACTIONS OF 5000 ROWS")
+        with self._session() as session:
+            session.run(query).consume()
+
     def rebuild_relationships(self, rel_types: Sequence[str], sync_id: str) -> dict[str, int]:
         """Re-derive MITRE relationships from the official id lists on the nodes.
 
@@ -385,7 +465,7 @@ class Neo4jDatabase:
     # ------------------------------------------------------------------ #
     # CVE retention (MAX_CVES): keep only the most recently published CVEs
     # ------------------------------------------------------------------ #
-    _NEWEST_FIRST = "ORDER BY coalesce(c.published, '') DESC, c.id DESC"
+    _NEWEST_FIRST = "ORDER BY coalesce(c.pinned, false) DESC, coalesce(c.published, '') DESC, c.id DESC"
 
     def cve_count(self) -> int:
         return self._read("MATCH (c:CVE) RETURN count(c) AS c")[0]["c"]
@@ -438,6 +518,25 @@ class Neo4jDatabase:
             "MATCH (d:CyberDocument) RETURN d {.*, embedding: null} AS node "
             "ORDER BY d.source_file, d.chunk_index")
         return [strip_embedding(r["node"]) for r in rows]
+
+    def vocabulary(self) -> list[dict]:
+        """Names (and descriptions, except CVEs) of every non-CVE node: the words the
+        spelling correction knows, and the product / tactic / mitigation names."""
+        rows: list[dict] = []
+        for label in NODE_LABELS:
+            if label == LABEL_CVE:
+                continue
+            rows += self._read(
+                f"MATCH (n:{label}) RETURN $label AS label, n.id AS id, "
+                "coalesce(n.name, n.term, n.section) AS name, n.alternate_terms AS other, "
+                "coalesce(n.description, n.definition, n.content) AS text, n.vendor AS vendor, "
+                "CASE WHEN n:Product THEN COUNT { (n)<-[:AFFECTS]-() } ELSE 0 END AS cves",
+                label=label)
+        return rows
+
+    def linked(self, label: str, node_id: str, hops: Sequence[Hop], limit: int = 12) -> dict:
+        """Nodes at the end of ``hops``; CVEs come newest-and-most-severe first."""
+        return self.traverse(label, node_id, hops, limit=limit, order_by_score=True)
 
     def foundation_version(self) -> str:
         """Cheap fingerprint used to cache the term lexicon in the retriever."""

@@ -74,7 +74,7 @@ def test_sentence_transformers_is_the_default_provider(monkeypatch):
     monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
     settings = load_settings()
     assert settings.embedding_provider == "sentence-transformers"
-    assert settings.embedding_model == "sentence-transformers/all-MiniLM-L6-v2"
+    assert settings.embedding_model == "BAAI/bge-small-en-v1.5"
     monkeypatch.setenv("EMBEDDING_PROVIDER", "st")
     assert load_settings().embedding_provider == "sentence-transformers"
     assert load_settings().embedding_runtime == "onnx"

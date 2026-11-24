@@ -29,10 +29,13 @@ from backend.config import (
     CATEGORY_GENERAL, CATEGORY_UNSUPPORTED, SOURCE_NAMES, Settings,
 )
 from backend.database import (
-    LABEL_ATTACK, LABEL_CAPEC, LABEL_CVE, LABEL_CWE, LABEL_DOC, LABEL_TERM, REL_CAN_PRECEDE,
+    LABEL_ATTACK, LABEL_CAPEC, LABEL_CVE, LABEL_CWE, LABEL_DOC, LABEL_MITIGATION, LABEL_PRODUCT,
+    LABEL_TACTIC, LABEL_TERM, LABEL_VENDOR, REL_AFFECTS, REL_CAN_PRECEDE, REL_HAS_TACTIC,
+    REL_MADE_BY, REL_MITIGATES,
     REL_CAPEC_ATTACK, REL_CAPEC_CHILD, REL_CVE_CWE, REL_CWE_CAPEC, REL_CWE_CHILD,
     REL_SUBTECHNIQUE_OF, Hop,
 )
+from backend.rag.spelling import SpellCorrector
 from backend.rag.tuning import DEFAULT_TUNING, Tuning
 from backend.updater.data_processor import EmbeddingClient, clean_text, phrase_tokens
 
@@ -129,6 +132,7 @@ name need no not of on one or our out overview please purpose role s shall short
 show simple simply so some stand stands tell than that the their them then there these
 they this those to us use used uses using versus vs want was we were what when where
 which who whom why will with work works would you your exactly basically actually really
+prevent prevented preventing protect protecting defend against avoid stop fix
 compare comparison called known example examples type types
 describes covers cover covering means refer refers relate relates named applies apply deals deal
 """.split())
@@ -433,6 +437,8 @@ class RetrievalResult:
     mitigations: list[str] = field(default_factory=list)
     statistics: dict | None = None
     reason: str = ""
+    corrections: list[tuple[str, str]] = field(default_factory=list)   # (typed, understood as)
+    features: dict = field(default_factory=dict)                       # for the confidence score
     note: str = ""                  # how the evidence was selected, shown above the answer
     skip_llm: bool = False          # a failed lookup of something specific: never ask a model
 
@@ -492,6 +498,22 @@ TRAVERSE_LIMIT = 200          # ids kept for relationship checks
 DISPLAY_LIMIT = 12            # related nodes shown / passed to generation per group
 
 
+# node types that are not answers themselves: label -> (path, label reached, wording)
+_CONCEPTS: dict[str, tuple[tuple[Hop, ...], str, str]] = {
+    LABEL_PRODUCT: (((REL_AFFECTS, "in", LABEL_CVE),), LABEL_CVE, "CVEs affect"),
+    LABEL_VENDOR: (((REL_MADE_BY, "in", LABEL_PRODUCT), (REL_AFFECTS, "in", LABEL_CVE)),
+                   LABEL_CVE, "CVEs affect products of"),
+    LABEL_TACTIC: (((REL_HAS_TACTIC, "in", LABEL_ATTACK),), LABEL_ATTACK, "ATT&CK techniques serve the tactic"),
+    LABEL_MITIGATION: (((REL_MITIGATES, "out", LABEL_ATTACK),), LABEL_ATTACK,
+                       "ATT&CK techniques are mitigated by"),
+}
+_PREVENT_RE = re.compile(r"^(?!.*\bhow (does|do) (a|an|the)\b).*\b(prevent\w*|mitigat\w*|defend\w*|avoid\w*|stop|fix|"
+                         r"protect\w*\s+(against|from|myself|ourselves|my|our))\b", re.I)
+_NAMED_RE = re.compile(r"\b(called|named|titled|known as|described as)\b", re.I)
+_CONCEPT_FILLER = frozenset("""latest recent newest new critical high severe dangerous serious top worst
+common biggest important belong belongs under part category mitigated prevent prevents addressed""".split())
+
+
 class Lexicon:
     """Alias index over the foundational collection (terms + document sections)."""
 
@@ -548,6 +570,10 @@ class Retriever:
         self._lexicon_version = ""
         self._lexicon_checked = 0.0
         self._lexicon_lock = threading.Lock()
+        self._spell: SpellCorrector | None = None
+        self._names: dict[str, list[dict]] = {}
+        self._spell_version: str | None = None
+        self._spell_lock = threading.Lock()
 
     # ------------------------------------------------------------------ #
     # Analysis
@@ -563,7 +589,74 @@ class Retriever:
             strong_intent=bool(intent) and bool(_STRONG_INTENT_RE.search(message)),
             is_count=bool(_COUNT_RE.search(message)))
 
+    def _speller(self) -> SpellCorrector | None:
+        """Vocabulary of the current graph; rebuilt when the graph's records change."""
+        with self._spell_lock:
+            try:
+                version = self.db.foundation_version()
+                if self._spell is None or version != self._spell_version:
+                    rows = self.db.vocabulary()
+                    texts, brands = [], []
+                    names: dict[str, list[dict]] = {}
+                    for row in rows:
+                        if row["label"] in (LABEL_PRODUCT, LABEL_VENDOR):
+                            brands.append(row["name"])
+                        else:
+                            texts.append((" ".join([row["name"] or "", *(row["other"] or [])]), 5))
+                            texts.append((row["text"], 1))
+                        if row["label"] in _CONCEPTS and row["name"]:
+                            key = " ".join(phrase_tokens(row["name"]))
+                            names.setdefault(key, []).append(row)
+                            vendor = " ".join(phrase_tokens(row["vendor"] or ""))
+                            if vendor and key.startswith(vendor + " ") and row["cves"] >= 15:
+                                names.setdefault(key[len(vendor) + 1:], []).append(row)
+                    extra = (DOMAIN_VOCABULARY | QUESTION_STOPWORDS | _DATASET_WORDS | _CVE_GENERIC
+                             | {w for p, _ in _GENERAL_PHRASES for w in p.split()} | _GENERAL_FILLERS
+                             | {w for n in CVE_NICKNAMES for w in n.split()})
+                    self._spell = SpellCorrector(texts, (w for w in extra if len(w) > 2), brands, CVE_NICKNAMES)
+                    self._names, self._spell_version = names, version
+            except Exception as exc:
+                log.warning("Spelling correction is unavailable (%s)", type(exc).__name__)
+            return self._spell
+
     def retrieve(self, message: str) -> RetrievalResult:
+        speller = self._speller()
+        corrected, changes = speller.correct(message) if speller else (message, [])
+        result = self._retrieve(corrected)
+        if changes:
+            result.corrections = changes
+            result.note = (("Spelling interpreted: "
+                            + ", ".join(f'"{a}" as "{b}"' for a, b in changes[:6]) + ". ")
+                           + result.note).strip()
+        self._measure(result)
+        return result
+
+    def _measure(self, result: RetrievalResult) -> None:
+        """Properties of the retrieval the confidence score is computed from."""
+        if not result.found or not result.evidence:
+            return
+        analysis, top = result.analysis, result.evidence[0]
+        words = [t for t in analysis.content if t not in _DATASET_WORDS] or analysis.content
+        title = f"{top.identifier or ''} {top.title or ''}"
+        similarity = 0.0
+        if result.statistics is None and not analysis.identifiers:
+            try:
+                question = self.embedder.embed_query(analysis.message)
+                passage = self.embedder.embed_one(clean_text(f"{top.title or ''}. {top.text}", 1200))
+                if question and passage:
+                    similarity = sum(a * b for a, b in zip(question, passage))
+            except Exception as exc:
+                log.warning("Similarity could not be measured (%s)", type(exc).__name__)
+        result.features = {
+            "exact_id": 1.0 if (analysis.identifiers and not any("was not found" in m for m in result.missing))
+            or result.statistics is not None or find_nickname(analysis.message) else 0.0,
+            "similarity": similarity,
+            "coverage": self._text_coverage(words, f"{title} {top.text}"),
+            "name_match": self._text_coverage(words, title),
+            "corrected_share": min(1.0, len(result.corrections) / max(1, len(analysis.content))),
+        }
+
+    def _retrieve(self, message: str) -> RetrievalResult:
         analysis = self.analyze(message)
         if analysis.identifiers:
             return self._retrieve_by_identifier(analysis)
@@ -742,7 +835,7 @@ class Retriever:
 
     def _query_vector(self, analysis: QueryAnalysis) -> list[float] | None:
         try:
-            return self.embedder.embed_one(analysis.message)
+            return self.embedder.embed_query(analysis.message)
         except Exception as exc:
             log.warning("Query embedding failed (%s); continuing without vector search",
                         type(exc).__name__)
@@ -772,6 +865,10 @@ class Retriever:
             if named is not None:
                 return named
 
+        concept = self._concept_search(analysis)
+        if concept is not None:
+            return concept
+
         # "the vulnerability that lets a remote attacker crash Windows NT": a CVE is
         # being described rather than named, so the CVE descriptions are searched.
         # A word the glossary does not know (usually a product name) next to a
@@ -791,9 +888,18 @@ class Retriever:
         scenario = is_scenario(analysis.message)
         mapping = bool(_MAPPING_RE.search(analysis.message)) and bool(
             analysis.intent_labels or _CVE_QUESTION_RE.search(analysis.message)) and not specific
-        if scenario or mapping:
+        # "what is SQL injection and how do I prevent it": the weakness with its
+        # mitigations, after the glossary definition
+        prevention = bool(_PREVENT_RE.search(analysis.message)) and not specific and (
+            bool(matches) and term_coverage >= 0.5)
+        if scenario or mapping or prevention:
             mapped = self._threat_mapping(analysis, scenario)
             if mapped is not None:
+                if prevention and matches and term_coverage >= 0.5:
+                    definition = self._fundamentals_result(analysis, matches, None).evidence[:2]
+                    mapped.evidence[1:1] = definition
+                    if definition:
+                        mapped.note = (f"{definition[0].text} (Source: {definition[0].source}) " + mapped.note)
                 return mapped
         described_tried = False
         if cve_question or impact_and_product:
@@ -804,6 +910,9 @@ class Retriever:
                 if described is None and cve_question and specific:
                     # A vulnerability in a named product was asked for and no record
                     # describes it: defining the general terms instead would mislead.
+                    by_meaning = self._semantic_fallback(analysis, vector(), (LABEL_CVE,), named=True)
+                    if by_meaning is not None:
+                        return by_meaning
                     return RetrievalResult(
                         STATUS_NOT_FOUND, CATEGORY_CVE, True, analysis, skip_llm=True,
                         reason="no CVE description matches the described vulnerability")
@@ -830,11 +939,29 @@ class Retriever:
         if semantic is not None:
             return semantic
 
+        # a question in everyday words about no product: a technique, weakness or term by
+        # meaning fits better than a CVE that happens to contain the same words
+        if not cve_question and not other_dataset and not impact_and_product and domain_hits:
+            by_meaning = self._semantic_fallback(
+                analysis, vector(), (LABEL_ATTACK, LABEL_CAPEC, LABEL_CWE, LABEL_TERM), named=False)
+            if by_meaning is not None:
+                return by_meaning
+
         if (not described_tried and not cve_question and not other_dataset
                 and (domain_hits or analysis.intent_labels)):
             described = self._cve_description_search(analysis, min_groups=2)
             if described is not None:
                 return described
+
+        # Nothing matched by words: the closest records by meaning, over every vector index.
+        labels = ([l for l in analysis.intent_labels if l != LABEL_CVE] if other_dataset
+                  else (LABEL_CVE,) if cve_question else
+                  (LABEL_CWE, LABEL_CAPEC, LABEL_ATTACK, LABEL_TERM, LABEL_DOC, LABEL_TACTIC,
+                   LABEL_MITIGATION) + ((LABEL_CVE,) if domain_hits else ()))
+        by_meaning = self._semantic_fallback(analysis, vector(), labels, named=False,
+                                             strict=not domain_hits)
+        if by_meaning is not None:
+            return by_meaning
 
         if domain_hits or analysis.intent_labels:
             category = _L[analysis.intent_labels[0]] if analysis.intent_labels else CATEGORY_FUNDAMENTALS
@@ -843,6 +970,118 @@ class Retriever:
                                    reason="cybersecurity question without sufficient evidence")
         return RetrievalResult(STATUS_UNSUPPORTED, CATEGORY_UNSUPPORTED, False, analysis,
                                reason="outside the supported knowledge categories")
+
+    # -- vector search over several indexes ------------------------------- #
+    def _semantic_fallback(self, analysis: QueryAnalysis, vector, labels, named: bool,
+                           strict: bool = False) -> RetrievalResult | None:
+        """The closest records by meaning. ``named``: the question names a product, so a CVE
+        must mention one of its unusual words. ``strict``: no security word in the question."""
+        if not vector or self.embedder.provider == "local":
+            return None                          # feature hashing does not capture meaning
+        # a record asked for by name, or a word nobody knows: the nearest other record
+        # would be a wrong answer, not a helpful one
+        if _NAMED_RE.search(analysis.message) or (not named and self._spell is not None and any(
+                t.isalpha() and len(t) > 3 and not self._spell.known(t) for t in analysis.content)):
+            return None
+        floor = self.tuning.semantic_accept + (0.06 if strict else 0.0)
+        hits = [h for label in labels for h in self.db.vector_search(label, vector, 8)]
+        hits = [h for h in hits if 2 * h["_score"] - 1 >= floor]
+        if named:
+            rare = [t for t in analysis.content if t not in DOMAIN_VOCABULARY and t not in _CVE_GENERIC
+                    and t not in _DATASET_WORDS and not any(p.search(t) for p, _ in _CVE_CONCEPTS)]
+            hits = [h for h in hits if not rare or self._text_coverage(
+                rare, f"{h.get('description')} {' '.join(h.get('affected_products') or []).replace(':', ' ')}"
+            ) >= 0.5]
+        hits.sort(key=lambda h: -h["_score"])
+        if not hits:
+            return None
+        best = hits[0]
+        note = ("No record contains the exact wording, so the closest records by meaning were used "
+                f"(similarity {2 * best['_score'] - 1:.2f}).")
+        if best["_label"] in (LABEL_TERM, LABEL_DOC):
+            result = RetrievalResult(STATUS_FOUND, CATEGORY_FUNDAMENTALS, True, analysis, note=note)
+            for hit in [h for h in hits if h["_label"] in (LABEL_TERM, LABEL_DOC)][:5]:
+                result.evidence.append(_foundation_evidence(
+                    "term" if hit["_label"] == LABEL_TERM else "document", hit, hit["_score"]))
+            return result
+        if best["_label"] in _CONCEPTS:
+            return self._concept_result(analysis, {"label": best["_label"], "id": best["id"]}, note)
+        context = self.entity_context(best["_label"], best["id"])
+        if context is None:
+            return None
+        result = RetrievalResult(STATUS_FOUND, _L[best["_label"]], True, analysis,
+                                 identifiers=[best["id"]], contexts=[context], note=note)
+        self._add_context(result, context)
+        for other in [h for h in hits[1:] if h["_label"] in _L][:self.tuning.extra_entries + 2]:
+            result.identifiers.append(other["id"])
+            title = other.get("name")
+            if other["_label"] == LABEL_CVE:
+                title = clean_text(other.get("description") or other["id"], 260)
+            result.evidence.append(Evidence(
+                kind="entity", source=SOURCE_NAMES[_L[other["_label"]]], identifier=other["id"],
+                title=title, text=describe_entity(other["_label"], other),
+                score=other["_score"], url=other.get("source_url")))
+        return result
+
+    # -- products, vendors, tactics, mitigations by name ------------------- #
+    def _concept_search(self, analysis: QueryAnalysis) -> RetrievalResult | None:
+        """"vulnerabilities in Apache Tomcat", "techniques of the persistence tactic"."""
+        text = " ".join(analysis.tokens)
+        wants_cves = bool(_CVE_QUESTION_RE.search(analysis.message))
+        wants_attack = LABEL_ATTACK in analysis.intent_labels or "mitigat" in text
+        if (not wants_cves and not wants_attack) or _NAMED_RE.search(analysis.message):
+            return None
+        allowed = ((LABEL_PRODUCT, LABEL_VENDOR) if wants_cves and not wants_attack
+                   else (LABEL_TACTIC, LABEL_MITIGATION))
+        found: list[tuple[int, int, dict]] = []
+        tokens = analysis.tokens
+        for size in range(min(6, len(tokens)), 0, -1):
+            for start in range(len(tokens) - size + 1):
+                phrase = " ".join(tokens[start:start + size])
+                for row in self._names.get(phrase, ()):
+                    if row["label"] in allowed:
+                        found.append((size, row["cves"], row))
+            if found:
+                break
+        if not found:
+            return None
+        size, _, row = max(found, key=lambda f: (f[0], f[2]["label"] == LABEL_VENDOR, f[1]))
+        name = set(phrase_tokens(row["name"]))
+        generic = _CVE_GENERIC if row["label"] in (LABEL_PRODUCT, LABEL_VENDOR) else ()
+        rest = [t for t in analysis.content if t not in name and t not in generic
+                and t not in _DATASET_WORDS and t not in _CONCEPT_FILLER]
+        if rest:                                 # more than the name was asked: other routes
+            return None
+        return self._concept_result(analysis, row, "")
+
+    def _concept_result(self, analysis: QueryAnalysis, row: dict, note: str) -> RetrievalResult | None:
+        label = row["label"]
+        node = self.db.get_node(label, row["id"])
+        if node is None:
+            return None
+        hops, target, what = _CONCEPTS[label]
+        links = self.db.linked(label, row["id"], hops, limit=12)
+        if not links["nodes"]:
+            return None
+        result = RetrievalResult(STATUS_FOUND, _L[target], True, analysis,
+                                 identifiers=[n["id"] for n in links["nodes"]])
+        lines = [cve_line(n, detailed=i < 8) if target == LABEL_CVE else
+                 f"{n['id']}: {n.get('name')} - {clean_text(n.get('description'), 220)}"
+                 for i, n in enumerate(links["nodes"])]
+        if target == LABEL_CVE:                  # the path through a vendor's products is noise
+            lines = [re.sub(r" via (?:product|vendor):.*?(?= - |$)", "", line) for line in lines]
+        result.evidence.append(Evidence(
+            kind="concept", source=SOURCE_NAMES[_L[target]], identifier=node["name"], title=node["name"],
+            text=f"{node.get('description') or ''}\n" + "\n".join(lines)))
+        for n in links["nodes"][:5]:
+            result.evidence.append(Evidence(
+                kind="entity", source=SOURCE_NAMES[_L[target]], identifier=n["id"],
+                title=n.get("name"), text=describe_entity(target, n), url=n.get("source_url")))
+            self._collect_mitigations(result, target, n, limit=2)
+        shown = len(links["nodes"])
+        result.note = (f"{note} {links['total']:,} {what} {node['name']} in the knowledge graph"
+                       + (f"; {shown} are shown." if links["total"] > shown else ".")).strip()
+        return result
 
     # -- fundamentals ---------------------------------------------------- #
     def _fundamentals_result(self, analysis: QueryAnalysis, matches, vector) -> RetrievalResult:
@@ -970,7 +1209,7 @@ class Retriever:
             return None
         wanted = [l for l in analysis.intent_labels if l != LABEL_CVE]
         labels = wanted + [l for l in (LABEL_ATTACK, LABEL_CAPEC, LABEL_CWE) if l not in wanted]
-        vector = self.embedder.embed_one(f"{analysis.message} {hints}".strip())
+        vector = self.embedder.embed_query(f"{analysis.message} {hints}".strip())
         candidates: dict[str, dict] = {}
 
         def add(hit: dict, name_bonus: float = 0.0) -> None:

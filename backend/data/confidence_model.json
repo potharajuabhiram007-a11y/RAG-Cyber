@@ -1,0 +1,13 @@
+{
+ "bias": -5.387758780165699,
+ "weights": {
+  "exact_id": 1.9912342461102577,
+  "similarity": 0.3462555426212073,
+  "coverage": 6.372456310033509,
+  "name_match": 1.89217478406524,
+  "corrected_share": 0.0
+ },
+ "fitted_on": "tuning_dataset.json",
+ "answers": 806,
+ "share_correct": 0.7667493796526055
+}

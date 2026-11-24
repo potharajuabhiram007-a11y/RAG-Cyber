@@ -277,6 +277,11 @@ body:not(.answered) #new-chat { display: none; }
 button.tag-id { font-family: var(--mono); cursor: pointer; color: var(--tone); border-color: transparent; background: color-mix(in srgb, var(--tone, var(--accent)) 10%, transparent); }
 button.tag-id:hover { background: color-mix(in srgb, var(--tone, var(--accent)) 18%, transparent); }
 .tag-mode { color: var(--muted); }
+.tag-spelling { white-space: normal; }
+.tag-confidence { cursor: help; }
+.conf-high { color: #2fbf71; }
+.conf-medium { color: #e0a020; }
+.conf-low { color: #e5604d; }
 .tag-warn { color: var(--warn); background: rgba(217, 119, 6, 0.08); border-color: rgba(217, 119, 6, 0.3); }
 button.tag-open { cursor: pointer; margin-left: auto; color: var(--accent); border-color: var(--accent-line); background: var(--surface); font: inherit; font-size: 12px; font-weight: 600; }
 button.tag-open:hover { background: var(--accent-soft); }

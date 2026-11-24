@@ -1,7 +1,8 @@
 """Tunable retrieval and generation parameters.
 
 Every default equals the behaviour the pipeline had before this module existed, so
-importing it changes nothing.  ``backend/experiments`` builds variants of this object
+importing it changes nothing (except answer length, raised for
+comprehensive answers).  ``backend/experiments`` builds variants of this object
 to measure how each setting affects the benchmark; the configuration that is
 selected from those measurements is stored in ``backend/data/tuned_config.json`` and
 loaded with ``Tuning.from_file`` (see ``TUNING_CONFIG`` in ``.env.example``).
@@ -31,13 +32,15 @@ class Tuning:
     w_desc: float = 0.0               # weighted mode: coverage in the description (re-ranking)
     w_length: float = 0.02            # weighted mode: penalty per word of the name
     # --- graph traversal ------------------------------------------------------
+    semantic_accept: float = 0.62     # cosine needed when only meaning supports a match
+    # --- graph traversal (continued) ------------------------------------------
     max_hops: int = 3                 # longest relationship chain followed (1-3)
     traverse_limit: int = 200
     # --- generation ----------------------------------------------------------------
     temperature: float = 0.1
-    answer_tokens: int = 420
+    answer_tokens: int = 900
     evidence_chars: int = 6000
-    brief_answers: bool = True
+    brief_answers: bool = False
     verified_facts: bool = True       # append the graph's own key facts to a model answer
     flag_unverified: bool = True      # list identifiers the evidence does not contain
 

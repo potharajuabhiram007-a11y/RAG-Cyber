@@ -1,0 +1,922 @@
+{
+ "tuning": {
+  "questions": 299,
+  "about_excluded_records": 69,
+  "clean": {
+   "tp": 259,
+   "fp": 3,
+   "fn": 2,
+   "tn": 35,
+   "sample_size": 299,
+   "precision": 0.9885,
+   "recall": 0.9923,
+   "f1_score": 0.9904,
+   "accuracy": 0.9833,
+   "entity_recall": 0.9929,
+   "by_category": {
+    "ATTACK": 0.9756,
+    "CAPEC": 0.9889,
+    "CVE": 0.9688,
+    "CWE": 0.9851,
+    "FUNDAMENTALS": 1.0,
+    "UNSUPPORTED": 1.0
+   }
+  },
+  "clean_failures": [
+   {
+    "id": "h-cwe-a53",
+    "outcome": "FP",
+    "asked": "Which CWE is also known as Symlink following?",
+    "corrections": [],
+    "primary_got": "CWE-64",
+    "missing_ids": []
+   },
+   {
+    "id": "h-capec-a73",
+    "outcome": "FN",
+    "asked": "Which attack pattern is described as: \"An attacker leverages the security functionality of the system aimed at thwarting potential attacks to launch a denial of service attack against a legitimate system user\"?",
+    "corrections": [],
+    "primary_got": null,
+    "missing_ids": [
+     "CAPEC-2"
+    ]
+   },
+   {
+    "id": "h-attack-a68",
+    "outcome": "FP",
+    "asked": "Which ATT&CK technique is described as: \"Adversaries may encode data with a standard data encoding system to make the content of command and control traffic more difficult to detect\"?",
+    "corrections": [],
+    "primary_got": "T1132",
+    "missing_ids": []
+   },
+   {
+    "id": "h-attack-a73",
+    "outcome": "FN",
+    "asked": "Which ATT&CK technique is described as: \"Adversaries may take control of preexisting sessions with remote services to move laterally in an environment\"?",
+    "corrections": [],
+    "primary_got": null,
+    "missing_ids": [
+     "T1563"
+    ]
+   },
+   {
+    "id": "h-cve-n05",
+    "outcome": "FP",
+    "asked": "Which vulnerability affects the flomor kriblat firmware?",
+    "corrections": [
+     [
+      "flomor",
+      "floor"
+     ]
+    ],
+    "primary_got": "CVE-2025-52544",
+    "missing_ids": []
+   }
+  ],
+  "misspelled": {
+   "tp": 248,
+   "fp": 6,
+   "fn": 10,
+   "tn": 35,
+   "sample_size": 299,
+   "precision": 0.9764,
+   "recall": 0.9612,
+   "f1_score": 0.9687,
+   "accuracy": 0.9465,
+   "entity_recall": 0.9571,
+   "by_category": {
+    "ATTACK": 0.9024,
+    "CAPEC": 0.9778,
+    "CVE": 0.9688,
+    "CWE": 0.9403,
+    "FUNDAMENTALS": 0.9375,
+    "UNSUPPORTED": 1.0
+   }
+  },
+  "misspelled_failures": [
+   {
+    "id": "h-cwe-a05",
+    "outcome": "FN",
+    "asked": "Which weakness is claled Bufer Under-read?",
+    "corrections": [
+     [
+      "claled",
+      "called"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CWE-127"
+    ]
+   },
+   {
+    "id": "h-cwe-a14",
+    "outcome": "FN",
+    "asked": "Whicch weakness is called Authenticate Acors?",
+    "corrections": [
+     [
+      "Whicch",
+      "which"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CWE-1010"
+    ]
+   },
+   {
+    "id": "h-cwe-a39",
+    "outcome": "FN",
+    "asked": "Which weaknesss is called Use of a One-Way Hash withotu a Salt?",
+    "corrections": [
+     [
+      "withotu",
+      "without"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CWE-759"
+    ]
+   },
+   {
+    "id": "h-cwe-a53",
+    "outcome": "FP",
+    "asked": "Which CWE is also ktown as Symlink following?",
+    "corrections": [
+     [
+      "ktown",
+      "known"
+     ]
+    ],
+    "primary_got": "CWE-64",
+    "missing_ids": []
+   },
+   {
+    "id": "h-capec-a18",
+    "outcome": "FP",
+    "asked": "Which attack patuern is called Traceorute Ruote Enumeration?",
+    "corrections": [
+     [
+      "patuern",
+      "pattern"
+     ],
+     [
+      "Traceorute",
+      "traceroute"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CAPEC-293"
+    ]
+   },
+   {
+    "id": "h-capec-a56",
+    "outcome": "FN",
+    "asked": "Which attack pattern is cslled Modification Durig Manufacture?",
+    "corrections": [
+     [
+      "cslled",
+      "called"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CAPEC-438"
+    ]
+   },
+   {
+    "id": "h-attack-a14",
+    "outcome": "FN",
+    "asked": "Which ATT&CK tecnique is crlled Systm Services?",
+    "corrections": [
+     [
+      "tecnique",
+      "technique"
+     ],
+     [
+      "crlled",
+      "called"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "T1569"
+    ]
+   },
+   {
+    "id": "h-attack-a15",
+    "outcome": "FN",
+    "asked": "Which ATT&CK tehnique is clled Dyaib Hijackng?",
+    "corrections": [
+     [
+      "tehnique",
+      "technique"
+     ],
+     [
+      "clled",
+      "called"
+     ],
+     [
+      "Hijackng",
+      "hijacking"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "T1574.004"
+    ]
+   },
+   {
+    "id": "h-attack-a42",
+    "outcome": "FN",
+    "asked": "Which ATT&CK technique is calld Mlti-Fator Authentication Interception?",
+    "corrections": [
+     [
+      "calld",
+      "called"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "T1111"
+    ]
+   },
+   {
+    "id": "h-attack-a44",
+    "outcome": "FP",
+    "asked": "Whch ATT&CK technique is called Remoe Access Hardeare?",
+    "corrections": [
+     [
+      "Whch",
+      "which"
+     ],
+     [
+      "Hardeare",
+      "hardware"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "T1219.003"
+    ]
+   },
+   {
+    "id": "h-attack-a53",
+    "outcome": "FN",
+    "asked": "Which ATT&CK tethnique is called Suppply Cain Clmpromise?",
+    "corrections": [
+     [
+      "tethnique",
+      "technique"
+     ],
+     [
+      "Suppply",
+      "supply"
+     ],
+     [
+      "Clmpromise",
+      "compromise"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "T1195"
+    ]
+   },
+   {
+    "id": "h-attack-a57",
+    "outcome": "FN",
+    "asked": "Which ATT&CK techinque is callled AI Reslt Poisning?",
+    "corrections": [
+     [
+      "techinque",
+      "technique"
+     ],
+     [
+      "callled",
+      "called"
+     ],
+     [
+      "Poisning",
+      "poisoning"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "T1608.007"
+    ]
+   },
+   {
+    "id": "h-fundamentals-a14",
+    "outcome": "FP",
+    "asked": "What is CAPPEC_CoILD?",
+    "corrections": [
+     [
+      "CAPPEC",
+      "capec"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": []
+   },
+   {
+    "id": "h-attack-a68",
+    "outcome": "FP",
+    "asked": "Whhich ATT&CK technique is described as: \"Adversaries may encde data with a standaard data encoding sstem to make the content of commad and ctntrol traffic more dififcult to detect\"?",
+    "corrections": [
+     [
+      "Whhich",
+      "which"
+     ],
+     [
+      "encde",
+      "encode"
+     ],
+     [
+      "standaard",
+      "standard"
+     ],
+     [
+      "sstem",
+      "system"
+     ],
+     [
+      "commad",
+      "command"
+     ],
+     [
+      "ctntrol",
+      "control"
+     ],
+     [
+      "dififcult",
+      "difficult"
+     ]
+    ],
+    "primary_got": "T1132",
+    "missing_ids": []
+   },
+   {
+    "id": "h-attack-a73",
+    "outcome": "FN",
+    "asked": "Wich ATT&CK technique is deescribed as: \"Adversarise may take contrlo of preexisting sessons with remte services to move laterally in an envirnment\"?",
+    "corrections": [
+     [
+      "Wich",
+      "which"
+     ],
+     [
+      "deescribed",
+      "described"
+     ],
+     [
+      "Adversarise",
+      "adversaries"
+     ],
+     [
+      "contrlo",
+      "control"
+     ],
+     [
+      "sessons",
+      "sessions"
+     ],
+     [
+      "remte",
+      "remote"
+     ],
+     [
+      "envirnment",
+      "environment"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "T1563"
+    ]
+   },
+   {
+    "id": "h-cve-n05",
+    "outcome": "FP",
+    "asked": "Whcih vulnerability affects the flomor kriblat firmware?",
+    "corrections": [
+     [
+      "Whcih",
+      "which"
+     ],
+     [
+      "flomor",
+      "floor"
+     ]
+    ],
+    "primary_got": "CVE-2025-52544",
+    "missing_ids": []
+   }
+  ]
+ },
+ "heldout": {
+  "questions": 226,
+  "about_excluded_records": 46,
+  "clean": {
+   "tp": 185,
+   "fp": 4,
+   "fn": 1,
+   "tn": 36,
+   "sample_size": 226,
+   "precision": 0.9788,
+   "recall": 0.9946,
+   "f1_score": 0.9866,
+   "accuracy": 0.9779,
+   "entity_recall": 0.9898,
+   "by_category": {
+    "ATTACK": 1.0,
+    "CAPEC": 0.9848,
+    "CVE": 0.8947,
+    "CWE": 0.9818,
+    "FUNDAMENTALS": 0.9375,
+    "UNSUPPORTED": 1.0
+   }
+  },
+  "clean_failures": [
+   {
+    "id": "h-cve-a04",
+    "outcome": "FP",
+    "asked": "Which vulnerability is described as \"allows a local attacker with CLI access\"?",
+    "corrections": [],
+    "primary_got": "CVE-2022-20762",
+    "missing_ids": []
+   },
+   {
+    "id": "h-cve-a30",
+    "outcome": "FP",
+    "asked": "Which vulnerability is described as \"file operations in the file system Since\"?",
+    "corrections": [],
+    "primary_got": "CVE-2025-39791",
+    "missing_ids": []
+   },
+   {
+    "id": "h-fundamentals-a11",
+    "outcome": "FP",
+    "asked": "What is Vulnerability Assessment?",
+    "corrections": [],
+    "primary_got": "T1595.002",
+    "missing_ids": []
+   },
+   {
+    "id": "h-cwe-a48",
+    "outcome": "FN",
+    "asked": "Which weakness is described as: \"In many cases, an attacker can leverage the conditions that cause unhandled exception errors in order to gain unauthorized access to the system\"?",
+    "corrections": [
+     [
+      "unhandled",
+      "handled"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CWE-537"
+    ]
+   },
+   {
+    "id": "h-capec-a48",
+    "outcome": "FP",
+    "asked": "Which attack pattern is described as: \"This attack targets command-line utilities available in a number of shells\"?",
+    "corrections": [],
+    "primary_got": null,
+    "missing_ids": [
+     "CAPEC-9"
+    ]
+   }
+  ],
+  "misspelled": {
+   "tp": 173,
+   "fp": 5,
+   "fn": 12,
+   "tn": 36,
+   "sample_size": 226,
+   "precision": 0.9719,
+   "recall": 0.9351,
+   "f1_score": 0.9531,
+   "accuracy": 0.9248,
+   "entity_recall": 0.9391,
+   "by_category": {
+    "ATTACK": 0.9655,
+    "CAPEC": 0.9545,
+    "CVE": 0.7368,
+    "CWE": 0.9273,
+    "FUNDAMENTALS": 0.8125,
+    "UNSUPPORTED": 1.0
+   }
+  },
+  "misspelled_failures": [
+   {
+    "id": "h-cwe-a18",
+    "outcome": "FN",
+    "asked": "Which weaknnss is called Permissie List of Allowde Inpus?",
+    "corrections": [
+     [
+      "weaknnss",
+      "weakness"
+     ],
+     [
+      "Permissie",
+      "permissive"
+     ],
+     [
+      "Allowde",
+      "allowed"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CWE-183"
+    ]
+   },
+   {
+    "id": "h-capec-a30",
+    "outcome": "FN",
+    "asked": "Whiich attack pattern is called Redirct Accss to Libraries?",
+    "corrections": [
+     [
+      "Whiich",
+      "which"
+     ],
+     [
+      "Redirct",
+      "redirect"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CAPEC-159"
+    ]
+   },
+   {
+    "id": "h-capec-a32",
+    "outcome": "FN",
+    "asked": "Whhich attacck pattern is called Encryption Brte Foorcing?",
+    "corrections": [
+     [
+      "Whhich",
+      "which"
+     ],
+     [
+      "attacck",
+      "attack"
+     ],
+     [
+      "Foorcing",
+      "forcing"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CAPEC-20"
+    ]
+   },
+   {
+    "id": "h-attack-a03",
+    "outcome": "FN",
+    "asked": "Which ATT&CK tlchnique is called Peripheral Devie Discovery?",
+    "corrections": [
+     [
+      "tlchnique",
+      "technique"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "T1120"
+    ]
+   },
+   {
+    "id": "h-attack-a35",
+    "outcome": "FN",
+    "asked": "Whish ATT&CK technique is called Stela Application Specific Passwords?",
+    "corrections": [],
+    "primary_got": null,
+    "missing_ids": [
+     "T1697"
+    ]
+   },
+   {
+    "id": "h-cve-a04",
+    "outcome": "FP",
+    "asked": "Whech vulnerability is described as \"alows a local attacer with CLI access\"?",
+    "corrections": [
+     [
+      "Whech",
+      "which"
+     ],
+     [
+      "alows",
+      "allows"
+     ],
+     [
+      "attacer",
+      "attacker"
+     ]
+    ],
+    "primary_got": "CVE-2022-20762",
+    "missing_ids": []
+   },
+   {
+    "id": "h-cve-a16",
+    "outcome": "FN",
+    "asked": "Whiich vulnerability is described as \"The buf printer is an aray of\"?",
+    "corrections": [
+     [
+      "Whiich",
+      "which"
+     ],
+     [
+      "aray",
+      "array"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CVE-2024-38587"
+    ]
+   },
+   {
+    "id": "h-cve-a30",
+    "outcome": "FP",
+    "asked": "Which vulnreability is described as \"file operations in the file system Since\"?",
+    "corrections": [
+     [
+      "vulnreability",
+      "vulnerability"
+     ]
+    ],
+    "primary_got": "CVE-2025-39791",
+    "missing_ids": []
+   },
+   {
+    "id": "h-cve-a36",
+    "outcome": "FN",
+    "asked": "Wihch vulnerablity is described as \"Scriting vulnerability in WPChill Reove Foouer Creit\"?",
+    "corrections": [
+     [
+      "Wihch",
+      "which"
+     ],
+     [
+      "vulnerablity",
+      "vulnerability"
+     ],
+     [
+      "Scriting",
+      "scripting"
+     ],
+     [
+      "Foouer",
+      "footer"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CVE-2024-32429"
+    ]
+   },
+   {
+    "id": "h-cve-a40",
+    "outcome": "FN",
+    "asked": "Which vulnerability is described as \"to Arbitrary File Deletiion in Nabli Lemmsieh\"?",
+    "corrections": [
+     [
+      "Deletiion",
+      "deletion"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CVE-2022-46850"
+    ]
+   },
+   {
+    "id": "h-fundamentals-a11",
+    "outcome": "FP",
+    "asked": "What is Vulnerabilitty Assessment?",
+    "corrections": [
+     [
+      "Vulnerabilitty",
+      "vulnerability"
+     ]
+    ],
+    "primary_got": "T1595.002",
+    "missing_ids": []
+   },
+   {
+    "id": "h-fundamentals-a14",
+    "outcome": "FP",
+    "asked": "What is Routing Talbe?",
+    "corrections": [],
+    "primary_got": null,
+    "missing_ids": []
+   },
+   {
+    "id": "h-fundamentals-a15",
+    "outcome": "FN",
+    "asked": "What is OnASP?",
+    "corrections": [],
+    "primary_got": null,
+    "missing_ids": []
+   },
+   {
+    "id": "h-cwe-a44",
+    "outcome": "FN",
+    "asked": "Which weakenss is described as: \"Missing an abiiity to patch ROM code may leave a System or System-on-Chip (SoC) in a vulnerable stte\"?",
+    "corrections": [
+     [
+      "abiiity",
+      "ability"
+     ],
+     [
+      "stte",
+      "state"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CWE-1310"
+    ]
+   },
+   {
+    "id": "h-cwe-a46",
+    "outcome": "FN",
+    "asked": "Which weakenss is desccribed as: \"The product uses a seaarch path that contains an unquoted element, in which the elemert contains whitesaace or othre separators\"?",
+    "corrections": [
+     [
+      "desccribed",
+      "described"
+     ],
+     [
+      "seaarch",
+      "search"
+     ],
+     [
+      "elemert",
+      "element"
+     ],
+     [
+      "whitesaace",
+      "whitespace"
+     ],
+     [
+      "othre",
+      "other"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CWE-428"
+    ]
+   },
+   {
+    "id": "h-cwe-a48",
+    "outcome": "FN",
+    "asked": "Whih wakness is dercribed as: \"In many casses, an atacker can leverage the conditions that caase unhaodled exception errorrs in oder to gain unauthorized acccess to the system\"?",
+    "corrections": [
+     [
+      "Whih",
+      "which"
+     ],
+     [
+      "wakness",
+      "weakness"
+     ],
+     [
+      "dercribed",
+      "described"
+     ],
+     [
+      "casses",
+      "causes"
+     ],
+     [
+      "atacker",
+      "attacker"
+     ],
+     [
+      "caase",
+      "cause"
+     ],
+     [
+      "errorrs",
+      "errors"
+     ],
+     [
+      "acccess",
+      "access"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CWE-537"
+    ]
+   },
+   {
+    "id": "h-capec-a48",
+    "outcome": "FP",
+    "asked": "Whhich attaack pattern is described as: \"This attack taegets command-line utilities available in a numer of shells\"?",
+    "corrections": [
+     [
+      "Whhich",
+      "which"
+     ],
+     [
+      "attaack",
+      "attack"
+     ],
+     [
+      "taegets",
+      "targets"
+     ],
+     [
+      "numer",
+      "number"
+     ]
+    ],
+    "primary_got": null,
+    "missing_ids": [
+     "CAPEC-9"
+    ]
+   }
+  ]
+ },
+ "paraphrase_samples": [
+  290,
+  208
+ ],
+ "confidence_on_heldout": {
+  "answers": 575,
+  "brier": 0.0405,
+  "calibration": [
+   {
+    "range": [
+     0,
+     0.2
+    ],
+    "answers": 102,
+    "mean_confidence": 0.066,
+    "share_correct": 0.0
+   },
+   {
+    "range": [
+     0.2,
+     0.4
+    ],
+    "answers": 13,
+    "mean_confidence": 0.292,
+    "share_correct": 0.077
+   },
+   {
+    "range": [
+     0.4,
+     0.6
+    ],
+    "answers": 26,
+    "mean_confidence": 0.497,
+    "share_correct": 0.308
+   },
+   {
+    "range": [
+     0.6,
+     0.8
+    ],
+    "answers": 75,
+    "mean_confidence": 0.733,
+    "share_correct": 0.947
+   },
+   {
+    "range": [
+     0.8,
+     0.95
+    ],
+    "answers": 87,
+    "mean_confidence": 0.86,
+    "share_correct": 0.92
+   },
+   {
+    "range": [
+     0.95,
+     1.01
+    ],
+    "answers": 272,
+    "mean_confidence": 0.974,
+    "share_correct": 1.0
+   }
+  ],
+  "weights": {
+   "bias": -5.388,
+   "exact_id": 1.991,
+   "similarity": 0.346,
+   "coverage": 6.372,
+   "name_match": 1.892,
+   "corrected_share": 0.0
+  }
+ }
+}

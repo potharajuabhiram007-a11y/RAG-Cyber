@@ -31,15 +31,16 @@ from backend.config import (
 )
 from backend.database import LABEL_ATTACK, LABEL_CAPEC, LABEL_CVE, LABEL_CWE
 from backend.models import (
-    ChatResponse, EvidenceItem, GraphRelationship, Metrics, RelatedEntity, SourceRef,
+    ChatResponse, Confidence, EvidenceItem, GraphRelationship, Metrics, RelatedEntity, SourceRef,
 )
+from backend.rag.confidence import label_of, retrieval_confidence
 from backend.rag.tuning import DEFAULT_TUNING, Tuning
 from backend.rag.retriever import (
     STATUS_GENERAL, STATUS_UNSUPPORTED, EntityContext,
     RetrievalResult, Retriever, cve_line, describe_entity, extract_identifiers, reverse_gap,
-    reverse_upstream,
+    content_tokens, reverse_upstream, stem,
 )
-from backend.updater.data_processor import clean_text
+from backend.updater.data_processor import clean_text, phrase_tokens
 
 log = logging.getLogger(__name__)
 
@@ -552,6 +553,8 @@ def extractive_answer(result: RetrievalResult) -> str:
         lines.append("These counts reflect the data synchronised into this graph so far.")
         return "\n".join(lines)
     if result.category == CATEGORY_FUNDAMENTALS:
+        if result.note:
+            lines += [result.note, ""]
         for item in result.evidence:
             where = item.source + (f", p. {item.page_number}" if item.page_number else "")
             if item.kind == "term":
@@ -565,6 +568,10 @@ def extractive_answer(result: RetrievalResult) -> str:
         return "\n".join(lines).strip()
     if result.note:
         lines += [result.note, ""]
+    for item in result.evidence:
+        if item.kind == "concept":
+            head, *rows = item.text.split("\n")
+            lines += [f"**{item.title}** (source: {item.source})", head, *(f"- {r}" for r in rows if r), ""]
     for context in result.contexts:
         lines += _entity_section(context)
         lines.append("")
@@ -756,6 +763,48 @@ class Generator:
         return answer, "llm" if grounded else "llm_knowledge"
 
 
+def _support(answer: str, result: RetrievalResult) -> float | None:
+    """Share of the answer's sentences whose words are in the evidence or the question."""
+    body = re.split(r"\*\*(?:Verified in the knowledge graph|Not verified|Reverse traversal)", answer)[0]
+    pool = " ".join([result.analysis.message, *result.mitigations]
+                    + [f"{e.identifier} {e.title} {e.text}" for e in result.evidence])
+    available = {stem(t) for t in phrase_tokens(pool)}
+    scores = []
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", body):
+        words = [stem(t) for t in content_tokens(phrase_tokens(sentence)) if len(t) > 3]
+        if len(words) >= 4:
+            scores.append(1.0 if sum(w in available for w in words) / len(words) >= 0.6 else 0.0)
+    return sum(scores) / len(scores) if scores else None
+
+
+def answer_confidence(result: RetrievalResult, answer: str, mode: str) -> Confidence | None:
+    """None when there is no answer to rate (small talk, RESULT NOT FOUND)."""
+    if result.status == STATUS_GENERAL or answer == RESULT_NOT_FOUND:
+        return None
+    if mode == "llm_knowledge":
+        return Confidence(score=0.3, label="low", basis="Written from the model's general knowledge: "
+                          "no record in the knowledge graph supports it.")
+    if not result.features:
+        return None
+    f = result.features
+    score = retrieval_confidence(f)
+    parts = ["the question names the record exactly" if f["exact_id"] else
+             f"similarity to the best record {f['similarity']:.2f}, "
+             f"{f['coverage']:.0%} of the question's words found in it"]
+    if result.corrections:
+        parts.append(f"{len(result.corrections)} spelling correction(s)")
+    if mode == "llm":
+        support = _support(answer, result)
+        if support is not None:
+            score *= 0.6 + 0.4 * support
+            parts.append(f"{support:.0%} of the written sentences are supported by the evidence")
+        if "**Not verified:**" in answer:
+            score *= 0.85
+            parts.append("the model added unverified identifiers")
+    score = round(min(0.99, max(0.01, score)), 2)
+    return Confidence(score=score, label=label_of(score), basis="; ".join(parts) + ".")
+
+
 class Assistant:
     """The complete chat pipeline used by the API and by the evaluation module."""
 
@@ -801,6 +850,8 @@ class Assistant:
             hint_applicable=hint_applicable,
             retrieval_status=result.status,
             generation_mode=mode,
+            confidence=answer_confidence(result, answer, mode),
+            corrections=[list(c) for c in result.corrections],
             timestamp=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         )
 

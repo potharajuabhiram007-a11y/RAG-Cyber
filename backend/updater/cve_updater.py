@@ -24,7 +24,8 @@ from typing import Callable, Iterator
 import httpx
 
 from backend.config import Settings
-from backend.database import LABEL_CVE, utc_now_iso
+from backend.curation import PINNED_CVES, cve_problems, product_ids
+from backend.database import LABEL_CVE, LABEL_CWE, LABEL_PRODUCT, utc_now_iso
 from backend.updater.data_processor import (
     EMBEDDING_TEXT, DataValidationError, EmbeddingClient, SyncResult, attach_embeddings,
     build_http_client, clean_text, content_hash, dedupe, http_get, normalize_cve_id,
@@ -160,6 +161,7 @@ class CVEUpdater:
         # new CVEs were written since the last prune.
         self._floor: str | None = None
         self._unpruned = 0
+        self._known: tuple[set[str], set[str]] | None = None
 
     # ------------------------------------------------------------------ #
     # HTTP
@@ -223,6 +225,24 @@ class CVEUpdater:
         if not unique:
             return 0, skipped
         stored = self.db.get_property_map(LABEL_CVE, [r["id"] for r in unique], "content_hash")
+        if self.settings.curate:
+            # rejected / incomplete records are not stored, and a stored record that
+            # became rejected or incomplete is removed
+            if self._known is None:
+                self._known = (self.db.all_ids(LABEL_CWE), self.db.all_ids(LABEL_PRODUCT))
+            cwes, products = self._known
+            bad = {r["id"] for r in unique if cve_problems(r, cwes)}
+            gone = [i for i in bad if i in stored]
+            if gone:
+                self.db.delete_cves(gone)
+                log.info("nvd: removed %d records that are now rejected or incomplete", len(gone))
+            unique = [r for r in unique if r["id"] not in bad]
+            for row in unique:
+                row["product_ids"] = product_ids(row, products)
+                if row["id"] in PINNED_CVES:
+                    row["pinned"] = True
+            if not unique:
+                return 0, skipped
         if self._floor:
             # With MAX_CVES set and the cap reached, a CVE published before the oldest one
             # kept would be pruned straight away: do not store (or embed) it at all.
@@ -237,6 +257,13 @@ class CVEUpdater:
                     if stored.get(r["id"]) != r["content_hash"] or "embedding" in r]
         for row in to_write:
             row["synced_at"] = now
+        if self.settings.curate:
+            # make room BEFORE writing: the limits hold at every moment
+            new = sum(1 for r in to_write if r["id"] not in stored)
+            cap = self.settings.max_cves
+            if cap and self.db.cve_count() + new > cap:
+                self.db.prune_cves(max(1, cap - new))
+            self.db.make_room(new, sum(len(r["related_cwe_ids"]) + len(r["product_ids"]) for r in to_write))
         self.db.upsert_cves(to_write)
         self._unpruned += sum(1 for r in to_write if r["id"] not in stored)
         return len(to_write), skipped
@@ -268,6 +295,7 @@ class CVEUpdater:
                                     last_attempt_at=format_nvd_datetime(started))
             self._unpruned = 0
             self._floor = None
+            self._known = None
             self.enforce_cap(force=True)        # also sets the retention floor
             if full or not state.get("checkpoint"):
                 stats = self._initial_sync(state, started, restart=full)

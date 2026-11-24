@@ -32,6 +32,7 @@ from xml.etree import ElementTree as ET
 
 import httpx
 
+from backend.curation import pretty, record_problems
 from backend.config import Settings
 from backend.database import LABEL_DOC, LABEL_TERM, utc_now_iso
 
@@ -387,6 +388,14 @@ class EmbeddingClient:
     def embed_one(self, text: str) -> list[float] | None:
         return self.embed([text])[0]
 
+    def embed_query(self, text: str) -> list[float] | None:
+        """A question. Retrieval models such as bge expect an instruction before the
+        question (never before the stored text)."""
+        model = (self._settings.embedding_model or "").lower()
+        if self.provider == "sentence-transformers" and ("bge-" in model or "arctic-embed" in model):
+            text = "Represent this sentence for searching relevant passages: " + text
+        return self.embed_one(text)
+
     def embed(self, texts: Sequence[str]) -> list[list[float] | None]:
         """Embed texts; an entry is ``None`` when the text has no usable content."""
         s = self._settings
@@ -462,12 +471,22 @@ def attach_embeddings(db, embedder: EmbeddingClient, label: str, rows: list[dict
     return embedded
 
 
+def _products_text(row: dict) -> str:
+    """Product names in front of a CVE description (the id carries no meaning)."""
+    names = [pretty(p.replace(":", " ")) for p in (row.get("affected_products") or [])[:4]]
+    return f"{', '.join(names)}. " if names else ""
+
+
 EMBEDDING_TEXT: dict[str, Callable[[dict], str]] = {
-    "CVE": lambda r: f"{r.get('id', '')}. {r.get('description', '')}",
+    "CVE": lambda r: (f"{_products_text(r)}{r.get('description', '')}"),
     "CWE": lambda r: (f"{r.get('name', '')}. {' '.join(r.get('alternate_terms') or [])}. "
                       f"{r.get('description', '')}"),
     "CAPEC": lambda r: f"{r.get('name', '')}. {r.get('description', '')}",
     "ATTACK": lambda r: f"{r.get('name', '')}. {r.get('description', '')}",
+    "Product": lambda r: f"{r.get('name', '')}. {r.get('description', '')}",
+    "Vendor": lambda r: f"{r.get('name', '')}. {r.get('description', '')}",
+    "Tactic": lambda r: f"{r.get('name', '')}. {r.get('description', '')}",
+    "Mitigation": lambda r: f"{r.get('name', '')}. {r.get('description', '')}",
     "CyberTerm": lambda r: f"{r.get('term', '')}. {r.get('definition', '')}",
     "CyberDocument": lambda r: f"{r.get('section') or r.get('title', '')}. {r.get('content', '')}",
 }
@@ -1023,6 +1042,9 @@ class FoundationIngestor:
         term_rows, doc_rows = document_to_rows(doc)
         if not term_rows and not doc_rows:
             raise DataValidationError(f"{path.name} produced no terms or text chunks")
+        if self.settings.curate:
+            term_rows = [r for r in term_rows if not record_problems(LABEL_TERM, r)]
+            doc_rows = [r for r in doc_rows if not record_problems(LABEL_DOC, r)]
         attach_embeddings(self.db, self.embedder, LABEL_TERM, term_rows, EMBEDDING_TEXT[LABEL_TERM])
         attach_embeddings(self.db, self.embedder, LABEL_DOC, doc_rows, EMBEDDING_TEXT[LABEL_DOC])
         self.db.upsert_nodes(LABEL_TERM, term_rows)
@@ -1132,6 +1154,11 @@ class SnapshotUpdater:
                 return SyncResult(self.source, "unchanged", records=int(state.get("records") or 0))
             rows, meta = self.parse(payloads)
             self.validate(rows, state)
+            if self.settings.curate:
+                # an incomplete weakness already in the graph stays (CVEs refer to it)
+                kept = self.db.get_property_map(self.label, [r["id"] for r in rows], "content_hash")
+                rows = [r for r in rows if not (p := record_problems(self.label, r))
+                        or (r["id"] in kept and all(x.startswith("incomplete:") for x in p))]
             now = utc_now_iso()
             for row in rows:
                 row["content_hash"] = content_hash(row)
