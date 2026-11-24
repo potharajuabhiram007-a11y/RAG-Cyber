@@ -17,6 +17,9 @@ import os
 from typing import Sequence
 
 
+MAX_BATCH_TOKENS = 512
+
+
 class OnnxSentenceEncoder:
     def __init__(self, repo_id: str, threads: int | None = None):
         try:
@@ -61,6 +64,9 @@ class OnnxSentenceEncoder:
         self._tokenizer.enable_padding()
 
         options = ort.SessionOptions()
+        # keep no memory between calls: a long text would otherwise raise the process for good
+        options.enable_cpu_mem_arena = False
+        options.enable_mem_pattern = False
         options.intra_op_num_threads = threads or int(os.environ.get("OMP_NUM_THREADS") or 0)
         self._session = ort.InferenceSession(model_path, options,
                                              providers=["CPUExecutionProvider"])
@@ -71,12 +77,30 @@ class OnnxSentenceEncoder:
             self._dimension = len(self.encode(["dimension probe"])[0])
         return self._dimension
 
+    def _groups(self, texts: Sequence[str], batch_size: int):
+        group: list[int] = []
+        longest = 0
+        for index, text in enumerate(texts):
+            tokens = len(self._tokenizer.encode(text).ids)
+            if group and (len(group) >= batch_size
+                          or max(longest, tokens) * (len(group) + 1) > MAX_BATCH_TOKENS):
+                yield group
+                group, longest = [], 0
+            group.append(index)
+            longest = max(longest, tokens)
+        if group:
+            yield group
+
     def encode(self, texts: Sequence[str], batch_size: int = 32, normalize_embeddings: bool = True,
                convert_to_numpy: bool = True, show_progress_bar: bool = False):
         np = self._np
-        batches = []
-        for start in range(0, len(texts), batch_size):
-            encoded = self._tokenizer.encode_batch(list(texts[start:start + batch_size]))
+        # Texts of similar length together, and at most MAX_BATCH_TOKENS (padding included)
+        # per run: 32 long texts at once needed over 1 GB.
+        order = sorted(range(len(texts)), key=lambda i: len(texts[i]))
+        batches, done = [], []
+        for group in self._groups([texts[i] for i in order], batch_size):
+            encoded = self._tokenizer.encode_batch([texts[order[i]] for i in group])
+            done += [order[i] for i in group]
             ids = np.array([e.ids for e in encoded], dtype=np.int64)
             mask = np.array([e.attention_mask for e in encoded], dtype=np.int64)
             feed = {"input_ids": ids, "attention_mask": mask}
@@ -93,4 +117,7 @@ class OnnxSentenceEncoder:
             batches.append(pooled.astype(np.float32))
         if not batches:
             return np.zeros((0, self._dimension or 0), dtype=np.float32)
-        return np.concatenate(batches)
+        merged = np.concatenate(batches)
+        result = np.empty_like(merged)
+        result[done] = merged              # back to the caller's order
+        return result

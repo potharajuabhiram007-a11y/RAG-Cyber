@@ -53,8 +53,10 @@ def english_words() -> Counter:
     if _english is None:
         try:
             from spellchecker import SpellChecker
-            words = SpellChecker(language="en").word_frequency
+            checker = SpellChecker(language="en")
+            words = checker.word_frequency
             _english = Counter({w: words[w] for w in words.words() if words[w] >= _ENGLISH_MIN})
+            del words, checker               # the full list is not needed again
         except ImportError:
             _english = Counter()
     return _english

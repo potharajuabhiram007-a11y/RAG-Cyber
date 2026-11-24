@@ -57,6 +57,10 @@ services:
         value: onnx
       - key: HF_HOME              # model cache inside the project folder, kept from the build
         value: /opt/render/project/src/.hf-cache
+      - key: NVD_RESULTS_PER_PAGE # smaller update pages: 512 MB of memory
+        value: "200"
+      - key: MALLOC_ARENA_MAX     # glibc: give freed memory back instead of one pool per thread
+        value: "2"
       - key: OMP_NUM_THREADS      # the free instance has a fraction of one CPU
         value: "1"
       - key: UPDATE_INTERVAL_HOURS        # CWE, CAPEC, ATT&CK: about every 3 months
