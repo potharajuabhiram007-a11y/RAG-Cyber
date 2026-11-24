@@ -1273,7 +1273,7 @@
     };
 
     const graph = new RelationGraph(wrap, canvas, tip, data.relationships, names, data.identifiers || [], {
-      onPick: (id) => send("Explain " + id),
+      onPick: (id) => openEntityPanel(id, wrap),
       onGroups: renderGroups,
     });
     canvas.relationGraph = graph;
@@ -1287,7 +1287,7 @@
       modeButton.title = `Switch to the ${next} view`;
       modeButton.setAttribute("aria-label", `${MODE_LABELS[graph.mode]} view. Switch to the ${next} view`);
       hint.textContent = (graph.mode === "flow" ? "Follow the arrows left to right \u00b7 drag to pan"
-        : graph.mode === "2d" ? "Drag to pan" : "Drag to rotate") + " \u00b7 click a node to ask about it";
+        : graph.mode === "2d" ? "Drag to pan" : "Drag to rotate") + " \u00b7 click a node to see its details";
     }
     syncMode();
     wrap.addEventListener("fullscreenchange", () => {
@@ -1661,13 +1661,17 @@
     return false;
   }
 
+  const countRuns = new WeakMap();
   function countUp(node, target) {
     const from = Number(node.dataset.value || 0);
     node.dataset.value = String(target);
+    const run = (countRuns.get(node) || 0) + 1;      // a newer count stops the older one
+    countRuns.set(node, run);
     if (reducedMotion.matches || from === target) { node.textContent = target.toLocaleString(); return; }
     const start = performance.now();
     const step = (now) => {
-      const t = Math.min(1, (now - start) / 600);
+      if (countRuns.get(node) !== run) return;
+      const t = Math.max(0, Math.min(1, (now - start) / 600));
       node.textContent = Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3))).toLocaleString();
       if (t < 1) requestAnimationFrame(step);
     };
@@ -1853,6 +1857,7 @@
   async function send(text) {
     const message = text.trim();
     if (!message || busy) return;
+    if (atHome) resetChat();                     // asked from the home page: a new chat
     const welcome = document.getElementById("welcome");
     if (welcome) welcome.remove();
     busy = true;
@@ -1946,9 +1951,47 @@
   chat.addEventListener("scroll", updateJump, { passive: true });
   jumpButton.addEventListener("click", () => scrollToBottom(true));
 
+  /* Home (the menu entry and the logo) always shows the home page. A chat that is open is
+   * kept behind it: "Back to your chat" returns to it, a new question starts a new chat. */
+  function leaveHome() {
+    if (!atHome) return;
+    atHome = false;
+    const welcome = document.getElementById("welcome");
+    if (welcome) welcome.remove();
+  }
+
+  function showHome() {
+    if (chat.querySelector(".msg") && !atHome) {
+      atHome = true;
+      const welcome = welcomeTemplate.cloneNode(true);
+      const back = el("button", "btn home-back", "Back to your chat");
+      back.type = "button";
+      back.addEventListener("click", () => {
+        leaveHome();
+        syncEntry();
+        scrollToBottom(true);
+        updateJump();
+      });
+      welcome.appendChild(back);
+      chat.prepend(welcome);
+    }
+    closeEntityPanel();
+    go("assistant");
+    chat.scrollTop = 0;
+    updateJump();
+  }
+
+  document.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (!event.target.closest('a.brand, a.nav-link[data-view="assistant"]')) return;
+    event.preventDefault();
+    showHome();
+  });
+
   /* A chat holds as many questions as you like; "New chat" goes back to the empty entry screen. */
   function syncEntry() {
-    const answered = Boolean(chat.querySelector(".msg"));
+    const answered = Boolean(chat.querySelector(".msg")) && !atHome;
+    chat.classList.toggle("at-home", atHome);
     document.body.classList.toggle("entry", currentView === "assistant" && !answered);
     document.body.classList.toggle("answered", answered);
     placeIndicator();
@@ -1958,6 +2001,8 @@
   function resetChat() {
     releaseGraphs(chat);
     history = [];
+    lastEntityIds = [];
+    atHome = false;
     saveHistory();
     chat.replaceChildren(welcomeTemplate.cloneNode(true));
     input.value = "";
@@ -1992,6 +2037,7 @@
   const navIndicator = document.getElementById("nav-indicator");
   const viewbar = document.querySelector(".viewbar");
   let currentView = null;
+  let atHome = false;              // the home page is shown while a chat is open behind it
   let countedUp = false;
 
   function replay(node, className) {
@@ -2862,7 +2908,7 @@
       return box.childNodes.length ? box : null;
     }
 
-    function renderDetail(data) {
+    function buildDetail(data, pick) {
       const p = data.properties;
       const box = el("div", "entity");
       box.dataset.type = data.label;
@@ -2924,7 +2970,7 @@
             const text = info.label === "CVE"
               ? [info.severity, info.base_score].filter((v) => v !== null && v !== undefined).join(" ") : info.name;
             if (text && text !== info.id) item.appendChild(el("span", null, text));
-            item.addEventListener("click", () => select(info.id));
+            item.addEventListener("click", () => pick(info.id));
             list.appendChild(item);
           });
           section.appendChild(list);
@@ -2957,7 +3003,11 @@
         box.appendChild(block);
       });
 
-      detail.replaceChildren(box);
+      return box;
+    }
+
+    function renderDetail(data) {
+      detail.replaceChildren(buildDetail(data, (id) => select(id)));
       detail.scrollTop = 0;
     }
 
@@ -3139,6 +3189,8 @@
     }
 
     return {
+      /* the same details, for the panel an answer's graph opens */
+      async details(id, pick) { return buildDetail(await fetchEntity(id, 10), pick); },
       open(entity) {
         resize();
         if (entity && entity.toUpperCase() !== selected) select(entity);
@@ -3147,6 +3199,72 @@
       },
     };
   })();
+
+  /* ------------------------------------------------------------------ */
+  /* details of a node clicked in an answer's relationship graph          */
+  /* ------------------------------------------------------------------ */
+  let entityPanel = null, panelTicket = 0, panelReturn = null;
+
+  function closeEntityPanel() {
+    panelTicket += 1;
+    if (!entityPanel) return;
+    entityPanel.remove();
+    entityPanel = null;
+    if (panelReturn && panelReturn.isConnected) panelReturn.focus({ preventScroll: true });
+    panelReturn = null;
+  }
+
+  async function openEntityPanel(id, wrap) {
+    // a fullscreen graph only shows its own children
+    const host = document.fullscreenElement === wrap ? wrap : document.body;
+    if (entityPanel && entityPanel.parentNode !== host) closeEntityPanel();
+    if (!entityPanel) {
+      panelReturn = document.activeElement;
+      entityPanel = el("aside", "entity-panel kg-detail");
+      entityPanel.setAttribute("role", "dialog");
+      entityPanel.setAttribute("aria-label", "Entity details");
+      const bar = el("div", "entity-panel-bar");
+      const graphButton = el("button", "btn", "Open in Knowledge Graph");
+      graphButton.type = "button";
+      const close = el("button", "btn btn-square", "\u00d7");
+      close.type = "button";
+      close.setAttribute("aria-label", "Close details");
+      close.addEventListener("click", closeEntityPanel);
+      bar.append(graphButton, close);
+      const body = el("div", "entity-panel-body");
+      body.setAttribute("aria-live", "polite");
+      entityPanel.append(bar, body);
+      host.appendChild(entityPanel);
+      close.focus({ preventScroll: true });
+    }
+    const body = entityPanel.querySelector(".entity-panel-body");
+    const graphButton = entityPanel.querySelector(".entity-panel-bar .btn");
+    graphButton.dataset.graph = id;
+    const ticket = ++panelTicket;
+    const loading = el("div", "detail-loading");
+    loading.append(el("div", "spinner"), document.createTextNode("Loading " + id));
+    body.replaceChildren(loading);
+    let content;
+    try { content = await explorer.details(id, (next) => openEntityPanel(next, wrap)); }
+    catch (error) {
+      content = el("p", "placeholder", error instanceof TypeError
+        ? "The backend could not be reached." : error.message);
+    }
+    if (ticket !== panelTicket || !entityPanel) return;
+    body.replaceChildren(content);
+    body.scrollTop = 0;
+  }
+
+  document.addEventListener("click", (event) => {            // "Ask" and "Open in Knowledge Graph" lead elsewhere
+    if (!entityPanel || !event.target.closest(".entity-panel [data-ask], .entity-panel [data-graph]")) return;
+    if (document.fullscreenElement) document.exitFullscreen();
+    closeEntityPanel();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && entityPanel) closeEntityPanel();
+  });
+  document.addEventListener("fullscreenchange", closeEntityPanel);
+  window.addEventListener("hashchange", closeEntityPanel);
 
   loadArchive();
   updateHistoryCount();

@@ -90,43 +90,6 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * 3. Counters: dashboard numbers count up when they change.
-   * ------------------------------------------------------------------ */
-  const counting = new WeakMap();
-  function parseNumber(text) {
-    const clean = (text || "").replace(/[,\s]/g, "");
-    return /^\d+$/.test(clean) ? Number(clean) : null;
-  }
-  function countUp(el) {
-    const state = counting.get(el);
-    if (state && state.writing) return;                   // our own update
-    const target = parseNumber(el.textContent);
-    if (target === null || (state && state.target === target)) return;
-    const from = state ? state.target : 0;
-    counting.set(el, { target, writing: false });
-    if (reduce.matches || target === from) return;
-    const start = performance.now(), duration = 1100;
-    el.classList.add("fx-counting");
-    const step = (now) => {
-      const t = Math.min(1, (now - start) / duration), eased = 1 - Math.pow(1 - t, 3);
-      const s = counting.get(el);
-      if (!s || s.target !== target) return;              // a newer value arrived
-      s.writing = true;
-      el.textContent = Math.round(from + (target - from) * eased).toLocaleString("en-US");
-      s.writing = false;
-      if (t < 1) requestAnimationFrame(step);
-      else el.classList.remove("fx-counting");
-    };
-    requestAnimationFrame(step);
-  }
-  function watchCounters() {
-    document.querySelectorAll(".stat-value").forEach((el) => {
-      countUp(el);
-      new MutationObserver(() => countUp(el)).observe(el, { childList: true, characterData: true, subtree: true });
-    });
-  }
-
-  /* ------------------------------------------------------------------ *
    * 4. Micro-interactions: ripples, spotlight, tilt, hero parallax.
    * ------------------------------------------------------------------ */
   const RIPPLE = ".btn, .gbtn, .mini, .kg-mode, .nav-link, .tab";
@@ -446,7 +409,6 @@
   }
 
   function init() {
-    watchCounters();
     syncThemeButton();
     const themeButton = document.getElementById("theme-toggle");
     if (themeButton) themeButton.addEventListener("click", toggleTheme);
