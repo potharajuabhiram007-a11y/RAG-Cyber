@@ -8,7 +8,7 @@ The frontend stays on Vercel.
 | Database | Neo4j on `localhost` | Neo4j AuraDB Free |
 | Backend | `uvicorn` on port 8000 | Render free web service |
 | Model | Ollama `llama3.2` | `openai/gpt-oss-120b` through the Groq API |
-| Embeddings | `all-MiniLM-L6-v2` (ONNX Runtime) | the same model on Render, downloaded during the build |
+| Embeddings | `BAAI/bge-small-en-v1.5` (ONNX Runtime) | the same model on Render, downloaded during the build |
 | Public address | Temporary Cloudflare tunnel | Permanent `onrender.com` address |
 
 Everything is done with settings, the `render.yaml` file in this folder and the
